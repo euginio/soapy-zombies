@@ -15,17 +15,27 @@ export class Zombie extends Physics.Arcade.Sprite {
     private sprites: any;
 
     body: Physics.Arcade.Body;
-
+    
+    // https://phaser.io/examples/v3/view/physics/arcade/extending-arcade-sprite#
     constructor(scene:Scene) {
-        super(scene, 0, 0, 'brain');    
-    }
+        super(scene, 0, 0, 'zombie_sheet');    
 
-    init(){
-        this.enableBody(true,this.x,this.y,true,null)
-        this.setBounce(0);
-        this.setVelocity(Phaser.Math.Between(-200, 200), 20);
-        this.body.allowGravity = false;
+        this.play('camina');
+
+        scene.add.existing(this);
+        scene.physics.add.existing(this);
+        
+        this.setBounce(1,1);
         this.setCollideWorldBounds(true);
+
+        this.body.onWorldBounds = true;
+
+
+        this.setVelocity(Phaser.Math.Between(-200, 200), -200);
+        // this.body.allowGravity = false;>
+    }
+    
+    init(){
         
         // var fsi = frameStartIndex;
         // this.animations.add('eatBrain', [0,12,1,13]);
@@ -43,6 +53,7 @@ export class Zombie extends Physics.Arcade.Sprite {
                     newZombie = new NorthZombie(game);
                 }*/
         newZombie = new NorthZombie(scene);
+        newZombie.init();
         return newZombie;
     }
 

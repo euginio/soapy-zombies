@@ -11,7 +11,7 @@ import { Zombie } from "../objects/zombie";
 export class GameScene extends Phaser.Scene {
   brain: Phaser.Physics.Arcade.Sprite;
   theZombie: Phaser.Physics.Arcade.Sprite;
-  zombies: Phaser.Physics.Arcade.Group;
+  zombies: Phaser.GameObjects.Group;
 
   constructor() {
     super({
@@ -36,24 +36,23 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.anims.create({
+      key: 'camina',
+      frames: this.anims.generateFrameNumbers('zombie_sheet', { frames: [ 0, 6, 12, 1, 7, 13 ] }),
+      frameRate: 7,
+      repeat: -1
+    });
+
     this.brain= this.physics.add.sprite(<number>this.game.config.width/2,<number>this.game.config.height/2, 'brain')
     
-    this.zombies = this.physics.add.group();
-
-    // let zomb=this.zombies.create(16, 16, 'zombie-sheet',);
-    // zomb = Object.assign(new Zombie(this), zomb);
-    // zomb.setBounce(1);
-    // zomb.setCollideWorldBounds(true);
-    // zomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
-    // zomb.allowGravity = false;
+    this.zombies = this.add.group();
 
     // first zombie
     let a = Zombie.newRandomZombie(this);
     this.zombies.add(a)
-    a.init();
+    // a.init();
 
     // this.zombies.children.iterate((z:Zombie)=>z.init())
-    // this.theZombie = this.physics.add.sprite(40,40, 'zombie_sheet')
   }
 
   update(): void {
