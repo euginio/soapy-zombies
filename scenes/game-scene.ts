@@ -47,15 +47,11 @@ export class GameScene extends Phaser.Scene {
     // zomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
     // zomb.allowGravity = false;
 
-
-
     // first zombie
     let a = Zombie.newRandomZombie(this);
-    // let b = Zombie.newRandomZombie(this);
     this.zombies.add(a)
     a.init();
-    // this.zombies.add(b)
-    // b.init();
+
     // this.zombies.children.iterate((z:Zombie)=>z.init())
     // this.theZombie = this.physics.add.sprite(40,40, 'zombie_sheet')
   }
