@@ -13,13 +13,19 @@ const config: Phaser.Types.Core.GameConfig = {
   title: "Soapy zombies",
   url: "https://github.com/euginio/soapy-zombies",
   version: "1.0",
-  width: 900,
-  height: 1600,
+  width: 450,
+  height: 800,
   type: Phaser.AUTO,
+  physics: {
+    default: 'arcade',
+    arcade: {
+      debug: true
+  }
+  },
   parent: "game",
   scene: [BootScene, GameScene],
-  backgroundColor: "#de3412",
-  render: { pixelArt: false, antialias: true }
+  // backgroundColor: "#de3412",
+  // render: { pixelArt: false, antialias: true }
 };
 
 export class Game extends Phaser.Game {

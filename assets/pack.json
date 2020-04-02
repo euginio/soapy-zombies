@@ -7,14 +7,23 @@
         "url": "./assets/images/ball.png"
       },
       {
-        "type": "image",
+        "type": "spritesheet",
         "key": "brain",
-        "url": "./assets/images/brain.png"
+        "url": "./assets/images/brain.png",
+        "frameConfig": {
+          "frameWidth": 81,
+          "frameHeight": 61
+        }
+
       },
       {
-        "type": "image",
+        "type": "spritesheet",
         "key": "zombie_sheet",
-        "url": "./assets/images/zombie_sheet.png"
+        "url": "./assets/images/zombie_sheet.png",
+        "frameConfig": {
+          "frameWidth": 46,
+          "frameHeight": 49
+        }
       }
     ]
   }

@@ -16,9 +16,9 @@ class State extends Phaser.State {
 
     preload() {
         this.game.stage.backgroundColor = '#85b5e1';
-        this.game.load.spritesheet('zombie', 'resources/img/zombie_sheet.png', 46, 49)
-        this.game.load.spritesheet('brain', 'resources/img/brain.png', 81, 61);
-        this.game.load.spritesheet('soapBubble', 'resources/img/ball.png', 25, 25);
+        // this.game.load.spritesheet('zombie', 'resources/img/zombie_sheet.png', 46, 49)
+        // this.game.load.spritesheet('brain', 'resources/img/brain.png', 81, 61);
+        // this.game.load.spritesheet('soapBubble', 'resources/img/ball.png', 25, 25);
     }
     // render(){
     //     this.game.debug.text(`Debugging Phaser ${JSON.stringify(orient)}`, 20, 20, 'yellow', 'Segoe UI');
