@@ -12,11 +12,15 @@ improve zoapy zombies
         Discutir con los chiquis y elegir
         bajar imagenes copadas acordes (salva y ampi) (fondos, hormigas, etc)
         aplicar imagenes
+    kill zombies when them got out of bound
+    score
+    dinamic multiple zombies
     mejorar lógica de gravedad vs velocidad (use angle instead)
     use diferent animations depending the zombie direction/angle
     darle onda al acelerometro
     probar concepto de mover íconos
     shake para hormigas/zombies?
+    different types of zombies
     * multiple zombies in multiple directions
 
 doubts
