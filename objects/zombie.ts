@@ -25,26 +25,14 @@ export class Zombie extends Physics.Arcade.Sprite {
         scene.add.existing(this);
         scene.physics.add.existing(this);
         
-        this.setBounce(1,1);
-        this.setCollideWorldBounds(true);
+        // this.setBounce(1,1);
+        // this.setCollideWorldBounds(true);
+        // this.body.onWorldBounds = true;
 
-        this.body.onWorldBounds = true;
 
-
-        this.setVelocity(Phaser.Math.Between(-200, 200), -200);
+        // this.setVelocity(Phaser.Math.Between(-200, 200), -200);
         // this.body.allowGravity = false;>
     }
-    
-    init(){
-        
-        // var fsi = frameStartIndex;
-        // this.animations.add('eatBrain', [0,12,1,13]);
-        // this.animations.add('walk', [0, 6, 12, 1, 7, 13]);
-        // this.play('walk', 5, true);
-
-        // this.events.onOutOfBounds.add(this.zombieOut, this);
-    }
-
 
     public static newRandomZombie(scene: Scene) {
         var aDirection = Math.abs(Math.random() * 4 * 90);
@@ -53,7 +41,6 @@ export class Zombie extends Physics.Arcade.Sprite {
                     newZombie = new NorthZombie(game);
                 }*/
         newZombie = new NorthZombie(scene);
-        newZombie.init();
         return newZombie;
     }
 

@@ -1,0 +1,32 @@
+
+
+    //  The curves do not have to be joined
+    var line1 = new Phaser.Curves.Line([ 100, 100, 500, 200 ]);
+
+    path = this.add.path();
+
+    path.add(line1);
+
+    this.tweens.add({
+        targets: zombie,
+        t: 1,
+        ease: 'Linear',
+        duration: 4000,
+        yoyo: true,
+        repeat: -1
+    });
+
+
+//otro ejemplo
+
+var line1 = new Phaser.Curves.Line([ 0, 0, 400, 100 ]);
+
+    var lemming = this.add.follower(line1, 0, 0, 'lemming');
+
+    lemming.startFollow({
+        duration: 10000,
+        yoyo: true,
+        repeat: -1,
+        rotateToPath: true,
+        verticalAdjust: true
+    });

@@ -46,16 +46,15 @@ export class GameScene extends Phaser.Scene {
     this.brain= this.physics.add.sprite(<number>this.game.config.width/2,<number>this.game.config.height/2, 'brain')
     
     this.zombies = this.add.group();
-
     // first zombie
-    let a = Zombie.newRandomZombie(this);
-    this.zombies.add(a)
-    // a.init();
-
-    // this.zombies.children.iterate((z:Zombie)=>z.init())
+    this.theZombie = Zombie.newRandomZombie(this);
+    this.zombies.add(this.theZombie)
+    
+    // this.zombies.children.iterate((z:Zombie)=>z.init())    
   }
-
+  
   update(): void {
+    this.physics.moveToObject(this.theZombie,this.brain)
 
   }
   

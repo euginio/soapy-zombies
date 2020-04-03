@@ -1,0 +1,28 @@
+
+migro la lógica de soapyZombies phaser 2 a phaser 3+typescript + webpack (aprendiendo lo que necesito leyendo los ejemplos de phaser 3)
+    * zombie y cerebro se muestran
+    * zombie camina con animación
+    * zombie camina asia el cerebro
+    zombie come cerebro
+    zombie se frena con teclado
+    zombie se frena con acelerometro
+
+improve zoapy zombies
+    elegir que juego va a ser
+        Discutir con los chiquis y elegir
+        bajar imagenes copadas acordes (salva y ampi) (fondos, hormigas, etc)
+        aplicar imagenes
+    multiple zombies in multiple directions
+    darle onda al acelerometro
+    probar concepto de mover íconos
+    shake para hormigas/zombies?
+
+Ideas:
+    zombies enjabonados/resvalón/resvaladizos
+    hormigas iconos
+    virus íconos
+
+ejemplos
+    "phaser3-typescript"    Typescript + juegos de ejemplo                 
+    "oficial-samples"       Cientos de mini ejemplos Phaser + Juegos de ejemplo   
+    "phaser3-tutorial-src"  Ejemplo de juego básico y bien usado Phaser         
