@@ -1,4 +1,5 @@
 import { Scene, Physics } from "phaser";
+import { GameScene } from "../scenes/game-scene";
 
 
 /**
@@ -8,48 +9,75 @@ import { Scene, Physics } from "phaser";
  * @license      
  */
 export class Zombie extends Physics.Arcade.Sprite {
-    private ZOMBIE_SPEED: number = 100;
+    private ZOMBIE_SPEED: number = 75;
     private eatSpeed: number;
     private direction: number;
 
     private sprites: any;
 
     body: Physics.Arcade.Body;
+
+    scene: GameScene;
     
     // https://phaser.io/examples/v3/view/physics/arcade/extending-arcade-sprite#
-    constructor(scene:Scene) {
-        super(scene, 0, 0, 'zombie_sheet');    
+    constructor(scene:GameScene) {
+        super(scene, Phaser.Math.Between(0, <number>scene.game.config.width),
+            Phaser.Math.Between(0, <number>scene.game.config.height), 'zombie_sheet');    
 
         this.play('camina');
 
-        scene.add.existing(this);
+        // scene.add.existing(this);
         scene.physics.add.existing(this);
-        
-        // this.setBounce(1,1);
-        // this.setCollideWorldBounds(true);
-        // this.body.onWorldBounds = true;
+        // this.scene.physics.moveToObject(this,this.scene.brain, Phaser.Math.Between(12,60))
+
+        // this.setAngle
+
+        //  this.body.allowGravity = true;
 
 
-        // this.setVelocity(Phaser.Math.Between(-200, 200), -200);
-        // this.body.allowGravity = false;>
+
     }
 
-    public static newRandomZombie(scene: Scene) {
-        var aDirection = Math.abs(Math.random() * 4 * 90);
+    public static newRandomZombie(scene: GameScene) {
+        // var aDirection = Math.abs(Math.random() * 4 * 90);
         var newZombie: Zombie;
-        /*        if (aDirection == 0 || aDirection == 4) {
-                    newZombie = new NorthZombie(game);
-                }*/
-        newZombie = new NorthZombie(scene);
+        newZombie = new Zombie(scene);
         return newZombie;
     }
 
-    getZombieSpeed() {
-        return this.ZOMBIE_SPEED;
-    }
+    update(){
+        // this.setAcceleration(
+        //     (-(this.x-this.scene.brain.x)/10)+this.scene.gravity.x,
+        //     (-(this.y-this.scene.brain.y)/10)+this.scene.gravity.y
+        //     // (-(this.x-this.scene.brain.x)/10),
+        //     // (-(this.y-this.scene.brain.y)/10)
+        // );
+        // this.setVelocity(this.ZOMBIE_SPEED)
 
-    slowDown() {
-        // this.body.velocity.y = -this.getZombieSpeed();
+        // let xDistance = Math.abs(this.x-this.scene.brain.x)
+        // let yDistance = Math.abs(this.y-this.scene.brain.y)
+
+        let xDistance = this.x-this.scene.brain.x
+        let yDistance = this.y-this.scene.brain.y
+        let total = Math.abs(xDistance)+Math.abs(yDistance)
+        
+        let zombieSpeedX 
+        if (this.x > this.scene.brain.x){
+            zombieSpeedX = this.ZOMBIE_SPEED+this.ZOMBIE_SPEED*-this.scene.gravity.x
+        }else{
+            zombieSpeedX = this.ZOMBIE_SPEED+this.ZOMBIE_SPEED*this.scene.gravity.x
+
+        }
+        let zombieSpeedY 
+        if (this.y > this.scene.brain.y){
+            zombieSpeedY = this.ZOMBIE_SPEED+this.ZOMBIE_SPEED*-this.scene.gravity.y
+        }else{
+            zombieSpeedY = this.ZOMBIE_SPEED+this.ZOMBIE_SPEED*this.scene.gravity.y
+        }
+
+        this.setVelocityX((zombieSpeedX*-xDistance)/total)
+        this.setVelocityY((zombieSpeedY*-yDistance)/total)
+        
     }
 
     eatBrain() {
@@ -60,24 +88,4 @@ export class Zombie extends Physics.Arcade.Sprite {
         // this.game.state.score += 20;
         // this.game.state.scoreText.text = this.game.state.scoreString + this.game.state.score;
     }
-}
-export class NorthZombie extends Zombie {
-
-    constructor(scene:Scene) {
-        super(scene);
-        this.x = <number>scene.game.config.width/2
-        this.y=50
-    }
-    
-    setBaseVelocity() {
-        // this.body.velocity.y = this.getZombieSpeed();
-    }
-
-    updateVelocity(o:any) {
-        // updating player velocity
-        
-        // this.body.velocity.y += o.y*10;	
-        //for use landscape use o.beta instead of o.gamma
-    }
-
 }

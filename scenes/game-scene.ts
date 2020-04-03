@@ -12,6 +12,10 @@ export class GameScene extends Phaser.Scene {
   brain: Phaser.Physics.Arcade.Sprite;
   theZombie: Phaser.Physics.Arcade.Sprite;
   zombies: Phaser.GameObjects.Group;
+  gameOver: any;
+  cursors: Phaser.Types.Input.Keyboard.CursorKeys;
+  scoreText: Phaser.GameObjects.Text;
+  gravity: any={};
 
   constructor() {
     super({
@@ -43,18 +47,78 @@ export class GameScene extends Phaser.Scene {
       repeat: -1
     });
 
-    this.brain= this.physics.add.sprite(<number>this.game.config.width/2,<number>this.game.config.height/2, 'brain')
-    
+    this.anims.create({
+      key: 'eatingBrain',
+      frames: this.anims.generateFrameNumbers('brain', {}),
+      frameRate: 7,
+      repeat: 0
+    });
+
+    this.scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
+
+     //  Input Events
+    this.cursors = this.input.keyboard.createCursorKeys();
+
+    this.brain= this.physics.add.sprite(<number>this.game.config.width/2,<number>this.game.config.height/4, 'brain')
+
     this.zombies = this.add.group();
+    this.zombies.runChildUpdate =true;
     // first zombie
-    this.theZombie = Zombie.newRandomZombie(this);
-    this.zombies.add(this.theZombie)
+    this.zombies.add(Zombie.newRandomZombie(this), true)
+    this.zombies.add(Zombie.newRandomZombie(this), true)
+    this.zombies.add(Zombie.newRandomZombie(this), true)
+    this.zombies.add(Zombie.newRandomZombie(this), true)
     
+    this.physics.add.collider(this.zombies, this.brain, this.eatBrain, null, this);
     // this.zombies.children.iterate((z:Zombie)=>z.init())    
   }
   
+  eatBrain  (zombie: Phaser.Physics.Arcade.Sprite, brain: Phaser.Physics.Arcade.Sprite) {
+    zombie.anims.pause();
+    brain.play('eatingBrain');
+    this.physics.pause();
+    this.gameOver = true
+  }
+
+  
   update(): void {
-    this.physics.moveToObject(this.theZombie,this.brain)
+    
+    if (this.gameOver)
+    {
+        return;
+    }
+
+    let gravityNum={x:1.7,y:1.7};
+
+    if (this.cursors.left.isDown)
+    {
+      this.gravity.x=-gravityNum.x
+        // this.zombies.children.iterate((zb:Zombie)=> zb.setGravityX(-20));
+    }
+    else if (this.cursors.right.isDown)
+    {
+      this.gravity.x=gravityNum.x
+      // this.zombies.children.iterate((zb:Zombie)=> zb.setGravityX(20));
+    }
+    else {
+      this.gravity.x=0
+    }
+
+    if (this.cursors.up.isDown)
+    {
+      this.gravity.y=-gravityNum.y
+        // this.zombies.children.iterate((zb:Zombie)=> zb.setGravityY(-20));
+    }
+    else if (this.cursors.down.isDown)
+    {
+      this.gravity.y=gravityNum.y
+      // this.zombies.children.iterate((zb:Zombie)=> zb.setGravityY(20));
+    }
+    else
+    {
+      this.gravity.y=0
+      // this.zombies.children.iterate((zb:Zombie)=> zb.setGravity(0,0));
+    }
 
   }
   

@@ -3,24 +3,30 @@ migro la lógica de soapyZombies phaser 2 a phaser 3+typescript + webpack (apren
     * zombie y cerebro se muestran
     * zombie camina con animación
     * zombie camina asia el cerebro
-    zombie come cerebro
-    zombie se frena con teclado
-    zombie se frena con acelerometro
+    * zombie come cerebro
+    * zombie le afecta gravedad con teclado
+    zombie le afecta gravedad con acelerometro
 
 improve zoapy zombies
     elegir que juego va a ser
         Discutir con los chiquis y elegir
         bajar imagenes copadas acordes (salva y ampi) (fondos, hormigas, etc)
         aplicar imagenes
-    multiple zombies in multiple directions
+    mejorar lógica de gravedad vs velocidad (use angle instead)
+    use diferent animations depending the zombie direction/angle
     darle onda al acelerometro
     probar concepto de mover íconos
     shake para hormigas/zombies?
+    * multiple zombies in multiple directions
+
+doubts
+    chase brain: I want to make enemies that behave something like "Boo" from Mario Bros: that is, enemies that chase the player wherever it goes , after achieve this I want these enemies-chase-movement being affected by the gravity (the gravity will be controller by the player). Any Idea?
 
 Ideas:
     zombies enjabonados/resvalón/resvaladizos
     hormigas iconos
     virus íconos
+
 
 ejemplos
     "phaser3-typescript"    Typescript + juegos de ejemplo                 
