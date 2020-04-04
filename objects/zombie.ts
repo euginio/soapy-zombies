@@ -9,7 +9,7 @@ import { GameScene } from "../scenes/game-scene";
  * @license      
  */
 export class Zombie extends Physics.Arcade.Sprite {
-    private ZOMBIE_SPEED: number = 75;
+    private ZOMBIE_SPEED: number = 45;
     private eatSpeed: number;
     private direction: number;
 
@@ -21,22 +21,49 @@ export class Zombie extends Physics.Arcade.Sprite {
     
     // https://phaser.io/examples/v3/view/physics/arcade/extending-arcade-sprite#
     constructor(scene:GameScene) {
-        super(scene, Phaser.Math.Between(0, <number>scene.game.config.width),
-            Phaser.Math.Between(0, <number>scene.game.config.height), 'zombie_sheet');    
+        super(scene, 0, 0, 'zombie_sheet');    
 
-        this.play('camina');
-
+        
         // scene.add.existing(this);
         scene.physics.add.existing(this);
         // this.scene.physics.moveToObject(this,this.scene.brain, Phaser.Math.Between(12,60))
 
         // this.setAngle
-
+        
         //  this.body.allowGravity = true;
-
-
-
+        // this.setCollideWorldBounds()
+        
+        this.initZombie();
     }
+    initZombie() {
+        this.play('camina');
+        // this.setRandomPosition();
+        let x, y = 0;
+        let randomX = Phaser.Math.Between(0, <number>this.scene.game.config.width)
+        let randomY = Phaser.Math.Between(0, <number>this.scene.game.config.height)
+        switch (Phaser.Math.Between(0,3)) {
+            case 0: //top border
+                x=randomX
+                break;
+            case 1: // right border
+                x=<number>this.scene.game.config.width
+                y=randomY
+                break;
+            case 2: // bottom border
+                x=randomX
+                y= <number>this.scene.game.config.height
+                break;
+            case 3: // left border
+                y=randomY
+                break;
+        }
+        this.setPosition(x,y);
+    }
+    
+    // setRandomPosition(){
+    //     this.x = Phaser.Math.Between(0, <number>this.scene.game.config.width)
+    //     this.y = Phaser.Math.Between(0, <number>this.scene.game.config.height)
+    // }
 
     public static newRandomZombie(scene: GameScene) {
         // var aDirection = Math.abs(Math.random() * 4 * 90);
@@ -61,23 +88,16 @@ export class Zombie extends Physics.Arcade.Sprite {
         let yDistance = this.y-this.scene.brain.y
         let total = Math.abs(xDistance)+Math.abs(yDistance)
         
-        let zombieSpeedX 
-        if (this.x > this.scene.brain.x){
-            zombieSpeedX = this.ZOMBIE_SPEED+this.ZOMBIE_SPEED*-this.scene.gravity.x
-        }else{
-            zombieSpeedX = this.ZOMBIE_SPEED+this.ZOMBIE_SPEED*this.scene.gravity.x
-
-        }
-        let zombieSpeedY 
-        if (this.y > this.scene.brain.y){
-            zombieSpeedY = this.ZOMBIE_SPEED+this.ZOMBIE_SPEED*-this.scene.gravity.y
-        }else{
-            zombieSpeedY = this.ZOMBIE_SPEED+this.ZOMBIE_SPEED*this.scene.gravity.y
-        }
-
-        this.setVelocityX((zombieSpeedX*-xDistance)/total)
-        this.setVelocityY((zombieSpeedY*-yDistance)/total)
+        let zombieSpeedY = (this.ZOMBIE_SPEED*-yDistance)/total + this.scene.gravity.y
+        let zombieSpeedX = (this.ZOMBIE_SPEED*-xDistance)/total + this.scene.gravity.x
         
+        this.setVelocityX(zombieSpeedX)
+        this.setVelocityY(zombieSpeedY)
+        
+        if(!Phaser.Geom.Rectangle.Overlaps(this.scene.physics.world.bounds, this.getBounds())){
+            this.scene.zombieOut(this)
+        }
+
     }
 
     eatBrain() {

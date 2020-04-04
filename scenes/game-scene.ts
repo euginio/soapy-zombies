@@ -9,12 +9,14 @@ import { CONST } from "../const/const";
 import { Zombie } from "../objects/zombie";
 
 export class GameScene extends Phaser.Scene {
+  
   brain: Phaser.Physics.Arcade.Sprite;
   theZombie: Phaser.Physics.Arcade.Sprite;
   zombies: Phaser.GameObjects.Group;
   gameOver: any;
   cursors: Phaser.Types.Input.Keyboard.CursorKeys;
   scoreText: Phaser.GameObjects.Text;
+  score = 0;
   gravity: any={};
 
   constructor() {
@@ -39,6 +41,15 @@ export class GameScene extends Phaser.Scene {
     // this.checkMatches();
   }
 
+  zombieOut(outZombie: Zombie) {
+    outZombie.initZombie()
+    this.score += 10;
+    this.scoreText.setText('Score: ' + this.score);
+    if ( this.score%50 == 0) {
+      this.addNewZombie()
+    }
+  }
+
   create(): void {
     this.anims.create({
       key: 'camina',
@@ -59,18 +70,21 @@ export class GameScene extends Phaser.Scene {
      //  Input Events
     this.cursors = this.input.keyboard.createCursorKeys();
 
-    this.brain= this.physics.add.sprite(<number>this.game.config.width/2,<number>this.game.config.height/4, 'brain')
-
+    this.brain= this.physics.add.sprite(<number>this.game.config.width/2,<number>this.game.config.height/2, 'brain')
+    this.brain.setScale(0.5);
+    
     this.zombies = this.add.group();
     this.zombies.runChildUpdate =true;
-    // first zombie
-    this.zombies.add(Zombie.newRandomZombie(this), true)
-    this.zombies.add(Zombie.newRandomZombie(this), true)
-    this.zombies.add(Zombie.newRandomZombie(this), true)
-    this.zombies.add(Zombie.newRandomZombie(this), true)
+    this.addNewZombie()
+    this.addNewZombie()
+    this.addNewZombie()
     
     this.physics.add.collider(this.zombies, this.brain, this.eatBrain, null, this);
     // this.zombies.children.iterate((z:Zombie)=>z.init())    
+  }
+
+  addNewZombie(){
+    this.zombies.add(Zombie.newRandomZombie(this), true)
   }
   
   eatBrain  (zombie: Phaser.Physics.Arcade.Sprite, brain: Phaser.Physics.Arcade.Sprite) {
@@ -88,7 +102,8 @@ export class GameScene extends Phaser.Scene {
         return;
     }
 
-    let gravityNum={x:1.7,y:1.7};
+
+    let gravityNum={x:70,y:70};
 
     if (this.cursors.left.isDown)
     {
@@ -102,6 +117,7 @@ export class GameScene extends Phaser.Scene {
     }
     else {
       this.gravity.x=0
+      // this.zombies.children.iterate((zb:Zombie)=> zb.setGravityX(0));
     }
 
     if (this.cursors.up.isDown)
@@ -117,7 +133,7 @@ export class GameScene extends Phaser.Scene {
     else
     {
       this.gravity.y=0
-      // this.zombies.children.iterate((zb:Zombie)=> zb.setGravity(0,0));
+      // this.zombies.children.iterate((zb:Zombie)=> zb.setGravityY(0));
     }
 
   }
