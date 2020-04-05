@@ -21,12 +21,13 @@
     * mejorar lógica de gravedad vs velocidad 
     * multiple zombies in multiple directions
 
+Estoy aprendiendo a hacer video juegos, me ayudás probandolo?
 instrucciones:
-    Desactivar la rotación automática del celular
-    ir a https://euginio.github.io/soapy-zombies/
-    poner el celular horizontal
-    tocar la pantalla para ir a fullscreen
-    inclinar el celular en diferentes sentidos para hacer caer a los zombies 
+    1) Desactivar la rotación automática del celular
+    2) ir a https://euginio.github.io/soapy-zombies/
+    3) apoyar el celular en la palma de la mano
+    4) tocar la pantalla para ir a fullscreen
+    5) inclinar el celular en diferentes sentidos para hacer caer a los zombies 
 
 doubts
     chase brain: I want to make enemies that behave something like "Boo" from Mario Bros: that is, enemies that chase the player wherever it goes , after achieve this I want these enemies-chase-movement being affected by the gravity (the gravity will be controller by the player). Any Idea?
