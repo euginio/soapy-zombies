@@ -50,8 +50,29 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.anims.create({
-      key: 'camina',
+      key: 'walk_down',
       frames: this.anims.generateFrameNumbers('zombie_sheet', { frames: [0, 6, 12, 1, 7, 13] }),
+      frameRate: 7,
+      repeat: -1
+    });
+
+    this.anims.create({
+      key: 'walk_up',
+      frames: this.anims.generateFrameNumbers('zombie_sheet', { frames: [2, 8, 3, 9] }),
+      frameRate: 7,
+      repeat: -1
+    });
+
+    this.anims.create({
+      key: 'walk_left',
+      frames: this.anims.generateFrameNumbers('zombie_sheet', { frames: [4, 10, 16] }),
+      frameRate: 7,
+      repeat: -1
+    });
+
+    this.anims.create({
+      key: 'walk_right',
+      frames: this.anims.generateFrameNumbers('zombie_sheet', { frames: [5,11,17] }),
       frameRate: 7,
       repeat: -1
     });

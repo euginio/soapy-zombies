@@ -1,8 +1,8 @@
 
     migro la lógica de soapyZombies phaser 2 a phaser 3+typescript + webpack (aprendiendo lo que necesito leyendo los ejemplos de phaser 3)
         * zombie y cerebro se muestran
-        * zombie camina con animación
-        * zombie camina asia el cerebro
+        * zombie walk con animación
+        * zombie walk asia el cerebro
         * zombie come cerebro
         * zombie le afecta gravedad con teclado
         * zombie le afecta gravedad con acelerometro (if problems with velocity use angle instead)

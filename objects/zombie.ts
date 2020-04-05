@@ -30,28 +30,34 @@ export class Zombie extends Physics.Arcade.Sprite {
         this.initZombie();
     }
     initZombie() {
-        this.play('camina');
         // this.setRandomPosition();
         let x, y = 0;
         let randomX = Phaser.Math.Between(0, <number>this.scene.game.config.width)
         let randomY = Phaser.Math.Between(0, <number>this.scene.game.config.height)
+        let walkTo = '';
         switch (Phaser.Math.Between(0, 3)) {
             case 0: //top border
                 x = randomX
+                walkTo='down'
                 break;
             case 1: // right border
                 x = <number>this.scene.game.config.width
                 y = randomY
+                walkTo='left'
                 break;
             case 2: // bottom border
                 x = randomX
                 y = <number>this.scene.game.config.height
+                walkTo='up'
                 break;
             case 3: // left border
                 y = randomY
+                walkTo='right'
                 break;
         }
         this.setPosition(x, y);
+
+        this.play('walk_'+walkTo);
     }
 
     // setRandomPosition(){
@@ -80,12 +86,13 @@ export class Zombie extends Physics.Arcade.Sprite {
 
         //TODO: if problems here try with setting angle and using 
         // physics gravity (now we are simulating gravity)
+        const gravityFactor = 10;
         let xDistance = this.x - this.scene.brain.x
         let yDistance = this.y - this.scene.brain.y
         let total = Math.abs(xDistance) + Math.abs(yDistance)
 
-        let zombieSpeedY = (this.ZOMBIE_SPEED * -yDistance) / total + this.scene.gravity.y * 25
-        let zombieSpeedX = (this.ZOMBIE_SPEED * -xDistance) / total + this.scene.gravity.x * 25
+        let zombieSpeedX = (this.ZOMBIE_SPEED * -xDistance) / total + this.scene.gravity.x * gravityFactor
+        let zombieSpeedY = (this.ZOMBIE_SPEED * -yDistance) / total + this.scene.gravity.y * gravityFactor
 
         this.setVelocityX(zombieSpeedX)
         this.setVelocityY(zombieSpeedY)
