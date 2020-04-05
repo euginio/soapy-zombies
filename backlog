@@ -1,22 +1,20 @@
 
-migro la lógica de soapyZombies phaser 2 a phaser 3+typescript + webpack (aprendiendo lo que necesito leyendo los ejemplos de phaser 3)
-    * zombie y cerebro se muestran
-    * zombie camina con animación
-    * zombie camina asia el cerebro
-    * zombie come cerebro
-    * zombie le afecta gravedad con teclado
-    * zombie le afecta gravedad con acelerometro (if problems with velocity use angle instead)
-    go fullscreen on touch
-
-improve zoapy zombies
+    migro la lógica de soapyZombies phaser 2 a phaser 3+typescript + webpack (aprendiendo lo que necesito leyendo los ejemplos de phaser 3)
+        * zombie y cerebro se muestran
+        * zombie camina con animación
+        * zombie camina asia el cerebro
+        * zombie come cerebro
+        * zombie le afecta gravedad con teclado
+        * zombie le afecta gravedad con acelerometro (if problems with velocity use angle instead)
+        go fullscreen on touch
+    Create and use animations for born, eat, walk and dead
+    use diferent animations depending the zombie/ant direction/angle
     fix device rotation to portrait
     elegir que juego va a ser discutiendo con los chiquis y elegir
-    bajar imagenes copadas acordes (salva y ampi) (fondos, hormigas, etc)
-    aplicar imagenes
-    use diferent animations depending the zombie/ant direction/angle
-    Create and use animations for born, eat, walk and dead
-    darle onda al acelerometro
-    
+    ^-bajar imagenes (o aprender a dibujar) copadas acordes (salva y ampi) (fondos, hormigas, etc)
+    ^-aplicar imagenes
+
+    * darle onda al acelerometro
     * score
     * dinamic multiple zombies
     * kill zombies when them got out of bound
