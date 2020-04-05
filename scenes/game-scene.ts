@@ -100,7 +100,7 @@ export class GameScene extends Phaser.Scene {
     this.brain.setScale(0.65);
     // this.brain.setSize(this.brain.width/3, this.brain.height/3)
     // this.brain.setOffset(17)
-    this.brain.setCircle(15,20,15)
+    this.brain.setCircle(10,23,15)
 
     this.zombies = this.add.group();
 
