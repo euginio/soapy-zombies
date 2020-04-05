@@ -26,19 +26,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   init(): void {
-    // Init variables
-    // this.canMove = true;
-
-    // set background color
-    // this.cameras.main.setBackgroundColor(0x78aade);
-
-    // Init grid with tiles
-
-    // Input
-    // this.input.on("gameobjectdown", this.tileDown, this);
-
-    // Check if matches on the start
-    // this.checkMatches();
   }
 
   zombieOut(outZombie: Zombie) {
@@ -51,11 +38,18 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
+    let self=this;
+
     // @ts-ignore
     // ScreenOrientation.lock("portrait")
     this.game.scale.orientation="portrait"
-    this.scale.startFullscreen();
 
+    this.input.on('pointerdown', function(pointer){
+      if (!self.scale.isFullscreen) {
+          self.scale.startFullscreen();
+      }
+    });
+    
     this.anims.create({
       key: 'camina',
       frames: this.anims.generateFrameNumbers('zombie_sheet', { frames: [ 0, 6, 12, 1, 7, 13 ] }),
@@ -79,6 +73,7 @@ export class GameScene extends Phaser.Scene {
     this.brain.setScale(0.5);
     
     this.zombies = this.add.group();
+
     this.zombies.runChildUpdate =true;
     this.addNewZombie()
     this.addNewZombie()
@@ -86,7 +81,6 @@ export class GameScene extends Phaser.Scene {
     
     this.physics.add.collider(this.zombies, this.brain, this.eatBrain, null, this);
     // this.zombies.children.iterate((z:Zombie)=>z.init())    
-    let self=this;
     window.addEventListener("devicemotion", function(event:DeviceMotionEvent) {
       self.gravity.x = -event.accelerationIncludingGravity.x;
       self.gravity.y = event.accelerationIncludingGravity.y;
@@ -114,7 +108,7 @@ export class GameScene extends Phaser.Scene {
     if (this.gameOver)
     {
         return;
-    }
+    }   
 
     let gravityNum={x:70,y:70};
 
