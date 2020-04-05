@@ -9,14 +9,8 @@ import { GameScene } from "../scenes/game-scene";
  * @license      
  */
 export class Zombie extends Physics.Arcade.Sprite {
-    private ZOMBIE_SPEED: number = 45;
-    private eatSpeed: number;
-    private direction: number;
-
-    private sprites: any;
-
+    ZOMBIE_SPEED: number = 45;
     body: Physics.Arcade.Body;
-
     scene: GameScene;
 
     // https://phaser.io/examples/v3/view/physics/arcade/extending-arcade-sprite#
