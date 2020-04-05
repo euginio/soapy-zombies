@@ -43,14 +43,19 @@ export class GameScene extends Phaser.Scene {
 
   zombieOut(outZombie: Zombie) {
     outZombie.initZombie()
-    this.score += 10;
-    this.scoreText.setText('Score: ' + this.score);
-    if ( this.score%50 == 0) {
+    this.score ++;
+    this.scoreText.setText('zombies matados: ' + this.score);
+    if ( this.score%5 == 0) {
       this.addNewZombie()
     }
   }
 
   create(): void {
+    // @ts-ignore
+    // ScreenOrientation.lock("portrait")
+    this.game.scale.orientation="portrait"
+    this.scale.startFullscreen();
+
     this.anims.create({
       key: 'camina',
       frames: this.anims.generateFrameNumbers('zombie_sheet', { frames: [ 0, 6, 12, 1, 7, 13 ] }),
@@ -65,7 +70,7 @@ export class GameScene extends Phaser.Scene {
       repeat: 0
     });
 
-    this.scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
+    this.scoreText = this.add.text(16, 16, 'zombies matados: 0', { fontSize: '23px', fill: '#FFF' });
 
      //  Input Events
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -81,19 +86,28 @@ export class GameScene extends Phaser.Scene {
     
     this.physics.add.collider(this.zombies, this.brain, this.eatBrain, null, this);
     // this.zombies.children.iterate((z:Zombie)=>z.init())    
-  }
+    let self=this;
+    window.addEventListener("devicemotion", function(event:DeviceMotionEvent) {
+      self.gravity.x = -event.accelerationIncludingGravity.x;
+      self.gravity.y = event.accelerationIncludingGravity.y;
+      self.gravity.z = event.accelerationIncludingGravity.z;
+    }, false);
 
+  }
+  
   addNewZombie(){
     this.zombies.add(Zombie.newRandomZombie(this), true)
   }
   
-  eatBrain  (zombie: Phaser.Physics.Arcade.Sprite, brain: Phaser.Physics.Arcade.Sprite) {
+  eatBrain(zombie: Phaser.Physics.Arcade.Sprite, brain: Phaser.Physics.Arcade.Sprite) {
+    this.score=0;
     zombie.anims.pause();
     brain.play('eatingBrain');
     this.physics.pause();
-    this.gameOver = true
+    this.gameOver = true;
+    this.time.delayedCall(3000,()=>this.scene.restart())
+    
   }
-
   
   update(): void {
     
@@ -101,7 +115,6 @@ export class GameScene extends Phaser.Scene {
     {
         return;
     }
-
 
     let gravityNum={x:70,y:70};
 

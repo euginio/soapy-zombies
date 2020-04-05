@@ -84,12 +84,14 @@ export class Zombie extends Physics.Arcade.Sprite {
         // let xDistance = Math.abs(this.x-this.scene.brain.x)
         // let yDistance = Math.abs(this.y-this.scene.brain.y)
 
+        //TODO: if problems here try with setting angle and using 
+        // physics gravity (now we are simulating gravity)
         let xDistance = this.x-this.scene.brain.x
         let yDistance = this.y-this.scene.brain.y
         let total = Math.abs(xDistance)+Math.abs(yDistance)
         
-        let zombieSpeedY = (this.ZOMBIE_SPEED*-yDistance)/total + this.scene.gravity.y
-        let zombieSpeedX = (this.ZOMBIE_SPEED*-xDistance)/total + this.scene.gravity.x
+        let zombieSpeedY = (this.ZOMBIE_SPEED*-yDistance)/total + this.scene.gravity.y*25
+        let zombieSpeedX = (this.ZOMBIE_SPEED*-xDistance)/total + this.scene.gravity.x*25
         
         this.setVelocityX(zombieSpeedX)
         this.setVelocityY(zombieSpeedY)
