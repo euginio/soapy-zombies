@@ -1,10 +1,18 @@
 
+    fit to screen for phones don't work in full screen
+    game over
+    High score Scene
+    Instructions/Presentation Scene
+    PWA?
+    Safari Iphone accelerometer?
     Create and use animations for born, eat, walk and dead
     fix device rotation to portrait
     elegir que juego va a ser discutiendo con los chiquis y elegir
     ^-bajar imagenes (o aprender a dibujar) copadas acordes (salva y ampi) (fondos, hormigas, etc)
     ^-aplicar imagenes
+    publish game on playstore
 
+    * quiting title
     * use diferent animations depending the zombie/ant direction/angle
     * migro la lógica de soapyZombies phaser 2 a phaser 3+typescript + webpack (aprendiendo lo que necesito leyendo los ejemplos de phaser 3)
         * zombie y cerebro se muestran
@@ -21,6 +29,19 @@
     * mejorar lógica de gravedad vs velocidad 
     * multiple zombies in multiple directions
 
+######################################
+
+Ideas:
+    Juegos
+        zombies enjabonados/resvalón/resvaladizos en cementerio comen cerebro de una persona asustada
+        hormigas comen cosas del picnic
+        virus informáticos comen íconos
+        coronaVirus infectan a otras personas
+    Gameplay
+        probar concepto de mover íconos/comida/personas/etc
+        shake para hormigas/zombies?
+        different types of zombies/ants/virus?
+
 Estoy aprendiendo a hacer video juegos, me ayudás probandolo?
 instrucciones:
     1) Desactivar la rotación automática del celular
@@ -33,17 +54,6 @@ doubts
     chase brain: I want to make enemies that behave something like "Boo" from Mario Bros: that is, enemies that chase the player wherever it goes , after achieve this I want these enemies-chase-movement being affected by the gravity (the gravity will be controller by the player). Any Idea?
     debug in chrome
     
-Ideas:
-    Juegos
-        zombies enjabonados/resvalón/resvaladizos en cementerio comen cerebro de una persona asustada
-        hormigas comen cosas del picnic
-        virus informáticos comen íconos
-        coronaVirus infectan a otras personas
-    Gameplay
-        probar concepto de mover íconos/comida/personas/etc
-        shake para hormigas/zombies?
-        different types of zombies/ants/virus?
-
 ejemplos
     "phaser3-typescript"    Typescript + juegos de ejemplo                 
     "oficial-samples"       Cientos de mini ejemplos Phaser + Juegos de ejemplo   
