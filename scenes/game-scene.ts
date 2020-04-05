@@ -17,6 +17,9 @@ export class GameScene extends Phaser.Scene {
   scoreText: Phaser.GameObjects.Text;
   score = 0;
   gravity: any = {};
+  width: number;
+  height: number;
+  
 
   constructor() {
     super({
@@ -43,6 +46,9 @@ export class GameScene extends Phaser.Scene {
     // ScreenOrientation.lock("portrait")
     this.game.scale.orientation = "portrait"
 
+    this.width = <number>this.game.config.width
+    this.height = <number>this.game.config.height
+
     this.input.on('pointerdown', function (pointer) {
       if (!self.scale.isFullscreen) {
         self.scale.startFullscreen();
@@ -52,35 +58,35 @@ export class GameScene extends Phaser.Scene {
     this.anims.create({
       key: 'walk_down',
       frames: this.anims.generateFrameNumbers('zombie_sheet', { frames: [0, 6, 12, 1, 7, 13] }),
-      frameRate: 7,
+      frameRate: 4,
       repeat: -1
     });
 
     this.anims.create({
       key: 'walk_up',
       frames: this.anims.generateFrameNumbers('zombie_sheet', { frames: [2, 8, 3, 9] }),
-      frameRate: 7,
+      frameRate: 4,
       repeat: -1
     });
 
     this.anims.create({
       key: 'walk_left',
       frames: this.anims.generateFrameNumbers('zombie_sheet', { frames: [4, 10, 16] }),
-      frameRate: 7,
+      frameRate: 4,
       repeat: -1
     });
 
     this.anims.create({
       key: 'walk_right',
       frames: this.anims.generateFrameNumbers('zombie_sheet', { frames: [5,11,17] }),
-      frameRate: 7,
+      frameRate: 4,
       repeat: -1
     });
 
     this.anims.create({
       key: 'eatingBrain',
       frames: this.anims.generateFrameNumbers('brain', {}),
-      frameRate: 7,
+      frameRate: 4,
       repeat: 0
     });
 
@@ -90,7 +96,11 @@ export class GameScene extends Phaser.Scene {
     this.cursors = this.input.keyboard.createCursorKeys();
 
     this.brain = this.physics.add.sprite(<number>this.game.config.width / 2, <number>this.game.config.height / 2, 'brain')
-    this.brain.setScale(0.5);
+    this.brain.body.immovable = true;
+    this.brain.setScale(0.65);
+    // this.brain.setSize(this.brain.width/3, this.brain.height/3)
+    // this.brain.setOffset(17)
+    this.brain.setCircle(15,20,15)
 
     this.zombies = this.add.group();
 
@@ -99,7 +109,7 @@ export class GameScene extends Phaser.Scene {
     this.addNewZombie()
     this.addNewZombie()
 
-    this.physics.add.collider(this.zombies, this.brain, this.eatBrain, null, this);
+    this.physics.add.overlap(this.zombies, this.brain, this.eatBrain, null, this);
     // this.zombies.children.iterate((z:Zombie)=>z.init())    
     window.addEventListener("devicemotion", function (event: DeviceMotionEvent) {
       self.gravity.x = -event.accelerationIncludingGravity.x;

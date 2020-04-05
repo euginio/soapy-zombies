@@ -12,6 +12,7 @@ export class Zombie extends Physics.Arcade.Sprite {
     ZOMBIE_SPEED: number = 45;
     body: Physics.Arcade.Body;
     scene: GameScene;
+    gravityFactor = 10;
 
     // https://phaser.io/examples/v3/view/physics/arcade/extending-arcade-sprite#
     constructor(scene: GameScene) {
@@ -32,37 +33,31 @@ export class Zombie extends Physics.Arcade.Sprite {
     initZombie() {
         // this.setRandomPosition();
         let x, y = 0;
-        let randomX = Phaser.Math.Between(0, <number>this.scene.game.config.width)
-        let randomY = Phaser.Math.Between(0, <number>this.scene.game.config.height)
-        let walkTo = '';
+        let randomX = Phaser.Math.Between(0, this.scene.width)
+        let randomY = Phaser.Math.Between(0, this.scene.height)
         switch (Phaser.Math.Between(0, 3)) {
             case 0: //top border
                 x = randomX
-                walkTo='down'
                 break;
             case 1: // right border
-                x = <number>this.scene.game.config.width
+                x = this.scene.width
                 y = randomY
-                walkTo='left'
                 break;
             case 2: // bottom border
                 x = randomX
-                y = <number>this.scene.game.config.height
-                walkTo='up'
+                y = this.scene.height
                 break;
             case 3: // left border
                 y = randomY
-                walkTo='right'
                 break;
         }
         this.setPosition(x, y);
 
-        this.play('walk_'+walkTo);
     }
 
     // setRandomPosition(){
-    //     this.x = Phaser.Math.Between(0, <number>this.scene.game.config.width)
-    //     this.y = Phaser.Math.Between(0, <number>this.scene.game.config.height)
+    //     this.x = Phaser.Math.Between(0, this.scene.width)
+    //     this.y = Phaser.Math.Between(0, this.scene.height)
     // }
 
     public static newRandomZombie(scene: GameScene) {
@@ -86,16 +81,22 @@ export class Zombie extends Physics.Arcade.Sprite {
 
         //TODO: if problems here try with setting angle and using 
         // physics gravity (now we are simulating gravity)
-        const gravityFactor = 10;
         let xDistance = this.x - this.scene.brain.x
         let yDistance = this.y - this.scene.brain.y
         let total = Math.abs(xDistance) + Math.abs(yDistance)
 
-        let zombieSpeedX = (this.ZOMBIE_SPEED * -xDistance) / total + this.scene.gravity.x * gravityFactor
-        let zombieSpeedY = (this.ZOMBIE_SPEED * -yDistance) / total + this.scene.gravity.y * gravityFactor
+        let zombieSpeedX = (this.ZOMBIE_SPEED * -xDistance) / total + this.scene.gravity.x * this.gravityFactor
+        let zombieSpeedY = (this.ZOMBIE_SPEED * -yDistance) / total + this.scene.gravity.y * this.gravityFactor
 
         this.setVelocityX(zombieSpeedX)
         this.setVelocityY(zombieSpeedY)
+
+        let xShouldWalkDir = this.x<this.scene.brain.x? 'right': 'left'
+        let yShouldWalkDir = this.y<this.scene.brain.y? 'down': 'up'
+        let shouldBeCurrentAnim:string = Math.abs(xDistance) < Math.abs(yDistance)? yShouldWalkDir: xShouldWalkDir
+        if (this.anims.getCurrentKey() != 'walk_'+shouldBeCurrentAnim) {
+            this.play('walk_'+shouldBeCurrentAnim);
+        }
 
         if (!Phaser.Geom.Rectangle.Overlaps(this.scene.physics.world.bounds, this.getBounds())) {
             this.scene.zombieOut(this)
