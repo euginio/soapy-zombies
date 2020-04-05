@@ -95,6 +95,9 @@ export class GameScene extends Phaser.Scene {
     //  Input Events
     this.cursors = this.input.keyboard.createCursorKeys();
 
+    let background = this.add.image(300,300,'graveyard');
+    background.setScale(0.3)
+
     this.brain = this.physics.add.sprite(<number>this.game.config.width / 2, <number>this.game.config.height / 2, 'brain')
     this.brain.body.immovable = true;
     this.brain.setScale(0.65);

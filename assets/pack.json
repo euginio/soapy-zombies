@@ -7,6 +7,11 @@
         "url": "./assets/images/ball.png"
       },
       {
+        "type": "image",
+        "key": "graveyard",
+        "url": "./assets/images/graveyard.png"
+      },
+      {
         "type": "spritesheet",
         "key": "brain",
         "url": "./assets/images/brain.png",
