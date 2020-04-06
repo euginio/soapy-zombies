@@ -96,7 +96,7 @@ export class GameScene extends Phaser.Scene {
     
     let background = this.add.image(300,300,'graveyard');
     background.setScale(0.3)
-    this.scoreText = this.add.text(16, 16, 'zombies matados: 0', { fontSize: '23px', fill: '#FFF' });
+    this.scoreText = this.add.text(16, 16, 'zombies matados: 0', { fontSize: '23px', fontStyle: 'bold', fill: '#DD3' });
 
     this.brain = this.physics.add.sprite(<number>this.game.config.width / 2, <number>this.game.config.height / 2, 'brain')
     this.brain.body.immovable = true;
