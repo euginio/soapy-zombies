@@ -105,6 +105,10 @@ export class GameScene extends Phaser.Scene {
     // this.brain.setOffset(17)
     this.brain.setCircle(10,23,15)
 
+    this.tweens.add({targets:this.brain, 
+      scale: { value: .7, duration: 300, ease: 'Power1' },
+      yoyo:true, loop:-1 })
+
     this.zombies = this.add.group();
 
     this.zombies.runChildUpdate = true;
