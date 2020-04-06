@@ -13,8 +13,8 @@ const config: Phaser.Types.Core.GameConfig = {
   title: "Soapy zombies",
   url: "https://github.com/euginio/soapy-zombies",
   version: "1.0",
-  width: 400,
-  height: 700,
+  width: 300,
+  height: 533,
   type: Phaser.AUTO,
   scale: {
     mode: Phaser.Scale.FIT,
