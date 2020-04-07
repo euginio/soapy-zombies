@@ -49,7 +49,7 @@ export class GameScene extends Phaser.Scene {
     this.width = <number>this.game.config.width
     this.height = <number>this.game.config.height
 
-    this.input.on('pointerdown', function (pointer) {
+    this.input.on('pointerup', function (pointer) {
       if (!self.scale.isFullscreen) {
         self.scale.startFullscreen();
       }
@@ -94,8 +94,8 @@ export class GameScene extends Phaser.Scene {
     //  Input Events
     this.cursors = this.input.keyboard.createCursorKeys();
     
-    let background = this.add.image(300,300,'graveyard');
-    background.setScale(0.3)
+    let background = this.add.image(this.width/2,this.height/2,'graveyard');
+    background.setScale(.25)
     this.scoreText = this.add.text(16, 16, 'zombies matados: 0', { fontSize: '23px', fontStyle: 'bold', fill: '#DD3' });
 
     this.brain = this.physics.add.sprite(<number>this.game.config.width / 2, <number>this.game.config.height / 2, 'brain')
