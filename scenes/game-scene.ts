@@ -136,8 +136,7 @@ export class GameScene extends Phaser.Scene {
     brain.play('eatingBrain');
     this.physics.pause();
     this.gameOver = true;
-    this.time.delayedCall(3000, () => this.scene.restart())
-
+    this.time.delayedCall(5000, () => this.scene.restart())
   }
 
   update(): void {
