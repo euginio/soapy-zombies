@@ -10,7 +10,7 @@ import { Ant } from "../objects/ant";
 
 export class GameScene extends Phaser.Scene {
 
-  apple: Phaser.Physics.Arcade.Sprite;
+  food: Phaser.Physics.Arcade.Sprite;
   ants: Phaser.GameObjects.Group;
   gameOver: any;
   cursors: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -84,8 +84,8 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.anims.create({
-      key: 'eatingApple',
-      frames: this.anims.generateFrameNumbers('apple', {}),
+      key: 'eatingFood',
+      frames: this.anims.generateFrameNumbers('food', {}),
       frameRate: 4,
       repeat: 0
     });
@@ -98,14 +98,14 @@ export class GameScene extends Phaser.Scene {
     background.setScale(.25)
     this.scoreText = this.add.text(16, 16, 'hormigas muertas: 0', { fontSize: '23px', fontStyle: 'bold', fill: '#DD3' });
 
-    this.apple = this.physics.add.sprite(<number>this.game.config.width / 2, <number>this.game.config.height / 2, 'apple')
-    this.apple.body.immovable = true;
-    this.apple.setScale(0.65);
-    // this.apple.setSize(this.apple.width/3, this.apple.height/3)
-    // this.apple.setOffset(17)
-    this.apple.setCircle(10,23,15)
+    this.food = this.physics.add.sprite(<number>this.game.config.width / 2, <number>this.game.config.height / 2, 'food')
+    this.food.body.immovable = true;
+    this.food.setScale(0.65);
+    // this.food.setSize(this.food.width/3, this.food.height/3)
+    // this.food.setOffset(17)
+    this.food.setCircle(10,23,15)
 
-    this.tweens.add({targets:this.apple, 
+    this.tweens.add({targets:this.food, 
       scale: { value: .7, duration: 300, ease: 'Power1' },
       yoyo:true, loop:-1 })
 
@@ -116,7 +116,7 @@ export class GameScene extends Phaser.Scene {
     this.addNewAnt()
     this.addNewAnt()
 
-    this.physics.add.overlap(this.ants, this.apple, this.eatApple, null, this);
+    this.physics.add.overlap(this.ants, this.food, this.eatFood, null, this);
     // this.ants.children.iterate((z:Ant)=>z.init())    
     window.addEventListener("devicemotion", function (event: DeviceMotionEvent) {
       self.gravity.x = -event.accelerationIncludingGravity.x;
@@ -130,10 +130,10 @@ export class GameScene extends Phaser.Scene {
     this.ants.add(Ant.newRandomAnt(this), true)
   }
 
-  eatApple(ant: Phaser.Physics.Arcade.Sprite, apple: Phaser.Physics.Arcade.Sprite) {
+  eatFood(ant: Phaser.Physics.Arcade.Sprite, food: Phaser.Physics.Arcade.Sprite) {
     this.score = 0;
     ant.anims.pause();
-    apple.play('eatingApple');
+    food.play('eatingFood');
     this.physics.pause();
     this.gameOver = true;
     this.time.delayedCall(5000, () => this.scene.restart())

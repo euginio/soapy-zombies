@@ -13,8 +13,8 @@
       },
       {
         "type": "spritesheet",
-        "key": "apple",
-        "url": "./assets/images/apple.png",
+        "key": "food",
+        "url": "./assets/images/food.png",
         "frameConfig": {
           "frameWidth": 81,
           "frameHeight": 61
