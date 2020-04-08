@@ -26,7 +26,7 @@ Done
     *fit to screen for phones don't work in full screen
     * quiting title
     * use diferent animations depending the ants/ant direction/angle
-    * migro la lógica de picnicantss phaser 2 a phaser 3+typescript + webpack (aprendiendo lo que necesito leyendo los ejemplos de phaser 3)
+    * migro la lógica de picnicants phaser 2 a phaser 3+typescript + webpack (aprendiendo lo que necesito leyendo los ejemplos de phaser 3)
         * ants y cerebro se muestran
         * ants walk con animación
         * ants walk asia el cerebro
@@ -36,29 +36,29 @@ Done
         * go fullscreen on touch
     * darle onda al acelerometro
     * score
-    * dinamic multiple antss
-    * kill antss when them got out of bound
+    * dinamic multiple ants
+    * kill ants when them got out of bound
     * mejorar lógica de gravedad vs velocidad 
-    * multiple antss in multiple directions
+    * multiple ants in multiple directions
 
 ######################################
 
 Ideas:
     Juegos
-        antss enjabonados/resvalón/resvaladizos en cementerio comen cerebro de una persona asustada
+        ants enjabonados/resvalón/resvaladizos en cementerio comen cerebro de una persona asustada
         hormigas comen cosas del picnic
         virus informáticos comen íconos
         !! coronaVirus infectan a otras personas
     Gameplay
         probar concepto de mover íconos/comida/personas/etc
-        shake para hormigas/antss?
-        different types of antss/ants/virus?
+        shake para hormigas/ants?
+        different types of ants/ants/virus?
 
 Me ayudás probando mi juego?
 *antes de empezar a jugar lo mas importante es desactivar la rotación automática de la pantalla de tu celular*
-después ir a https://euginio.github.io/picnic-antss/    
+después ir a https://euginio.github.io/picnic-ants/    
 *Como se juega?*
-Hay que inclinar el celular en diferentes sentidos para hacer caer a los antss de la pantalla
+Hay que inclinar el celular en diferentes sentidos para hacer caer a los ants de la pantalla
 Lo mas fácil es dejar el celular en la palma de la mano y jugar asi
 
 (Si tocás la pantalla se va a pantalla completa)
