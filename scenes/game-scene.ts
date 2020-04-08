@@ -10,7 +10,6 @@ import { Ant } from "../objects/ant";
 import { Food } from "../objects/food";
 
 export class GameScene extends Phaser.Scene {
-  // food: Phaser.Physics.Arcade.Sprite;
   ants: Phaser.GameObjects.Group;
   foods: Phaser.GameObjects.Group;
   gameOver: any;
@@ -37,7 +36,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   antOut(outAnt: Ant) {
-    outAnt.initAnt()
     this.score++;
     this.scoreText.setText('hormigas muertas: ' + this.score);
     if (this.score % 5 == 0) {
@@ -134,7 +132,7 @@ export class GameScene extends Phaser.Scene {
     
     let background = this.add.image(this.width/2,this.height/2,'graveyard');
     background.setScale(.25)
-    this.scoreText = this.add.text(16, 16, 'hormigas muertas: 0', { fontSize: '23px', fontStyle: 'bold', fill: '#DD3' });
+    this.scoreText = this.add.text(16, 16, 'hormigas muertas: 0', { fontSize: '19px', fontStyle: 'bold', fill: '#DD3' });
 
     this.foods=this.add.group();
     this.foods.runChildUpdate=true;
@@ -152,7 +150,7 @@ export class GameScene extends Phaser.Scene {
       this.addNewAnt()
     }
 
-    this.physics.add.overlap(this.ants, this.foods, this.eatFood, null, this);
+    this.physics.add.collider(this.ants, this.foods, this.eatFood, null, this);
     // this.ants.children.iterate((z:Ant)=>z.init())
     if (!this.sys.game.device.os.desktop) {
       window.addEventListener("devicemotion", function (event: DeviceMotionEvent) {
@@ -161,12 +159,10 @@ export class GameScene extends Phaser.Scene {
         self.gravity.z = event.accelerationIncludingGravity.z;
       }, false);
     }
-
-
   }
 
   addNewAnt() {
-    this.ants.add(Ant.newRandomAnt(this), true)
+    this.ants.add(new Ant(this), true)
   }
 
   eatFood(ant: Phaser.Physics.Arcade.Sprite, food: Phaser.Physics.Arcade.Sprite) {

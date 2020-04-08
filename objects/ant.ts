@@ -1,7 +1,7 @@
 import { Scene, Physics, GameObjects } from "phaser";
 import { GameScene } from "../scenes/game-scene";
 import { Food } from "./food";
-
+import { MySprite } from "./mySprite";
 
 /**
  * @author       Eugenio Arosteguy <eugenio.arosteguy@gmail.com>
@@ -9,30 +9,25 @@ import { Food } from "./food";
  * @description  Picnic ants: Ant
  * @license      
  */
-export class Ant extends Physics.Arcade.Sprite {
+export class Ant extends MySprite {
     ANT_SPEED: number = 45;
-    body: Physics.Arcade.Body;
-    scene: GameScene;
     gravityFactor = 10;
     myFood: Food;
+    isOut: boolean;
 
-    // https://phaser.io/examples/v3/view/physics/arcade/extending-arcade-sprite#
     constructor(scene: GameScene) {
         super(scene, 0, 0, 'ant_sheet');
-
-
-        // scene.add.existing(this);
-        scene.physics.add.existing(this);
-        // this.scene.physics.moveToObject(this,this.scene.food, Phaser.Math.Between(12,60))
-
-        // this.setAngle
-
-        //  this.body.allowGravity = true;
-        // this.setCollideWorldBounds()
-
-        this.initAnt();
+    
+        this.setScale(0.75);
+        this.setCircle(7,this.width/4,this.height/3)
     }
-    initAnt() {
+
+    init() {
+        this.setRandomBorderPosition()
+        this.isOut=false
+    }
+
+    setRandomBorderPosition(){
         // this.setRandomPosition();
         let x, y = 0;
         let randomX = Phaser.Math.Between(0, this.scene.width)
@@ -54,23 +49,10 @@ export class Ant extends Physics.Arcade.Sprite {
                 break;
         }
         this.setPosition(x, y);
-
-    }
-
-    // setRandomPosition(){
-    //     this.x = Phaser.Math.Between(0, this.scene.width)
-    //     this.y = Phaser.Math.Between(0, this.scene.height)
-    // }
-
-    public static newRandomAnt(scene: GameScene) {
-        // var aDirection = Math.abs(Math.random() * 4 * 90);
-        var newAnt: Ant;
-        newAnt = new Ant(scene);
-        return newAnt;
     }
 
     update() {
-        if (this.scene.gameOver){
+        if (this.scene.gameOver || this.isOut){
             return 
         }
         
@@ -83,7 +65,11 @@ export class Ant extends Physics.Arcade.Sprite {
         this.choseSpriteDirection(xDistance, yDistance);
         
         if (!Phaser.Geom.Rectangle.Overlaps(this.scene.physics.world.bounds, this.getBounds())) {
+            this.isOut = true;
             this.scene.antOut(this)
+            this.scene.time.delayedCall(1000, () => {
+                this.init();
+              })
         }
         
     }
