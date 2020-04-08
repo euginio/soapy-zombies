@@ -11,7 +11,7 @@ import { GameScene } from "../scenes/game-scene";
 export class Food extends Physics.Arcade.Sprite {
     body: Physics.Arcade.Body;
     scene: GameScene;
-    gravityFactor = 2;
+    gravityFactor = 0.75;
 
 
     // https://phaser.io/examples/v3/view/physics/arcade/extending-arcade-sprite#
@@ -45,7 +45,7 @@ export class Food extends Physics.Arcade.Sprite {
     }
     destroy(animation?){
         if(this.body.enable){
-            this.disableBody(false,false);
+            this.disableBody(false,true);
             this.scene.destroyFood(this)
         }
     }
