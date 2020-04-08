@@ -13,7 +13,6 @@ export class Food extends Physics.Arcade.Sprite {
     scene: GameScene;
     gravityFactor = .5;
 
-
     // https://phaser.io/examples/v3/view/physics/arcade/extending-arcade-sprite#
     constructor(scene: GameScene) {
         super(scene, 0, 0, 'food');
@@ -36,12 +35,11 @@ export class Food extends Physics.Arcade.Sprite {
 
         this.on('animationcomplete', this.destroy, this);
 
-        this.initFood();
+        this.init();
     }
-    initFood() {
-        const marginx= this.scene.width*0.2
-        const marginy= this.scene.height*0.2
-        this.setRandomPosition(marginx, marginy, this.scene.width-marginx*2,this.scene.height-marginy*2);
+
+    init() {
+        this.setRandomPosition(this.scene.width*0.2, this.scene.height*0.2, this.scene.width*.6,this.scene.height*.6);
     }
     destroy(animation?){
         if(this.body.enable){

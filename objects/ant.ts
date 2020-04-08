@@ -73,42 +73,43 @@ export class Ant extends Physics.Arcade.Sprite {
         if (this.scene.gameOver){
             return 
         }
-        // this.setAcceleration(
-        //     (-(this.x-this.scene.food.x)/10)+this.scene.gravity.x,
-        //     (-(this.y-this.scene.food.y)/10)+this.scene.gravity.y
-        //     // (-(this.x-this.scene.food.x)/10),
-        //     // (-(this.y-this.scene.food.y)/10)
-        // );
-        // this.setVelocity(this.ANT_SPEED)
-
-        // let xDistance = Math.abs(this.x-this.scene.food.x)
-        // let yDistance = Math.abs(this.y-this.scene.food.y)
+        
         this.myFood = this.pickNearestFood()
-
-        //TODO: if problems here try with setting angle and using 
-        // physics gravity (now we are simulating gravity)
+        
         let xDistance = this.x - this.myFood.x
         let yDistance = this.y - this.myFood.y
-        let total = Math.abs(xDistance) + Math.abs(yDistance)
-
-        let antSpeedX = (this.ANT_SPEED * -xDistance) / total + this.scene.gravity.x * this.gravityFactor
-        let antSpeedY = (this.ANT_SPEED * -yDistance) / total + this.scene.gravity.y * this.gravityFactor
-
-        this.setVelocityX(antSpeedX)
-        this.setVelocityY(antSpeedY)
-
-        let xShouldWalkDir = this.x<this.myFood.x? 'right': 'left'
-        let yShouldWalkDir = this.y<this.myFood.y? 'down': 'up'
-        let shouldBeCurrentAnim:string = Math.abs(xDistance) < Math.abs(yDistance)? yShouldWalkDir: xShouldWalkDir
-        if (this.anims.getCurrentKey() != 'walk_'+shouldBeCurrentAnim) {
-            this.play('walk_'+shouldBeCurrentAnim);
-        }
-
+        this.setVelocity(xDistance, yDistance);
+        
+        this.choseSpriteDirection(xDistance, yDistance);
+        
         if (!Phaser.Geom.Rectangle.Overlaps(this.scene.physics.world.bounds, this.getBounds())) {
             this.scene.antOut(this)
         }
-
+        
     }
+    private choseSpriteDirection(xDistance: number, yDistance: number) {
+        let xShouldWalkDir = this.x < this.myFood.x ? 'right' : 'left';
+        let yShouldWalkDir = this.y < this.myFood.y ? 'down' : 'up';
+        let shouldBeCurrentAnim: string = Math.abs(xDistance) < Math.abs(yDistance) ? yShouldWalkDir : xShouldWalkDir;
+        if (this.anims.getCurrentKey() != 'walk_' + shouldBeCurrentAnim) {
+            this.play('walk_' + shouldBeCurrentAnim);
+        }
+    }
+    
+    private setVelocity(xDistance: number, yDistance?: number) {
+        //TODO: if problems here try with setting angle and using 
+        // physics gravity (now we are simulating gravity)
+        // this.setAcceleration(
+        // let xDistance = Math.abs(this.x-this.scene.food.x)
+        // let yDistance = Math.abs(this.y-this.scene.food.y)
+        let total = Math.abs(xDistance) + Math.abs(yDistance);
+        let antSpeedX = (this.ANT_SPEED * -xDistance) / total + this.scene.gravity.x * this.gravityFactor;
+        let antSpeedY = (this.ANT_SPEED * -yDistance) / total + this.scene.gravity.y * this.gravityFactor;
+        this.setVelocityX(antSpeedX);
+        this.setVelocityY(antSpeedY);
+        return this
+    }
+
     pickNearestFood():Food {
         return <Food>this.scene.foods.getChildren().filter((f:Food)=>f.body.enable).reduce(
             (prev:Food, curr:Food) =>  this.distanceAgainst(prev) < this.distanceAgainst(curr) ? prev : curr)

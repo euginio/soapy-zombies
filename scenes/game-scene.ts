@@ -60,13 +60,17 @@ export class GameScene extends Phaser.Scene {
     this.anims.pauseAll()
     this.physics.pause();
     
-    this.time.delayedCall(5000, () => {
-      this.scene.restart()
-      this.foods.children.iterate((f:Food)=>f.body.setEnable(true))
-      this.physics.resume();
-      this.anims.resumeAll();
-      this.gameOver=false
+    this.time.delayedCall(4000, () => {
+      this.restart();
     })
+  }
+  
+  restart(){
+    this.scene.restart()
+    this.foods.children.iterate((f:Food)=>f.body.setEnable(true))
+    this.physics.resume();
+    this.anims.resumeAll();
+    this.gameOver=false
   }
 
   create(): void {
