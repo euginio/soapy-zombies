@@ -1,62 +1,68 @@
 
-gameplay features
-    High score Scene
+
+gameplay features (by programming)
+    High score Scene si es fácil
     game over and buton restart game
     Instructions/Presentation Scene (for explain "tilt controls" and to go full screen)
     Create and use animations for born, eat, walk and dead
     apply better images/sprites
-other tasks
+tech tasks
     PWA?
+    ionic/native wrapper?
+    app stores?
+    ios?
 non tech tasks
-    elegir que juego va a ser discutiendo con los chiquis y elegir
-    bajar imagenes (o aprender a dibujar) copadas acordes (salva y ampi) (fondos, hormigas, etc)
+    bajar imagenes, o aprender a dibujar, o meter diseñador al equipo. imagenes copadas acordes (salva y ampi) (fondos, hormigas, etc)
     research how to monetize games
 bugs
     Safari Iphone accelerometer?
     device rotation to portrait
     screen margins and correct full screen (sizes, scales, etc)
 
+Done
+    * elegir que juego va a ser discutiendo con los chiquis y elegir
     * bold and change color for score
     * tween for brain life
     *fit to screen for phones don't work in full screen
     * quiting title
-    * use diferent animations depending the zombie/ant direction/angle
-    * migro la lógica de soapyZombies phaser 2 a phaser 3+typescript + webpack (aprendiendo lo que necesito leyendo los ejemplos de phaser 3)
-        * zombie y cerebro se muestran
-        * zombie walk con animación
-        * zombie walk asia el cerebro
-        * zombie come cerebro
-        * zombie le afecta gravedad con teclado
-        * zombie le afecta gravedad con acelerometro (if problems with velocity use angle instead)
+    * use diferent animations depending the ants/ant direction/angle
+    * migro la lógica de picnicantss phaser 2 a phaser 3+typescript + webpack (aprendiendo lo que necesito leyendo los ejemplos de phaser 3)
+        * ants y cerebro se muestran
+        * ants walk con animación
+        * ants walk asia el cerebro
+        * ants come cerebro
+        * ants le afecta gravedad con teclado
+        * ants le afecta gravedad con acelerometro (if problems with velocity use angle instead)
         * go fullscreen on touch
     * darle onda al acelerometro
     * score
-    * dinamic multiple zombies
-    * kill zombies when them got out of bound
+    * dinamic multiple antss
+    * kill antss when them got out of bound
     * mejorar lógica de gravedad vs velocidad 
-    * multiple zombies in multiple directions
+    * multiple antss in multiple directions
 
 ######################################
 
 Ideas:
     Juegos
-        zombies enjabonados/resvalón/resvaladizos en cementerio comen cerebro de una persona asustada
+        antss enjabonados/resvalón/resvaladizos en cementerio comen cerebro de una persona asustada
         hormigas comen cosas del picnic
         virus informáticos comen íconos
-        coronaVirus infectan a otras personas
+        !! coronaVirus infectan a otras personas
     Gameplay
         probar concepto de mover íconos/comida/personas/etc
-        shake para hormigas/zombies?
-        different types of zombies/ants/virus?
+        shake para hormigas/antss?
+        different types of antss/ants/virus?
 
-Estoy aprendiendo a hacer video juegos, me ayudás probandolo?
+Me ayudás probando mi juego?
 *antes de empezar a jugar lo mas importante es desactivar la rotación automática de la pantalla de tu celular*
-después ir a https://euginio.github.io/soapy-zombies/    
-Como se juega?
-Hay que inclinar el celular en diferentes sentidos para hacer caer a los zombies de la pantalla
+después ir a https://euginio.github.io/picnic-antss/    
+*Como se juega?*
+Hay que inclinar el celular en diferentes sentidos para hacer caer a los antss de la pantalla
 Lo mas fácil es dejar el celular en la palma de la mano y jugar asi
-(Si tocás la pantalla se va a pantalla completa)
 
+(Si tocás la pantalla se va a pantalla completa)
+---------------------------------
 doubts
     chase brain: I want to make enemies that behave something like "Boo" from Mario Bros: that is, enemies that chase the player wherever it goes , after achieve this I want these enemies-chase-movement being affected by the gravity (the gravity will be controller by the player). Any Idea?
     debug in chrome
