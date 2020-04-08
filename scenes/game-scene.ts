@@ -24,7 +24,7 @@ export class GameScene extends Phaser.Scene {
   initialFood: number = 6;
 
   gravityNum = { x: 30, y: 30 };
-  zombieRate: number=5;
+  zombieRate: number=7;
 
 
   constructor() {

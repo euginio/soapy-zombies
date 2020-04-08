@@ -18,8 +18,8 @@ export class Ant extends MySprite {
     constructor(scene: GameScene) {
         super(scene, 0, 0, 'ant_sheet');
         
-        this.setScale(0.75);
-        this.setCircle(11,this.width/4,this.height/3)
+        this.setScale(0.5);
+        this.setCircle(9,this.width/4,this.height/3)
     }
     
     init() {

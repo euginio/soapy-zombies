@@ -16,10 +16,10 @@ export class Food extends MySprite {
         super(scene, 0, 0, 'food');
 
         this.body.immovable = true;
-        this.setScale(0.35);
+        this.setScale(0.5);
         // this.setSize(this.width/3, this.height/3)
         // this.setOffset(17)
-        this.setCircle(10,23,15)
+        this.setCircle(20,23,15)
 
         this.on('animationcomplete', this.destroy, this);
     }
