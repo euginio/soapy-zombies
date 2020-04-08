@@ -1,5 +1,6 @@
-import { Scene, Physics } from "phaser";
+import { Scene, Physics, GameObjects } from "phaser";
 import { GameScene } from "../scenes/game-scene";
+import { Food } from "./food";
 
 
 /**
@@ -13,6 +14,7 @@ export class Ant extends Physics.Arcade.Sprite {
     body: Physics.Arcade.Body;
     scene: GameScene;
     gravityFactor = 10;
+    myFood: Food;
 
     // https://phaser.io/examples/v3/view/physics/arcade/extending-arcade-sprite#
     constructor(scene: GameScene) {
@@ -68,6 +70,9 @@ export class Ant extends Physics.Arcade.Sprite {
     }
 
     update() {
+        if (this.scene.gameOver){
+            return 
+        }
         // this.setAcceleration(
         //     (-(this.x-this.scene.food.x)/10)+this.scene.gravity.x,
         //     (-(this.y-this.scene.food.y)/10)+this.scene.gravity.y
@@ -78,11 +83,12 @@ export class Ant extends Physics.Arcade.Sprite {
 
         // let xDistance = Math.abs(this.x-this.scene.food.x)
         // let yDistance = Math.abs(this.y-this.scene.food.y)
+        this.myFood = this.pickNearestFood()
 
         //TODO: if problems here try with setting angle and using 
         // physics gravity (now we are simulating gravity)
-        let xDistance = this.x - this.scene.food.x
-        let yDistance = this.y - this.scene.food.y
+        let xDistance = this.x - this.myFood.x
+        let yDistance = this.y - this.myFood.y
         let total = Math.abs(xDistance) + Math.abs(yDistance)
 
         let antSpeedX = (this.ANT_SPEED * -xDistance) / total + this.scene.gravity.x * this.gravityFactor
@@ -91,8 +97,8 @@ export class Ant extends Physics.Arcade.Sprite {
         this.setVelocityX(antSpeedX)
         this.setVelocityY(antSpeedY)
 
-        let xShouldWalkDir = this.x<this.scene.food.x? 'right': 'left'
-        let yShouldWalkDir = this.y<this.scene.food.y? 'down': 'up'
+        let xShouldWalkDir = this.x<this.myFood.x? 'right': 'left'
+        let yShouldWalkDir = this.y<this.myFood.y? 'down': 'up'
         let shouldBeCurrentAnim:string = Math.abs(xDistance) < Math.abs(yDistance)? yShouldWalkDir: xShouldWalkDir
         if (this.anims.getCurrentKey() != 'walk_'+shouldBeCurrentAnim) {
             this.play('walk_'+shouldBeCurrentAnim);
@@ -103,9 +109,16 @@ export class Ant extends Physics.Arcade.Sprite {
         }
 
     }
+    pickNearestFood():Food {
+        return <Food>this.scene.foods.getChildren().filter((f:Food)=>f.body.enable).reduce(
+            (prev:Food, curr:Food) =>  this.distanceAgainst(prev) < this.distanceAgainst(curr) ? prev : curr)
+    }
+
+    distanceAgainst(go:Phaser.GameObjects.Sprite){
+        return Phaser.Math.Distance.Between(this.x,this.y, go.x, go.y)
+    }
 
     eatFood() {
-
     }
 
     antOut() {

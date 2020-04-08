@@ -1,7 +1,6 @@
 
 coding logic 
     gameplay features
-        many brains
         pause game when landscape and show message
         Instructions/Presentation Scene (for explain "tilt controls" and to go full screen)
         High score Scene si es fácil
@@ -9,6 +8,7 @@ coding logic
         Create and use animations for born, eat, walk and dead
         apply better images/sprites
         i18n
+        * many brains
     learn/research
     bugs
         device rotation to portrait
@@ -27,8 +27,8 @@ non coding logic
             sites to download free imagenes/sprites
             learning curve for how to draw
             looking for a digital designer for the team
-            Already exists exact the same game?
             how to monetize games
+            * Already exists exact the same game?
 
 Done
     * elegir que juego va a ser discutiendo con los chiquis y elegir

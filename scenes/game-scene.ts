@@ -7,11 +7,12 @@
 
 import { CONST } from "../const/const";
 import { Ant } from "../objects/ant";
+import { Food } from "../objects/food";
 
 export class GameScene extends Phaser.Scene {
-
-  food: Phaser.Physics.Arcade.Sprite;
+  // food: Phaser.Physics.Arcade.Sprite;
   ants: Phaser.GameObjects.Group;
+  foods: Phaser.GameObjects.Group;
   gameOver: any;
   cursors: Phaser.Types.Input.Keyboard.CursorKeys;
   scoreText: Phaser.GameObjects.Text;
@@ -19,7 +20,9 @@ export class GameScene extends Phaser.Scene {
   gravity: any = {};
   width: number;
   height: number;
-  
+  foodCount: number;
+  initialAnts: number = 2
+  initialFood: number = 6;
 
   constructor() {
     super({
@@ -39,9 +42,37 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  foodOut(food:Food) {
+    food.destroy()
+  }
+
+  destroyFood(food:Food) {
+    this.foodCount--
+    if(this.foodCount==0){
+      this.overGame()
+    }
+  }
+  
+  overGame(){
+    this.score = 0;
+    this.gameOver = true
+
+    this.anims.pauseAll()
+    this.physics.pause();
+    
+    this.time.delayedCall(5000, () => {
+      this.scene.restart()
+      this.foods.children.iterate((f:Food)=>f.body.setEnable(true))
+      this.physics.resume();
+      this.anims.resumeAll();
+      this.gameOver=false
+    })
+  }
+
   create(): void {
     let self = this;
 
+    this.foodCount=this.initialFood;
     // @ts-ignore
     // ScreenOrientation.lock("portrait")
     this.game.scale.orientation = "portrait"
@@ -87,9 +118,9 @@ export class GameScene extends Phaser.Scene {
       key: 'eatingFood',
       frames: this.anims.generateFrameNumbers('food', {}),
       frameRate: 4,
-      repeat: 0
+      repeat: 0,
+      duration:3000
     });
-
     
     //  Input Events
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -98,25 +129,23 @@ export class GameScene extends Phaser.Scene {
     background.setScale(.25)
     this.scoreText = this.add.text(16, 16, 'hormigas muertas: 0', { fontSize: '23px', fontStyle: 'bold', fill: '#DD3' });
 
-    this.food = this.physics.add.sprite(<number>this.game.config.width / 2, <number>this.game.config.height / 2, 'food')
-    this.food.body.immovable = true;
-    this.food.setScale(0.65);
-    // this.food.setSize(this.food.width/3, this.food.height/3)
-    // this.food.setOffset(17)
-    this.food.setCircle(10,23,15)
-
-    this.tweens.add({targets:this.food, 
-      scale: { value: .7, duration: 300, ease: 'Power1' },
-      yoyo:true, loop:-1 })
+    this.foods=this.add.group();
+    this.foods.runChildUpdate=true;
+    for (let index = 0; index < this.foodCount; index++) {
+      this.foods.add(new Food(this), true)
+    }
+    
+    // this.tweens.add({targets:this.food, 
+    //   scale: { value: .7, duration: 300, ease: 'Power1' },
+    //   yoyo:true, loop:-1 })
 
     this.ants = this.add.group();
-
     this.ants.runChildUpdate = true;
-    this.addNewAnt()
-    this.addNewAnt()
-    this.addNewAnt()
+    for (let i = 0; i < this.initialAnts; i++) {
+      this.addNewAnt()
+    }
 
-    this.physics.add.overlap(this.ants, this.food, this.eatFood, null, this);
+    this.physics.add.overlap(this.ants, this.foods, this.eatFood, null, this);
     // this.ants.children.iterate((z:Ant)=>z.init())    
     window.addEventListener("devicemotion", function (event: DeviceMotionEvent) {
       self.gravity.x = -event.accelerationIncludingGravity.x;
@@ -131,12 +160,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   eatFood(ant: Phaser.Physics.Arcade.Sprite, food: Phaser.Physics.Arcade.Sprite) {
-    this.score = 0;
-    ant.anims.pause();
-    food.play('eatingFood');
-    this.physics.pause();
-    this.gameOver = true;
-    this.time.delayedCall(5000, () => this.scene.restart())
+    if (food.body.enable){
+      food.play('eatingFood');
+    }
   }
 
   update(): void {
