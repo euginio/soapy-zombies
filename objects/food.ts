@@ -29,10 +29,12 @@ export class Food extends MySprite {
     }
 
     destroy(animation?){
-        if(this.body.enable){
-            this.disableBody(false,true);
-            this.scene.destroyFood(this)
-        }
+        this.scene.time.delayedCall(1500, () => {
+            if(this.body.enable){
+                this.disableBody(false,true);
+                this.scene.destroyFood(this)
+            }
+        })
     }
     update() {
         // if(this.body.enable){
@@ -46,8 +48,10 @@ export class Food extends MySprite {
         // }
     }
 
-    eatFood() {
-
+    beingEat() {
+        if (this.body.enable && !this.anims.isPlaying){
+            this.play('eatingFood');
+        }
     }
 
     foodOut() {

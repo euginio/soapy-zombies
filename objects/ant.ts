@@ -14,19 +14,19 @@ export class Ant extends MySprite {
     gravityFactor = 10;
     myFood: Food;
     isOut: boolean;
-
+    
     constructor(scene: GameScene) {
         super(scene, 0, 0, 'ant_sheet');
-    
+        
         this.setScale(0.75);
-        this.setCircle(7,this.width/4,this.height/3)
+        this.setCircle(11,this.width/4,this.height/3)
     }
-
+    
     init() {
         this.setRandomBorderPosition()
         this.isOut=false
     }
-
+    
     setRandomBorderPosition(){
         // this.setRandomPosition();
         let x, y = 0;
@@ -36,21 +36,21 @@ export class Ant extends MySprite {
             case 0: //top border
                 x = randomX
                 break;
-            case 1: // right border
+                case 1: // right border
                 x = this.scene.width
                 y = randomY
                 break;
             case 2: // bottom border
-                x = randomX
+            x = randomX
                 y = this.scene.height
                 break;
-            case 3: // left border
+                case 3: // left border
                 y = randomY
                 break;
         }
         this.setPosition(x, y);
     }
-
+    
     update() {
         if (this.scene.gameOver || this.isOut){
             return 
@@ -69,7 +69,7 @@ export class Ant extends MySprite {
             this.scene.antOut(this)
             this.scene.time.delayedCall(1000, () => {
                 this.init();
-              })
+            })
         }
         
     }
@@ -86,28 +86,31 @@ export class Ant extends MySprite {
         //TODO: if problems here try with setting angle and using 
         // physics gravity (now we are simulating gravity)
         // this.setAcceleration(
-        // let xDistance = Math.abs(this.x-this.scene.food.x)
-        // let yDistance = Math.abs(this.y-this.scene.food.y)
-        let total = Math.abs(xDistance) + Math.abs(yDistance);
+            // let xDistance = Math.abs(this.x-this.scene.food.x)
+            // let yDistance = Math.abs(this.y-this.scene.food.y)
+            let total = Math.abs(xDistance) + Math.abs(yDistance);
         let antSpeedX = (this.ANT_SPEED * -xDistance) / total + this.scene.gravity.x * this.gravityFactor;
         let antSpeedY = (this.ANT_SPEED * -yDistance) / total + this.scene.gravity.y * this.gravityFactor;
         this.setVelocityX(antSpeedX);
         this.setVelocityY(antSpeedY);
         return this
     }
-
+    
     pickNearestFood():Food {
         return <Food>this.scene.foods.getChildren().filter((f:Food)=>f.body.enable).reduce(
             (prev:Food, curr:Food) =>  this.distanceAgainst(prev) < this.distanceAgainst(curr) ? prev : curr)
-    }
+        }
 
-    distanceAgainst(go:Phaser.GameObjects.Sprite){
+        distanceAgainst(go:Phaser.GameObjects.Sprite){
         return Phaser.Math.Distance.Between(this.x,this.y, go.x, go.y)
     }
 
-    eatFood() {
-    }
+    // eating() {
+    //     if(this.myFood.body.enable){
 
+    //     })
+    // }
+    
     antOut() {
         // this.game.state.score += 20;
         // this.game.state.scoreText.text = this.game.state.scoreString + this.game.state.score;

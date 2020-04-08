@@ -122,9 +122,10 @@ export class GameScene extends Phaser.Scene {
     this.anims.create({
       key: 'eatingFood',
       frames: this.anims.generateFrameNumbers('food', {}),
-      frameRate: 4,
-      repeat: 0,
-      duration:3000
+      // frameRate: 4,
+      // repeat:0,
+      duration:1500,
+      hideOnComplete:true
     });
     
     //  Input Events
@@ -151,6 +152,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.physics.add.collider(this.ants, this.foods, this.eatFood, null, this);
+    this.physics.add.collider(this.ants, this.ants, null, null, this);
     // this.ants.children.iterate((z:Ant)=>z.init())
     if (!this.sys.game.device.os.desktop) {
       window.addEventListener("devicemotion", function (event: DeviceMotionEvent) {
@@ -165,10 +167,9 @@ export class GameScene extends Phaser.Scene {
     this.ants.add(new Ant(this), true)
   }
 
-  eatFood(ant: Phaser.Physics.Arcade.Sprite, food: Phaser.Physics.Arcade.Sprite) {
-    if (food.body.enable){
-      food.play('eatingFood');
-    }
+  eatFood(ant: Ant, food: Food) {
+    food.beingEat();
+    // ant.eating()
   }
 
   update(): void {
