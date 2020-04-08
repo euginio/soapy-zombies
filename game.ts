@@ -1,7 +1,7 @@
 /**
  * @author       Eugenio Arosteguy <eugenio.arosteguy@gmail.com>
  * @copyright    2020 eugenio arosteguy
- * @description  Soapy zombies
+ * @description  Picnic ants
  * @license      
  */
 
@@ -10,8 +10,8 @@ import { BootScene } from "./scenes/boot-scene";
 import { GameScene } from "./scenes/game-scene";
 
 const config: Phaser.Types.Core.GameConfig = {
-  title: "Soapy zombies",
-  url: "https://github.com/euginio/soapy-zombies",
+  title: "Picnic ants",
+  url: "https://github.com/euginio/picnic-ants",
   version: "1.0",
   width: 300,
   height: 533,

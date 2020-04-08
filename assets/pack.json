@@ -13,8 +13,8 @@
       },
       {
         "type": "spritesheet",
-        "key": "brain",
-        "url": "./assets/images/brain.png",
+        "key": "apple",
+        "url": "./assets/images/apple.png",
         "frameConfig": {
           "frameWidth": 81,
           "frameHeight": 61
@@ -23,8 +23,8 @@
       },
       {
         "type": "spritesheet",
-        "key": "zombie_sheet",
-        "url": "./assets/images/zombie_sheet.png",
+        "key": "ant_sheet",
+        "url": "./assets/images/ant_sheet.png",
         "frameConfig": {
           "frameWidth": 46,
           "frameHeight": 49

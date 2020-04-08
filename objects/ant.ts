@@ -5,32 +5,32 @@ import { GameScene } from "../scenes/game-scene";
 /**
  * @author       Eugenio Arosteguy <eugenio.arosteguy@gmail.com>
  * @copyright    2020 eugenio arosteguy
- * @description  Soapy zombies: Zombie
+ * @description  Picnic ants: Ant
  * @license      
  */
-export class Zombie extends Physics.Arcade.Sprite {
-    ZOMBIE_SPEED: number = 45;
+export class Ant extends Physics.Arcade.Sprite {
+    ANT_SPEED: number = 45;
     body: Physics.Arcade.Body;
     scene: GameScene;
     gravityFactor = 10;
 
     // https://phaser.io/examples/v3/view/physics/arcade/extending-arcade-sprite#
     constructor(scene: GameScene) {
-        super(scene, 0, 0, 'zombie_sheet');
+        super(scene, 0, 0, 'ant_sheet');
 
 
         // scene.add.existing(this);
         scene.physics.add.existing(this);
-        // this.scene.physics.moveToObject(this,this.scene.brain, Phaser.Math.Between(12,60))
+        // this.scene.physics.moveToObject(this,this.scene.apple, Phaser.Math.Between(12,60))
 
         // this.setAngle
 
         //  this.body.allowGravity = true;
         // this.setCollideWorldBounds()
 
-        this.initZombie();
+        this.initAnt();
     }
-    initZombie() {
+    initAnt() {
         // this.setRandomPosition();
         let x, y = 0;
         let randomX = Phaser.Math.Between(0, this.scene.width)
@@ -60,55 +60,55 @@ export class Zombie extends Physics.Arcade.Sprite {
     //     this.y = Phaser.Math.Between(0, this.scene.height)
     // }
 
-    public static newRandomZombie(scene: GameScene) {
+    public static newRandomAnt(scene: GameScene) {
         // var aDirection = Math.abs(Math.random() * 4 * 90);
-        var newZombie: Zombie;
-        newZombie = new Zombie(scene);
-        return newZombie;
+        var newAnt: Ant;
+        newAnt = new Ant(scene);
+        return newAnt;
     }
 
     update() {
         // this.setAcceleration(
-        //     (-(this.x-this.scene.brain.x)/10)+this.scene.gravity.x,
-        //     (-(this.y-this.scene.brain.y)/10)+this.scene.gravity.y
-        //     // (-(this.x-this.scene.brain.x)/10),
-        //     // (-(this.y-this.scene.brain.y)/10)
+        //     (-(this.x-this.scene.apple.x)/10)+this.scene.gravity.x,
+        //     (-(this.y-this.scene.apple.y)/10)+this.scene.gravity.y
+        //     // (-(this.x-this.scene.apple.x)/10),
+        //     // (-(this.y-this.scene.apple.y)/10)
         // );
-        // this.setVelocity(this.ZOMBIE_SPEED)
+        // this.setVelocity(this.ANT_SPEED)
 
-        // let xDistance = Math.abs(this.x-this.scene.brain.x)
-        // let yDistance = Math.abs(this.y-this.scene.brain.y)
+        // let xDistance = Math.abs(this.x-this.scene.apple.x)
+        // let yDistance = Math.abs(this.y-this.scene.apple.y)
 
         //TODO: if problems here try with setting angle and using 
         // physics gravity (now we are simulating gravity)
-        let xDistance = this.x - this.scene.brain.x
-        let yDistance = this.y - this.scene.brain.y
+        let xDistance = this.x - this.scene.apple.x
+        let yDistance = this.y - this.scene.apple.y
         let total = Math.abs(xDistance) + Math.abs(yDistance)
 
-        let zombieSpeedX = (this.ZOMBIE_SPEED * -xDistance) / total + this.scene.gravity.x * this.gravityFactor
-        let zombieSpeedY = (this.ZOMBIE_SPEED * -yDistance) / total + this.scene.gravity.y * this.gravityFactor
+        let antSpeedX = (this.ANT_SPEED * -xDistance) / total + this.scene.gravity.x * this.gravityFactor
+        let antSpeedY = (this.ANT_SPEED * -yDistance) / total + this.scene.gravity.y * this.gravityFactor
 
-        this.setVelocityX(zombieSpeedX)
-        this.setVelocityY(zombieSpeedY)
+        this.setVelocityX(antSpeedX)
+        this.setVelocityY(antSpeedY)
 
-        let xShouldWalkDir = this.x<this.scene.brain.x? 'right': 'left'
-        let yShouldWalkDir = this.y<this.scene.brain.y? 'down': 'up'
+        let xShouldWalkDir = this.x<this.scene.apple.x? 'right': 'left'
+        let yShouldWalkDir = this.y<this.scene.apple.y? 'down': 'up'
         let shouldBeCurrentAnim:string = Math.abs(xDistance) < Math.abs(yDistance)? yShouldWalkDir: xShouldWalkDir
         if (this.anims.getCurrentKey() != 'walk_'+shouldBeCurrentAnim) {
             this.play('walk_'+shouldBeCurrentAnim);
         }
 
         if (!Phaser.Geom.Rectangle.Overlaps(this.scene.physics.world.bounds, this.getBounds())) {
-            this.scene.zombieOut(this)
+            this.scene.antOut(this)
         }
 
     }
 
-    eatBrain() {
+    eatApple() {
 
     }
 
-    zombieOut() {
+    antOut() {
         // this.game.state.score += 20;
         // this.game.state.scoreText.text = this.game.state.scoreString + this.game.state.score;
     }

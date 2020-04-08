@@ -8,7 +8,7 @@
     path.add(line1);
 
     this.tweens.add({
-        targets: zombie,
+        targets: ant,
         t: 1,
         ease: 'Linear',
         duration: 4000,

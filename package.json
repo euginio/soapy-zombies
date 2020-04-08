@@ -1,7 +1,7 @@
 {
-  "name": "soapy-zombies",
+  "name": "picnic-ants",
   "version": "1.0.0",
-  "description": "Soapy zombies for Phaser 3 in TypeScript",
+  "description": "Picnic ants for Phaser 3 in TypeScript",
   "keywords": [],
   "devDependencies": {
     "expose-loader": "0.7.5",
@@ -22,7 +22,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/euginio/soapy-zombies.git"
+    "url": "git+https://github.com/euginio/picnic-ants.git"
   },
   "author": {
     "name": "eugenio arosteguy",
@@ -30,7 +30,7 @@
   },
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/euginio/soapy-zombies/issues"
+    "url": "https://github.com/euginio/picnic-ants/issues"
   },
-  "homepage": "https://github.com/euginio/soapy-zombies#readme"
+  "homepage": "https://github.com/euginio/picnic-ants#readme"
 }
