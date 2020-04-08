@@ -29,12 +29,12 @@ export class Food extends MySprite {
     }
 
     destroy(animation?){
-        this.scene.time.delayedCall(1500, () => {
-            if(this.body.enable){
+        if(this.body.enable){
+            this.scene.destroyFood(this)
+            // this.scene.time.delayedCall(1500, () => {
                 this.disableBody(false,true);
-                this.scene.destroyFood(this)
-            }
-        })
+            // })
+        }
     }
     update() {
         // if(this.body.enable){

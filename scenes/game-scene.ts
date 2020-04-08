@@ -24,6 +24,7 @@ export class GameScene extends Phaser.Scene {
   initialFood: number = 6;
 
   gravityNum = { x: 30, y: 30 };
+  zombieRate: number=5;
 
 
   constructor() {
@@ -33,12 +34,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   init(): void {
+    this.score=0;
   }
 
   antOut(outAnt: Ant) {
     this.score++;
     this.scoreText.setText('hormigas muertas: ' + this.score);
-    if (this.score % 5 == 0) {
+    if (this.score % this.zombieRate == 0) {
       this.addNewAnt()
     }
   }
@@ -55,11 +57,9 @@ export class GameScene extends Phaser.Scene {
   }
   
   overGame(){
-    this.score = 0;
-    this.gameOver = true
-
     this.anims.pauseAll()
     this.physics.pause();
+    this.gameOver = true
     
     this.time.delayedCall(4000, () => {
       this.restart();
