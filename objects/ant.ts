@@ -96,7 +96,7 @@ export class Ant extends Physics.Arcade.Sprite {
         }
     }
     
-    private setVelocity(xDistance: number, yDistance?: number) {
+    setVelocity(xDistance: number, yDistance?: number) {
         //TODO: if problems here try with setting angle and using 
         // physics gravity (now we are simulating gravity)
         // this.setAcceleration(

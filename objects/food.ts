@@ -11,7 +11,7 @@ import { GameScene } from "../scenes/game-scene";
 export class Food extends Physics.Arcade.Sprite {
     body: Physics.Arcade.Body;
     scene: GameScene;
-    gravityFactor = .5;
+    gravityFactor = .3;
 
     // https://phaser.io/examples/v3/view/physics/arcade/extending-arcade-sprite#
     constructor(scene: GameScene) {

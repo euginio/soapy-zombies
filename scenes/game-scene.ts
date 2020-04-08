@@ -24,6 +24,9 @@ export class GameScene extends Phaser.Scene {
   initialAnts: number = 2
   initialFood: number = 6;
 
+  gravityNum = { x: 30, y: 30 };
+
+
   constructor() {
     super({
       key: "GameScene"
@@ -150,12 +153,15 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.physics.add.overlap(this.ants, this.foods, this.eatFood, null, this);
-    // this.ants.children.iterate((z:Ant)=>z.init())    
-    window.addEventListener("devicemotion", function (event: DeviceMotionEvent) {
-      self.gravity.x = -event.accelerationIncludingGravity.x;
-      self.gravity.y = event.accelerationIncludingGravity.y;
-      self.gravity.z = event.accelerationIncludingGravity.z;
-    }, false);
+    // this.ants.children.iterate((z:Ant)=>z.init())
+    if (!this.sys.game.device.os.desktop) {
+      window.addEventListener("devicemotion", function (event: DeviceMotionEvent) {
+        self.gravity.x = -event.accelerationIncludingGravity.x;
+        self.gravity.y = event.accelerationIncludingGravity.y;
+        self.gravity.z = event.accelerationIncludingGravity.z;
+      }, false);
+    }
+
 
   }
 
@@ -170,19 +176,22 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(): void {
-
     if (this.gameOver) {
       return;
     }
 
-    let gravityNum = { x: 70, y: 70 };
+    if (this.sys.game.device.os.desktop){
+      this.checkCursors();
+    }
+  }
 
+  checkCursors() {
     if (this.cursors.left.isDown) {
-      this.gravity.x = -gravityNum.x
+      this.gravity.x = -this.gravityNum.x
       // this.ants.children.iterate((zb:Ant)=> zb.setGravityX(-20));
     }
     else if (this.cursors.right.isDown) {
-      this.gravity.x = gravityNum.x
+      this.gravity.x = this.gravityNum.x
       // this.ants.children.iterate((zb:Ant)=> zb.setGravityX(20));
     }
     else {
@@ -191,11 +200,11 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.cursors.up.isDown) {
-      this.gravity.y = -gravityNum.y
+      this.gravity.y = -this.gravityNum.y
       // this.ants.children.iterate((zb:Ant)=> zb.setGravityY(-20));
     }
     else if (this.cursors.down.isDown) {
-      this.gravity.y = gravityNum.y
+      this.gravity.y = this.gravityNum.y
       // this.ants.children.iterate((zb:Ant)=> zb.setGravityY(20));
     }
     else {
