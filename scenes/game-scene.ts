@@ -24,7 +24,7 @@ export class GameScene extends Phaser.Scene {
   initialFood: number = 6;
 
   gravityNum = { x: 30, y: 30 };
-  zombieRate: number=7;
+  zombieRate: number = 7;
 
   constructor() {
     super({
@@ -33,7 +33,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   init(): void {
-    this.score=0;
+    this.score = 0;
   }
 
   antOut(outAnt: Ant) {
@@ -44,39 +44,39 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  foodOut(food:Food) {
+  foodOut(food: Food) {
     food.destroy()
   }
 
-  destroyFood(food:Food) {
+  destroyFood(food: Food) {
     this.foodCount--
-    if(this.foodCount==0){
+    if (this.foodCount == 0) {
       this.overGame()
     }
   }
-  
-  overGame(){
+
+  overGame() {
     this.anims.pauseAll()
     this.physics.pause();
     this.gameOver = true
-    
+
     this.time.delayedCall(4000, () => {
       this.restart();
     })
   }
-  
-  restart(){
+
+  restart() {
     this.scene.restart()
-    this.foods.children.iterate((f:Food)=>f.body.setEnable(true))
+    this.foods.children.iterate((f: Food) => f.body.setEnable(true))
     this.physics.resume();
     this.anims.resumeAll();
-    this.gameOver=false
+    this.gameOver = false
   }
 
   create(): void {
     let self = this;
 
-    this.foodCount=this.initialFood;
+    this.foodCount = this.initialFood;
     // @ts-ignore
     // ScreenOrientation.lock("portrait")
     this.game.scale.orientation = "portrait"
@@ -113,7 +113,7 @@ export class GameScene extends Phaser.Scene {
 
     this.anims.create({
       key: 'walk_right',
-      frames: this.anims.generateFrameNumbers('ant_sheet', { frames: [5,11,17] }),
+      frames: this.anims.generateFrameNumbers('ant_sheet', { frames: [5, 11, 17] }),
       frameRate: 4,
       repeat: -1
     });
@@ -123,23 +123,23 @@ export class GameScene extends Phaser.Scene {
       frames: this.anims.generateFrameNumbers('food', {}),
       // frameRate: 4,
       // repeat:0,
-      duration:1500,
-      hideOnComplete:true
+      duration: 1500,
+      hideOnComplete: true
     });
-    
+
     //  Input Events
     this.cursors = this.input.keyboard.createCursorKeys();
-    
-    let background = this.add.image(this.width/2,this.height/2,'graveyard');
+
+    let background = this.add.image(this.width / 2, this.height / 2, 'graveyard');
     background.setScale(.25)
     this.scoreText = this.add.text(16, 16, 'hormigas muertas: 0', { fontSize: '19px', fontStyle: 'bold', fill: '#DD3' });
 
-    this.foods=this.add.group();
-    this.foods.runChildUpdate=true;
+    this.foods = this.add.group();
+    this.foods.runChildUpdate = true;
     for (let index = 0; index < this.foodCount; index++) {
       this.foods.add(new Food(this), true)
     }
-    
+
     // this.tweens.add({targets:this.food, 
     //   scale: { value: .7, duration: 300, ease: 'Power1' },
     //   yoyo:true, loop:-1 })
@@ -177,7 +177,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.sys.game.device.os.desktop){
+    if (this.sys.game.device.os.desktop) {
       this.checkCursors();
     }
   }

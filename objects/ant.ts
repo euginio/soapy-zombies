@@ -26,7 +26,7 @@ export class Ant extends MySprite {
     init() {
         this.isAlive = true
         this.isClimbing = true
-        this.enableBody(true,this.x,this.y,true,true)
+        this.enableBody(true, this.x, this.y, true, true)
         this.setRandomBorderPosition()
     }
 
@@ -83,7 +83,7 @@ export class Ant extends MySprite {
     kill() {
         this.isAlive = false
         this.isClimbing = false
-        this.disableBody(false,true);
+        this.disableBody(false, true);
     }
 
     private choseSpriteDirection(xDistance: number, yDistance: number) {
