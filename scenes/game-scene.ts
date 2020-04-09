@@ -26,7 +26,6 @@ export class GameScene extends Phaser.Scene {
   gravityNum = { x: 30, y: 30 };
   zombieRate: number=7;
 
-
   constructor() {
     super({
       key: "GameScene"
@@ -153,6 +152,7 @@ export class GameScene extends Phaser.Scene {
 
     this.physics.add.collider(this.ants, this.foods, this.eatFood, null, this);
     this.physics.add.collider(this.ants, this.ants, null, null, this);
+    this.physics.add.collider(this.foods, this.foods, null, null, this);
     // this.ants.children.iterate((z:Ant)=>z.init())
     if (!this.sys.game.device.os.desktop) {
       window.addEventListener("devicemotion", function (event: DeviceMotionEvent) {
