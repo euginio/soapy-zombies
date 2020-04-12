@@ -13,8 +13,8 @@ const config: Phaser.Types.Core.GameConfig = {
   title: "Picnic ants",
   url: "https://github.com/euginio/picnic-ants",
   version: "1.0",
-  width: 300,
-  height: 533,
+  width: 533,
+  height: 300,
   type: Phaser.AUTO,
   scale: {
     mode: Phaser.Scale.FIT,

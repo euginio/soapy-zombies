@@ -154,8 +154,8 @@ export class GameScene extends Phaser.Scene {
     // this.ants.children.iterate((z:Ant)=>z.init())
     if (!this.sys.game.device.os.desktop) {
       window.addEventListener("devicemotion", function (event: DeviceMotionEvent) {
-        self.gravity.x = -event.accelerationIncludingGravity.x;
-        self.gravity.y = event.accelerationIncludingGravity.y;
+        self.gravity.y = event.accelerationIncludingGravity.x;
+        self.gravity.x = event.accelerationIncludingGravity.y;
         self.gravity.z = event.accelerationIncludingGravity.z;
       }, false);
     }
@@ -165,7 +165,7 @@ export class GameScene extends Phaser.Scene {
    * This method must to be called in fullscreen mode to work
    */
   private tryOrientation() {
-    const desiredOrientation = 'portrait-primary';
+    const desiredOrientation = 'landscape-primary';
     // @ts-ignore
     // ScreenOrientation.lock(orientation)
     // this.game.scale.orientation = orientation
