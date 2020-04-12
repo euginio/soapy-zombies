@@ -3,15 +3,13 @@ coding logic
     gameplay features
         Instructions/Presentation Scene (for explain "tilt controls" and to go full screen)
         apply ants images/sprites
-        game over and buton restart game
-        High score Scene si es fácil
+        High score Scene si es fácil with buton restart game
         Create and use animations for born, eat, walk and dead
         pause game when portrait and show message (lock screen)
         i18n
     learn/research
     bugs
         Safari Iphone accelerometer?
-        screen margins and correct full screen (sizes, scales, etc)
         screen dim cause no touch events (se resuelve con nativo)
 non coding logic
     tech
@@ -30,6 +28,7 @@ non coding logic
             * Already exists exact the same game?
 
 Done
+    * screen margins and correct full screen (sizes, scales, etc)
     * set landscape game
     * many brains
     * device rotation to portrait
