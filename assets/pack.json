@@ -3,11 +3,6 @@
     "files": [
       {
         "type": "image",
-        "key": "ball",
-        "url": "./assets/images/ball.png"
-      },
-      {
-        "type": "image",
         "key": "graveyard",
         "url": "./assets/images/graveyard.png"
       },

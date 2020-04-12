@@ -8,6 +8,7 @@
 import "phaser";
 import { BootScene } from "./scenes/boot-scene";
 import { GameScene } from "./scenes/game-scene";
+import { TitleScene } from "./scenes/title-scene";
 
 const config: Phaser.Types.Core.GameConfig = {
   title: "Picnic ants",
@@ -28,7 +29,7 @@ const config: Phaser.Types.Core.GameConfig = {
     }
   },
   parent: "game",
-  scene: [BootScene, GameScene],
+  scene: [BootScene, TitleScene, GameScene],
   // backgroundColor: "#de3412",
   // render: { pixelArt: false, antialias: true }
 };

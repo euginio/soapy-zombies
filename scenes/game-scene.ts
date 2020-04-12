@@ -8,8 +8,9 @@
 import { CONST } from "../const/const";
 import { Ant } from "../objects/ant";
 import { Food } from "../objects/food";
+import { MyScene } from "./my-scene";
 
-export class GameScene extends Phaser.Scene {
+export class GameScene extends MyScene {
   ants: Phaser.GameObjects.Group;
   foods: Phaser.GameObjects.Group;
   gameOver: any;
@@ -17,8 +18,7 @@ export class GameScene extends Phaser.Scene {
   scoreText: Phaser.GameObjects.Text;
   score = 0;
   gravity: any = {};
-  width: number;
-  height: number;
+  
   foodCount: number;
   initialAnts: number = 2
   initialFood: number = 6;
@@ -33,6 +33,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   init(): void {
+    super.init()
     this.score = 0;
   }
 
@@ -78,16 +79,6 @@ export class GameScene extends Phaser.Scene {
 
     this.foodCount = this.initialFood;
 
-    this.width = <number>this.game.config.width
-    this.height = <number>this.game.config.height
-
-    this.input.on('pointerup', function (pointer) {
-      if (!self.scale.isFullscreen) {
-        self.scale.startFullscreen();
-      }
-      self.tryOrientation();
-    });
-
     this.anims.create({
       key: 'walk_down',
       frames: this.anims.generateFrameNumbers('ant_sheet', { frames: [0, 6, 12, 1, 7, 13] }),
@@ -129,7 +120,7 @@ export class GameScene extends Phaser.Scene {
     this.cursors = this.input.keyboard.createCursorKeys();
 
     let background = this.add.image(this.width / 2, this.height / 2, 'graveyard');
-    background.setScale(.25)
+    background.setScale(.3)
     this.scoreText = this.add.text(16, 16, 'hormigas muertas: 0', { fontSize: '19px', fontStyle: 'bold', fill: '#DD3' });
 
     this.foods = this.add.group();
@@ -159,41 +150,6 @@ export class GameScene extends Phaser.Scene {
         self.gravity.z = event.accelerationIncludingGravity.z;
       }, false);
     }
-  }
-
-  /**
-   * This method must to be called in fullscreen mode to work
-   */
-  private tryOrientation() {
-    const desiredOrientation = 'landscape-primary';
-    // @ts-ignore
-    // ScreenOrientation.lock(orientation)
-    // this.game.scale.orientation = orientation
-    // this.scale.lockOrientation(orientation)
-    // window.screen.orientation.lock(orientation);
-    // screen.orientation.lock(orientation)	
-
-    var orientKey = 'orientation';
-    if ('mozOrientation' in screen) {
-      orientKey = 'mozOrientation';
-    } else if ('msOrientation' in screen) {
-      orientKey = 'msOrientation';
-    }
-    var promise = null;
-    if (screen[orientKey].lock) {
-      // promise = screen[orientKey].lock(screen[orientKey].type); // this lock in current orientation
-      promise = screen[orientKey].lock(desiredOrientation);
-    } else {
-      // @ts-ignore
-      // promise = screen.orientationLock(screen[orientKey]); // this lock in current orientation
-      promise = screen.orientationLock(desiredOrientation);
-    }
-
-    // promise
-    //   .then(function () {
-    //   })
-    //   .catch(function (err) {
-    //   });
   }
 
   addNewAnt() {
