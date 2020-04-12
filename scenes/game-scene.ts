@@ -77,9 +77,6 @@ export class GameScene extends Phaser.Scene {
     let self = this;
 
     this.foodCount = this.initialFood;
-    // @ts-ignore
-    // ScreenOrientation.lock("portrait")
-    this.game.scale.orientation = "portrait"
 
     this.width = <number>this.game.config.width
     this.height = <number>this.game.config.height
@@ -88,6 +85,7 @@ export class GameScene extends Phaser.Scene {
       if (!self.scale.isFullscreen) {
         self.scale.startFullscreen();
       }
+      self.tryOrientation();
     });
 
     this.anims.create({
@@ -161,6 +159,41 @@ export class GameScene extends Phaser.Scene {
         self.gravity.z = event.accelerationIncludingGravity.z;
       }, false);
     }
+  }
+
+  /**
+   * This method must to be called in fullscreen mode to work
+   */
+  private tryOrientation() {
+    const desiredOrientation = 'portrait-primary';
+    // @ts-ignore
+    // ScreenOrientation.lock(orientation)
+    // this.game.scale.orientation = orientation
+    // this.scale.lockOrientation(orientation)
+    // window.screen.orientation.lock(orientation);
+    // screen.orientation.lock(orientation)	
+
+    var orientKey = 'orientation';
+    if ('mozOrientation' in screen) {
+      orientKey = 'mozOrientation';
+    } else if ('msOrientation' in screen) {
+      orientKey = 'msOrientation';
+    }
+    var promise = null;
+    if (screen[orientKey].lock) {
+      // promise = screen[orientKey].lock(screen[orientKey].type); // this lock in current orientation
+      promise = screen[orientKey].lock(desiredOrientation);
+    } else {
+      // @ts-ignore
+      // promise = screen.orientationLock(screen[orientKey]); // this lock in current orientation
+      promise = screen.orientationLock(desiredOrientation);
+    }
+
+    // promise
+    //   .then(function () {
+    //   })
+    //   .catch(function (err) {
+    //   });
   }
 
   addNewAnt() {

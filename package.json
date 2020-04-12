@@ -18,7 +18,7 @@
     "dev": "webpack --mode development && webpack-dev-server --mode development",
     "dev-ssl": "webpack --mode development && webpack-dev-server --https --host=0.0.0.0 --disable-host-check --useLocalIp --mode development",
     "build": "webpack --mode production && webpack-dev-server --mode production",
-    "debug-dev":"sudo adb forward tcp:9222 localabstract:chrome_devtools_remote; google-chrome localhost:9222"
+    "debug-mobile":"sudo adb forward tcp:9222 localabstract:chrome_devtools_remote; google-chrome localhost:9222"
   },
   "repository": {
     "type": "git",
