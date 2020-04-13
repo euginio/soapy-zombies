@@ -11,7 +11,7 @@ import { MySprite } from "./mySprite";
  */
 export class Ant extends MySprite {
     
-    ANT_SPEED: number = 45;
+    ANT_SPEED: number = 55;
     gravityFactor = 10;
     myFood: Food;
     isAlive: boolean;
@@ -21,7 +21,7 @@ export class Ant extends MySprite {
     constructor(scene: GameScene) {
         super(scene, 0, 0, 'ant_sheet');
 
-        this.setScale(0.35);
+        this.setScale(0.2);
         // this.setCircle(9, this.width / 4, this.height / 3)
     }
 
@@ -91,15 +91,11 @@ export class Ant extends MySprite {
         this.disableBody(false, false)
         
         this.scene.tweens.add({targets:this, 
-            scale: { value: 0.01, duration: 1500},
+            scale: { value: 0.01, duration: 750},
             yoyo:true, loop:0,
             onYoyo:()=>{
-                this.scene.antDied(this)
                 this.disableBody(false, true)
-                    
-                // this.setSize
-                // this.scene.time.delayedCall(1500, () => {
-                // })
+                this.scene.antDied(this)
             },
             onComplete:()=>{
                 this.init();

@@ -23,6 +23,7 @@ export class GameScene extends MyScene {
   initialAnts: number = 3
   initialFood: number = 8;
   zombieRate: number = 7;
+  accelerometerFactor: number = 2
 
   gravityNum = { x: 30, y: 30 };
   tray: Phaser.Physics.Arcade.Sprite;
@@ -81,10 +82,12 @@ export class GameScene extends MyScene {
 
     this.foodCount = this.initialFood;
 
+    let divider = 4
+    let antFrames = [...Array(Math.floor(62/divider)).keys()].map(e=>e*divider)//using just 20 frames
     this.anims.create({
       key: 'walk',
-      // frames: this.anims.generateFrameNumbers('ant_sheet',{frames:[0,4,6,8,11,14,16,18]}),
-      frames: this.anims.generateFrameNumbers('ant_sheet',{start:0,end:62}),
+      frames: this.anims.generateFrameNumbers('ant_sheet',{frames:antFrames}),
+      // frames: this.anims.generateFrameNumbers('ant_sheet',{start:0,end:61}),
       duration: 150,
       // frameRate: 800,
       repeat: -1
@@ -153,8 +156,8 @@ export class GameScene extends MyScene {
     // this.ants.children.iterate((z:Ant)=>z.init())
     if (!this.sys.game.device.os.desktop) {
       window.addEventListener("devicemotion", function (event: DeviceMotionEvent) {
-        self.gravity.y = event.accelerationIncludingGravity.x;
-        self.gravity.x = event.accelerationIncludingGravity.y;
+        self.gravity.y = event.accelerationIncludingGravity.x * self.accelerometerFactor;
+        self.gravity.x = event.accelerationIncludingGravity.y * self.accelerometerFactor;
         self.gravity.z = event.accelerationIncludingGravity.z;
       }, false);
     }
