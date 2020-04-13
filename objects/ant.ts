@@ -28,8 +28,9 @@ export class Ant extends MySprite {
     init() {
         this.isAlive = true
         this.isClimbing = true
-        this.enableBody(true, this.x, this.y, true, true)
+        this.enableBody(false, this.x, this.y, false, true)
         this.setRandomBorderPosition()
+
         // this.setScale(1)
     }
 
@@ -43,13 +44,13 @@ export class Ant extends MySprite {
                 y = trayB.top
                 break;
             case 1: // right border
-                x = trayB.right
+                x = trayB.right-15
                 break;
             case 2: // bottom border
                 y = trayB.bottom
                 break;
             case 3: // left border
-                x = trayB.left
+                x = trayB.left+15
                 break;
         }
         this.setPosition(x, y);

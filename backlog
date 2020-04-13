@@ -1,17 +1,23 @@
 
 coding logic 
     gameplay features
-        Instructions/Presentation Scene (for explain "tilt controls" and to go full screen)
-        apply ants images/sprites
         High score Scene si es fácil with buton restart game
+        make food being eateen
+        levels
+        attacks
+            insecticide
+            mata moscas
+        Choose the correct difficult: (ant velocity, quantity, rate, gravity, etc)
+    visual improvements
         Create and use animations for born, eat, walk and dead
+        ants overlap after died
+    other
         pause game when portrait and show message (lock screen)
-        i18n
         improve performance
-    learn/research
+        i18n
     bugs
-        Safari Iphone accelerometer?
-        screen dim cause no touch events (se resuelve con nativo)
+        solve visualization of title screen (maybe setting portrait at beginning)
+    learn/research
 non coding logic
     tech
         Learn/research
@@ -26,9 +32,13 @@ non coding logic
             learning curve for how to draw
             looking for a digital designer for the team
             how to monetize games
-            * Already exists exact the same game?
 
 Done
+    * Instructions/Presentation Scene (for explain "tilt controls" and to go full screen)
+    * apply ants images/sprites
+    * Safari Iphone accelerometer. nope, discarting those devices
+    * screen dim cause no touch events (it is solved by itself with native app, also later will be buttons for attacks)
+    * Already exists exact the same game?
     * screen margins and correct full screen (sizes, scales, etc)
     * set landscape game
     * many brains

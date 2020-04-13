@@ -24,14 +24,14 @@ export class TitleScene extends MyScene {
     var bg = this.add.sprite(this.width/2, this.height/2, 'graveyard');
     bg.setScale(2.3)
 
-    var title = this.add.text(this.width/2, this.height/4, '¡Hormigas de Picnic!', {fontSize: '25px', fontStyle: 'bold', fill: '#FA3'});
+    var title = this.add.text(this.width/2, this.height/4, '¡Hormigas de Picnic!', {fontSize: '33px', fontStyle: 'bold', fill: '#A73'});
     title.setOrigin(.5,.5)
     var explanation = this.add.text(this.width/2, this.height*.55,
       `      ¡Haz que se caigan las hormigas 
-      ${explanationDevice}!`, { fontSize: '13px', fontStyle: 'bold', fill: '#000' });
+      ${explanationDevice}!`, { fontSize: '19px', fontStyle: 'bold', fill: '#000' });
     explanation.setOrigin(.5,.5)
 
-    var startTxt = this.add.text(this.width/2, this.height*0.75, '¡Toca la pantalla para comenzar!', {fontSize: '12px', fontStyle: 'bold', fill: '#32F'});
+    var startTxt = this.add.text(this.width/2, this.height*0.75, '¡Toca la pantalla para comenzar!', {fontSize: '24px', fontStyle: 'bold', fill: '#32F'});
     startTxt.setOrigin(.5,.5)
 
     this.input.on('pointerup', () => this.start());
