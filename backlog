@@ -12,6 +12,7 @@ coding logic
         Create and use animations for born, eat, walk and dead
         ants overlap after died
     other
+        show message when device is not compatible
         pause game when portrait and show message (lock screen)
         improve performance
         i18n
@@ -34,6 +35,9 @@ non coding logic
             how to monetize games
 
 Done
+    * improve time to react 
+        * place food at vertical center in order to have more time to react for top and botoom ants
+        * climbing time
     * Instructions/Presentation Scene (for explain "tilt controls" and to go full screen)
     * apply ants images/sprites
     * Safari Iphone accelerometer. nope, discarting those devices
@@ -80,10 +84,12 @@ Ideas:
 
 #####################################
 Spanish Explanation:
-Me ayudás probando mi juego?
-Ir a https://euginio.github.io/picnic-ants/    
-
-(Si tocás la pantalla se va a pantalla completa)
+Hice un juego:
+https://euginio.github.io/picnic-ants/    
+Me ayudaría mucho si podés decirme:
+- que cosa no te gustó o cambiarías del juego
+- cualquier otra sugerencia 
+- si no pudiste jugarlo con que celular lo probaste (No es compatible Iphone/Ipad)
 ---------------------------------
 doubts
     chase food: I want to make enemies that behave something like "Boo" from Mario Bros: that is, enemies that chase the player wherever it goes , after achieve this I want these enemies-chase-movement being affected by the gravity (the gravity will be controller by the player). Any Idea?

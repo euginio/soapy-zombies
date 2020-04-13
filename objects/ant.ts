@@ -27,11 +27,21 @@ export class Ant extends MySprite {
 
     init() {
         this.isAlive = true
-        this.isClimbing = true
         this.enableBody(false, this.x, this.y, false, true)
         this.setRandomBorderPosition()
+        
+        this.faceCenter();
+        this.play('walk');
 
+        this.climb();
         // this.setScale(1)
+    }
+
+    private climb() {
+        this.isClimbing = true;
+        this.scene.time.delayedCall(1500, () => {
+            this.isClimbing = false;
+        })
     }
 
     setRandomBorderPosition() {
@@ -57,20 +67,19 @@ export class Ant extends MySprite {
     }
 
     update() {
-        if (this.scene.gameOver || !this.isAlive) {
+        if (this.scene.gameOver || !this.isAlive || this.isClimbing) {
             return
         }
 
         this.myFood = this.pickNearestFood()
+        this.faceMyFood();
 
         let xDistance = this.x - this.myFood.x
         let yDistance = this.y - this.myFood.y
         this.setVelocity(xDistance, yDistance);
-        this.choseSpriteDirection(xDistance, yDistance);
+        // this.choseSpriteDirection(xDistance, yDistance);
 
         // this.setAngle(Phaser.Math.RadToDeg(this.body.angle)+90)
-        let angle = Phaser.Math.Angle.Between(this.x,this.y,this.myFood.x,this.myFood.y)
-        this.setAngle(Phaser.Math.RadToDeg(angle)+90)
 
         let b=this.scene.tray.getBounds()
         b.setSize(b.width-50,b.height)
@@ -83,6 +92,16 @@ export class Ant extends MySprite {
             // ant has fallen
             this.kill()
         }
+    }
+
+    private faceCenter() {
+        let angle = Phaser.Math.Angle.Between(this.x, this.y, this.scene.width/2, this.scene.height/2);
+        this.setAngle(Phaser.Math.RadToDeg(angle) + 90);
+    }
+
+    private faceMyFood() {
+        let angle = Phaser.Math.Angle.Between(this.x, this.y, this.myFood.x, this.myFood.y);
+        this.setAngle(Phaser.Math.RadToDeg(angle) + 90);
     }
 
     kill() {
@@ -105,17 +124,14 @@ export class Ant extends MySprite {
 
     }
 
-    private choseSpriteDirection(xDistance: number, yDistance: number) {
+    // private choseSpriteDirection(xDistance: number, yDistance: number) {
         // let xShouldWalkDir = this.x < this.myFood.x ? 'right' : 'left';
         // let yShouldWalkDir = this.y < this.myFood.y ? 'down' : 'up';
         // let shouldBeCurrentAnim: string = Math.abs(xDistance) < Math.abs(yDistance) ? yShouldWalkDir : xShouldWalkDir;
         // if (this.anims.getCurrentKey() != 'walk_' + shouldBeCurrentAnim) {
         //     this.play('walk_' + shouldBeCurrentAnim);
         // }
-        if (this.anims.getCurrentKey() != 'walk') {
-            this.play('walk');
-        }
-    }
+    // }
 
     setVelocity(xDistance: number, yDistance?: number) {
         //TODO: if problems here try with setting angle and using 

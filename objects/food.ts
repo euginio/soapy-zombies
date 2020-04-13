@@ -34,7 +34,7 @@ export class Food extends MySprite {
         let tray = this.scene.tray
         let trayB=tray.getBounds()
         let margin= 40
-        this.setRandomPosition(trayB.left+margin, trayB.top+margin, trayB.right-trayB.left-margin*2, trayB.bottom-margin*2);
+        this.setRandomPosition(trayB.left+margin, trayB.top+margin*2, trayB.right-trayB.left-margin*2, trayB.bottom-margin*4);
     }
 
     destroy(animation?) {
