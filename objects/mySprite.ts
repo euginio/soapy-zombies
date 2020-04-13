@@ -20,8 +20,6 @@ export abstract class MySprite extends Physics.Arcade.Sprite {
         scene.physics.add.existing(this);
         // this.scene.physics.moveToObject(this,this.scene.mySprite, Phaser.Math.Between(12,60))
 
-        // this.setAngle
-
         //  this.body.allowGravity = true;
         // this.setCollideWorldBounds()
 

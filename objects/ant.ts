@@ -15,11 +15,12 @@ export class Ant extends MySprite {
     myFood: Food;
     isAlive: boolean;
     isClimbing: boolean;
+    isTouchingTray: boolean;
 
     constructor(scene: GameScene) {
         super(scene, 0, 0, 'ant_sheet');
 
-        this.setScale(0.15);
+        this.setScale(0.35);
         // this.setCircle(9, this.width / 4, this.height / 3)
     }
 
@@ -28,28 +29,26 @@ export class Ant extends MySprite {
         this.isClimbing = true
         this.enableBody(true, this.x, this.y, true, true)
         this.setRandomBorderPosition()
+        // this.setScale(1)
     }
 
     setRandomBorderPosition() {
+        let trayB= this.scene.tray.getBounds()
         // this.setRandomPosition();
-        let borderMargin = 10; // for not die borning outside the screen
-        let x, y = borderMargin;
-        let randomX = Phaser.Math.Between(borderMargin, this.scene.width - borderMargin)
-        let randomY = Phaser.Math.Between(borderMargin, this.scene.height - borderMargin)
+        let randomX, x = Phaser.Math.Between(trayB.left, trayB.right)
+        let randomY, y = Phaser.Math.Between(trayB.top,trayB.bottom)
         switch (Phaser.Math.Between(0, 3)) {
             case 0: //top border
-                x = randomX
+                y = trayB.top
                 break;
             case 1: // right border
-                x = this.scene.width - borderMargin
-                y = randomY
+                x = trayB.right
                 break;
             case 2: // bottom border
-                x = randomX
-                y = this.scene.height - borderMargin
+                y = trayB.bottom
                 break;
             case 3: // left border
-                y = randomY
+                x = trayB.left
                 break;
         }
         this.setPosition(x, y);
@@ -67,25 +66,43 @@ export class Ant extends MySprite {
         this.setVelocity(xDistance, yDistance);
         this.choseSpriteDirection(xDistance, yDistance);
 
-        this.setAngle(this.body.angle)
+        // this.setAngle(Phaser.Math.RadToDeg(this.body.angle)+90)
+        let angle = Phaser.Math.Angle.Between(this.x,this.y,this.myFood.x,this.myFood.y)
+        this.setAngle(Phaser.Math.RadToDeg(angle)+90)
 
-        if (this.isClimbing && Phaser.Geom.Rectangle.Overlaps(this.scene.physics.world.bounds, this.getBounds())) {
+        this.isTouchingTray=Phaser.Geom.Rectangle.Overlaps(this.scene.tray.getBounds(), this.getBounds())
+        if (this.isClimbing && this.isTouchingTray) {
             // the ant has reached the "tray"
             this.isClimbing = false;
-        } else if (!this.isClimbing && !Phaser.Geom.Rectangle.Overlaps(this.scene.physics.world.bounds, this.getBounds())) {
+        } else if (!this.isClimbing && !this.isTouchingTray) {
             // ant has fallen
             this.kill()
-            this.scene.antOut(this)
-            this.scene.time.delayedCall(1000, () => {
-                this.init();
-            })
+    
         }
     }
 
     kill() {
         this.isAlive = false
         this.isClimbing = false
-        this.disableBody(false, true);
+        this.setImmovable(true);
+        this.disableBody(false, false)
+        
+        this.scene.tweens.add({targets:this, 
+            scale: { value: 0.01, duration: 1500},
+            yoyo:true, loop:0,
+            onYoyo:()=>{
+                this.scene.antOut(this)
+                this.disableBody(false, true)
+                    
+                // this.setSize
+                // this.scene.time.delayedCall(1500, () => {
+                // })
+            },
+            onComplete:()=>{
+                this.init();
+            }
+        })
+
     }
 
     private choseSpriteDirection(xDistance: number, yDistance: number) {

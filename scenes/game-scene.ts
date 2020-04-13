@@ -20,11 +20,13 @@ export class GameScene extends MyScene {
   gravity: any = {};
   
   foodCount: number;
-  initialAnts: number = 2
+  initialAnts: number = 3
   initialFood: number = 6;
+  zombieRate: number = 7;
 
   gravityNum = { x: 30, y: 30 };
-  zombieRate: number = 7;
+  tray: Phaser.Physics.Arcade.Sprite;
+  
 
   constructor() {
     super({
@@ -123,8 +125,8 @@ export class GameScene extends MyScene {
 
     let grass = this.add.image(this.width / 2, this.height / 2, 'graveyard');
     grass.setScale(2.3)
-    let tray = this.add.image(this.width / 2, this.height / 2, 'tray');
-    tray.setScale(1.6)
+    this.tray = this.physics.add.sprite(this.width / 2, this.height / 2, 'tray');
+    this.tray.setScale(1.6)
     
     this.scoreText = this.add.text(16, 16, 'hormigas muertas: 0', { fontSize: '19px', fontStyle: 'bold', fill: '#543' });
 
@@ -166,6 +168,10 @@ export class GameScene extends MyScene {
     if (this.gameOver) {
       return;
     }
+
+    // debug angles
+    // let ant:Ant = <Ant>this.ants.getChildren()[0];
+    // this.scoreText.setText(`angulo: ${ant.body.angle},${ant.body.facing},${ant.angle}`);
 
     if (this.sys.game.device.os.desktop) {
       this.checkCursors();

@@ -19,7 +19,7 @@ export class Food extends MySprite {
         this.setScale(1.5);
         // this.setSize(this.width/3, this.height/3)
         // this.setOffset(17)
-        this.setCircle(8,8,8)
+        this.setCircle(10,7,8)
 
         this.setFrame(Phaser.Math.Between(0,24))
 

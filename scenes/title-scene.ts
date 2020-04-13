@@ -41,7 +41,7 @@ export class TitleScene extends MyScene {
     if (!this.scale.isFullscreen) {
       this.scale.startFullscreen();
     }
-    // await this.tryOrientation();
+    await this.tryOrientation();
     this.scene.start('GameScene')
   }
 
