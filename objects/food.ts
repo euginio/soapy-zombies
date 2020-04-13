@@ -14,7 +14,7 @@ export class Food extends MySprite {
 
     constructor(scene: GameScene) {
         super(scene, 0, 0, 'food');
-
+        
         this.body.immovable = true;
         this.setScale(1.5);
         // this.setSize(this.width/3, this.height/3)
@@ -27,7 +27,14 @@ export class Food extends MySprite {
     }
 
     init() {
-        this.setRandomPosition(this.scene.width * 0.2, this.scene.height * 0.2, this.scene.width * .6, this.scene.height * .6);
+        this.placeInTray()
+    }
+    
+    placeInTray(){
+        let tray = this.scene.tray
+        let trayB=tray.getBounds()
+        let margin= 40
+        this.setRandomPosition(trayB.left+margin, trayB.top+margin, trayB.right-trayB.left-margin*2, trayB.bottom-margin*2);
     }
 
     destroy(animation?) {

@@ -21,7 +21,7 @@ export class GameScene extends MyScene {
   
   foodCount: number;
   initialAnts: number = 3
-  initialFood: number = 6;
+  initialFood: number = 8;
   zombieRate: number = 7;
 
   gravityNum = { x: 30, y: 30 };
@@ -39,7 +39,7 @@ export class GameScene extends MyScene {
     this.score = 0;
   }
 
-  antOut(outAnt: Ant) {
+  antDied(outAnt: Ant) {
     this.score++;
     this.scoreText.setText('hormigas muertas: ' + this.score);
     if (this.score % this.zombieRate == 0) {
@@ -85,8 +85,8 @@ export class GameScene extends MyScene {
       key: 'walk',
       // frames: this.anims.generateFrameNumbers('ant_sheet',{frames:[0,4,6,8,11,14,16,18]}),
       frames: this.anims.generateFrameNumbers('ant_sheet',{start:0,end:62}),
-      // duration: 300,
-      frameRate: 186,
+      duration: 150,
+      // frameRate: 800,
       repeat: -1
     });
 
@@ -126,15 +126,20 @@ export class GameScene extends MyScene {
     let grass = this.add.image(this.width / 2, this.height / 2, 'graveyard');
     grass.setScale(2.3)
     this.tray = this.physics.add.sprite(this.width / 2, this.height / 2, 'tray');
+    this.tray.setSize(this.tray.width-20,this.tray.height-3)
     this.tray.setScale(1.6)
+    // this.tray.origin
     
     this.scoreText = this.add.text(16, 16, 'hormigas muertas: 0', { fontSize: '19px', fontStyle: 'bold', fill: '#543' });
 
     this.foods = this.add.group();
     this.foods.runChildUpdate = true;
+    this.physics.add.collider(this.foods, this.foods, this.repositionFood, null, this);
     for (let index = 0; index < this.foodCount; index++) {
-      this.foods.add(new Food(this), true)
+      let newF= new Food(this)
+      this.foods.add(newF, true)
     }
+
 
     this.ants = this.add.group();
     this.ants.runChildUpdate = true;
@@ -144,7 +149,7 @@ export class GameScene extends MyScene {
 
     this.physics.add.collider(this.ants, this.foods, this.eatFood, null, this);
     this.physics.add.collider(this.ants, this.ants, null, null, this);
-    this.physics.add.collider(this.foods, this.foods, null, null, this);
+    // this.physics.add.overlap(this.ants, this.tray, this.antOut, null, this);
     // this.ants.children.iterate((z:Ant)=>z.init())
     if (!this.sys.game.device.os.desktop) {
       window.addEventListener("devicemotion", function (event: DeviceMotionEvent) {
@@ -154,6 +159,13 @@ export class GameScene extends MyScene {
       }, false);
     }
   }
+  repositionFood(food: Food, food2: Food) {
+    food.placeInTray()
+  }
+
+  // antOut(ant: Ant, tray: Phaser.Physics.Arcade.Sprite) {
+  //   ant.outOfTray()
+  // }
 
   addNewAnt() {
     this.ants.add(new Ant(this), true)

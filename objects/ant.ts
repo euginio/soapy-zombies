@@ -10,6 +10,7 @@ import { MySprite } from "./mySprite";
  * @license      
  */
 export class Ant extends MySprite {
+    
     ANT_SPEED: number = 45;
     gravityFactor = 10;
     myFood: Food;
@@ -70,14 +71,16 @@ export class Ant extends MySprite {
         let angle = Phaser.Math.Angle.Between(this.x,this.y,this.myFood.x,this.myFood.y)
         this.setAngle(Phaser.Math.RadToDeg(angle)+90)
 
-        this.isTouchingTray=Phaser.Geom.Rectangle.Overlaps(this.scene.tray.getBounds(), this.getBounds())
+        let b=this.scene.tray.getBounds()
+        b.setSize(b.width-50,b.height)
+        b.setPosition(b.x+25,b.y)
+        this.isTouchingTray=Phaser.Geom.Rectangle.Overlaps(b, this.getBounds())
         if (this.isClimbing && this.isTouchingTray) {
             // the ant has reached the "tray"
             this.isClimbing = false;
         } else if (!this.isClimbing && !this.isTouchingTray) {
             // ant has fallen
             this.kill()
-    
         }
     }
 
@@ -91,7 +94,7 @@ export class Ant extends MySprite {
             scale: { value: 0.01, duration: 1500},
             yoyo:true, loop:0,
             onYoyo:()=>{
-                this.scene.antOut(this)
+                this.scene.antDied(this)
                 this.disableBody(false, true)
                     
                 // this.setSize
