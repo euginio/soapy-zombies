@@ -7,6 +7,7 @@ coding logic
         Create and use animations for born, eat, walk and dead
         pause game when portrait and show message (lock screen)
         i18n
+        improve performance
     learn/research
     bugs
         Safari Iphone accelerometer?
@@ -71,8 +72,6 @@ Ideas:
 Spanish Explanation:
 Me ayudás probando mi juego?
 Ir a https://euginio.github.io/picnic-ants/    
-*Como se juega?*
-Hay que inclinar el celular en diferentes sentidos para hacer caer a las hormigas de la pantalla
 
 (Si tocás la pantalla se va a pantalla completa)
 ---------------------------------
