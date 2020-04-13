@@ -7,6 +7,11 @@
         "url": "./assets/images/graveyard.png"
       },
       {
+        "type": "image",
+        "key": "tray",
+        "url": "./assets/images/tray.png"
+      },
+      {
         "type": "spritesheet",
         "key": "food",
         "url": "./assets/images/food.png",

@@ -22,7 +22,7 @@ export class TitleScene extends MyScene {
     }
 
     var bg = this.add.sprite(this.width/2, this.height/2, 'graveyard');
-    bg.setScale(.3)
+    bg.setScale(2.3)
 
     var title = this.add.text(this.width/2, this.height/4, '¡Hormigas de Picnic!', {fontSize: '25px', fontStyle: 'bold', fill: '#FA3'});
     title.setOrigin(.5,.5)

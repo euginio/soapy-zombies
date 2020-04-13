@@ -119,9 +119,12 @@ export class GameScene extends MyScene {
     //  Input Events
     this.cursors = this.input.keyboard.createCursorKeys();
 
-    let background = this.add.image(this.width / 2, this.height / 2, 'graveyard');
-    background.setScale(.3)
-    this.scoreText = this.add.text(16, 16, 'hormigas muertas: 0', { fontSize: '19px', fontStyle: 'bold', fill: '#DD3' });
+    let grass = this.add.image(this.width / 2, this.height / 2, 'graveyard');
+    grass.setScale(2.3)
+    let tray = this.add.image(this.width / 2, this.height / 2, 'tray');
+    tray.setScale(1.6)
+    
+    this.scoreText = this.add.text(16, 16, 'hormigas muertas: 0', { fontSize: '19px', fontStyle: 'bold', fill: '#543' });
 
     this.foods = this.add.group();
     this.foods.runChildUpdate = true;
