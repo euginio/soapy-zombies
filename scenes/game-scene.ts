@@ -80,41 +80,43 @@ export class GameScene extends MyScene {
     this.foodCount = this.initialFood;
 
     this.anims.create({
-      key: 'walk_down',
-      frames: this.anims.generateFrameNumbers('ant_sheet', { frames: [0, 6, 12, 1, 7, 13] }),
-      frameRate: 4,
+      key: 'walk',
+      // frames: this.anims.generateFrameNumbers('ant_sheet',{frames:[0,4,6,8,11,14,16,18]}),
+      frames: this.anims.generateFrameNumbers('ant_sheet',{start:0,end:62}),
+      // duration: 300,
+      frameRate: 186,
       repeat: -1
     });
 
-    this.anims.create({
-      key: 'walk_up',
-      frames: this.anims.generateFrameNumbers('ant_sheet', { frames: [2, 8, 3, 9] }),
-      frameRate: 4,
-      repeat: -1
-    });
+    // this.anims.create({
+    //   key: 'walk_up',
+    //   frames: this.anims.generateFrameNumbers('ant_sheet', { frames: [2, 8, 3, 9] }),
+    //   frameRate: 4,
+    //   repeat: -1
+    // });
 
-    this.anims.create({
-      key: 'walk_left',
-      frames: this.anims.generateFrameNumbers('ant_sheet', { frames: [4, 10, 16] }),
-      frameRate: 4,
-      repeat: -1
-    });
+    // this.anims.create({
+    //   key: 'walk_left',
+    //   frames: this.anims.generateFrameNumbers('ant_sheet', { frames: [4, 10, 16] }),
+    //   frameRate: 4,
+    //   repeat: -1
+    // });
 
-    this.anims.create({
-      key: 'walk_right',
-      frames: this.anims.generateFrameNumbers('ant_sheet', { frames: [5, 11, 17] }),
-      frameRate: 4,
-      repeat: -1
-    });
+    // this.anims.create({
+    //   key: 'walk_right',
+    //   frames: this.anims.generateFrameNumbers('ant_sheet', { frames: [5, 11, 17] }),
+    //   frameRate: 4,
+    //   repeat: -1
+    // });
 
-    this.anims.create({
-      key: 'eatingFood',
-      frames: this.anims.generateFrameNumbers('food', {}),
-      // frameRate: 4,
-      // repeat:0,
-      duration: 1500,
-      hideOnComplete: true
-    });
+    // this.anims.create({
+    //   key: 'eatingFood',
+    //   frames: this.anims.generateFrameNumbers('food', {}),
+    //   // frameRate: 4,
+    //   // repeat:0,
+    //   duration: 1500,
+    //   hideOnComplete: true
+    // });
 
     //  Input Events
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -131,10 +133,6 @@ export class GameScene extends MyScene {
     for (let index = 0; index < this.foodCount; index++) {
       this.foods.add(new Food(this), true)
     }
-
-    // this.tweens.add({targets:this.food, 
-    //   scale: { value: .7, duration: 300, ease: 'Power1' },
-    //   yoyo:true, loop:-1 })
 
     this.ants = this.add.group();
     this.ants.runChildUpdate = true;

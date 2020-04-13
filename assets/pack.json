@@ -16,8 +16,8 @@
         "key": "food",
         "url": "./assets/images/food.png",
         "frameConfig": {
-          "frameWidth": 81,
-          "frameHeight": 61
+          "frameWidth": 32,
+          "frameHeight": 32
         }
 
       },
@@ -26,8 +26,8 @@
         "key": "ant_sheet",
         "url": "./assets/images/ant_sheet.png",
         "frameConfig": {
-          "frameWidth": 46,
-          "frameHeight": 49
+          "frameWidth": 101,
+          "frameHeight": 124
         }
       }
     ]

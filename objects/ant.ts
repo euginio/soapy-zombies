@@ -19,8 +19,8 @@ export class Ant extends MySprite {
     constructor(scene: GameScene) {
         super(scene, 0, 0, 'ant_sheet');
 
-        this.setScale(0.5);
-        this.setCircle(9, this.width / 4, this.height / 3)
+        this.setScale(0.15);
+        // this.setCircle(9, this.width / 4, this.height / 3)
     }
 
     init() {
@@ -67,6 +67,8 @@ export class Ant extends MySprite {
         this.setVelocity(xDistance, yDistance);
         this.choseSpriteDirection(xDistance, yDistance);
 
+        this.setAngle(this.body.angle)
+
         if (this.isClimbing && Phaser.Geom.Rectangle.Overlaps(this.scene.physics.world.bounds, this.getBounds())) {
             // the ant has reached the "tray"
             this.isClimbing = false;
@@ -87,11 +89,14 @@ export class Ant extends MySprite {
     }
 
     private choseSpriteDirection(xDistance: number, yDistance: number) {
-        let xShouldWalkDir = this.x < this.myFood.x ? 'right' : 'left';
-        let yShouldWalkDir = this.y < this.myFood.y ? 'down' : 'up';
-        let shouldBeCurrentAnim: string = Math.abs(xDistance) < Math.abs(yDistance) ? yShouldWalkDir : xShouldWalkDir;
-        if (this.anims.getCurrentKey() != 'walk_' + shouldBeCurrentAnim) {
-            this.play('walk_' + shouldBeCurrentAnim);
+        // let xShouldWalkDir = this.x < this.myFood.x ? 'right' : 'left';
+        // let yShouldWalkDir = this.y < this.myFood.y ? 'down' : 'up';
+        // let shouldBeCurrentAnim: string = Math.abs(xDistance) < Math.abs(yDistance) ? yShouldWalkDir : xShouldWalkDir;
+        // if (this.anims.getCurrentKey() != 'walk_' + shouldBeCurrentAnim) {
+        //     this.play('walk_' + shouldBeCurrentAnim);
+        // }
+        if (this.anims.getCurrentKey() != 'walk') {
+            this.play('walk');
         }
     }
 

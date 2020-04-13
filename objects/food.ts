@@ -16,12 +16,14 @@ export class Food extends MySprite {
         super(scene, 0, 0, 'food');
 
         this.body.immovable = true;
-        this.setScale(0.5);
+        this.setScale(1.5);
         // this.setSize(this.width/3, this.height/3)
         // this.setOffset(17)
-        this.setCircle(23, 12, 7)
+        this.setCircle(8,8,8)
 
-        this.on('animationcomplete', this.destroy, this);
+        this.setFrame(Phaser.Math.Between(0,24))
+
+        // this.on('animationcomplete', this.destroy, this);
     }
 
     init() {
@@ -50,7 +52,12 @@ export class Food extends MySprite {
 
     beingEat() {
         if (this.body.enable && !this.anims.isPlaying) {
-            this.play('eatingFood');
+            // this.play('eatingFood');
+
+            this.scene.tweens.add({targets:this, 
+                scale: { value: 0, duration: 1500, ease: 'Power1' },
+                yoyo:false, loop:0,
+                onComplete:()=>this.destroy()})
         }
     }
 
