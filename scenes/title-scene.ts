@@ -10,29 +10,34 @@ import { MyScene } from "./my-scene";
 export class TitleScene extends MyScene {
   private loadingBar: Phaser.GameObjects.Graphics;
   private progressBar: Phaser.GameObjects.Graphics;
+  startTxt: Phaser.GameObjects.Text;
+  explanationDevice: string;
+  explanation: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: "TitleScene" });
   }
 
   create() {
-    let explanationDevice = 'inclinando el celular en diferentes sentidos'
+    this.explanationDevice = 'inclinando el celular en diferentes sentidos'
     if (this.sys.game.device.os.desktop) {
-      explanationDevice = 'con las flechas del teclado'
+      this.explanationDevice = 'con las flechas del teclado'
     }
+    this.explanationDevice = `    ¡Defiende la comida de las hormigas
+     haciendo que se caigan de la bandeja 
+     ${this.explanationDevice}!`
 
     var bg = this.add.sprite(this.width/2, this.height/2, 'graveyard');
     bg.setScale(2.3)
 
-    var title = this.add.text(this.width/2, this.height/4, '¡Hormigas de Picnic!', {fontSize: '33px', fontStyle: 'bold', fill: '#A73'});
+    var title = this.add.text(this.width/2, this.height/4, '¡Hormigas de Picnic!', {fontSize: '33px', fontStyle: 'bold', fill: '#423'});
     title.setOrigin(.5,.5)
-    var explanation = this.add.text(this.width/2, this.height*.55,
-      `      ¡Haz que se caigan las hormigas 
-      ${explanationDevice}!`, { fontSize: '19px', fontStyle: 'bold', fill: '#000' });
-    explanation.setOrigin(.5,.5)
+    this.explanation = this.add.text(this.width/2, this.height*.55, this.explanationDevice, { fontSize: '17px', fontStyle: 'bold', fill: '#000' });
+    this.explanation.setOrigin(.5,.5)
+    this.explanation.setVisible(false);
 
-    var startTxt = this.add.text(this.width/2, this.height*0.75, '¡Toca la pantalla para comenzar!', {fontSize: '24px', fontStyle: 'bold', fill: '#32F'});
-    startTxt.setOrigin(.5,.5)
+    this.startTxt = this.add.text(this.width/2, this.height*0.75, '¡Toca la pantalla para comenzar!', {fontSize: '24px', fontStyle: 'bold', fill: '#32F'});
+    this.startTxt.setOrigin(.5,.5)
 
     this.input.on('pointerup', () => this.start());
   }
@@ -41,8 +46,12 @@ export class TitleScene extends MyScene {
     if (!this.scale.isFullscreen) {
       this.scale.startFullscreen();
     }
+    // this.startTxt.setText(this.explanationDevice)
+    this.explanation.setVisible(true);
+    this.startTxt.setVisible(false);
+
     await this.tryOrientation();
-    this.scene.start('GameScene')
+    this.time.delayedCall(7000, () => this.scene.start('GameScene'))
   }
 
   /**
