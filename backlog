@@ -1,9 +1,10 @@
 
 coding logic 
-    gameplay features
+    gameplay features (see ideas at bottom)
         High score Scene si es fácil with buton restart game
-        make food being eateen
-        levels
+        make food being eateen gradually
+        levels (see level ideas)
+        Different bugs types (with its own properties)
         attacks
             insecticide
             mata moscas
@@ -11,13 +12,14 @@ coding logic
     visual improvements
         Create and use animations for born, eat, walk and dead
         ants overlap after died
+        solve visualization of title screen (maybe setting portrait at beginning)
     other
         show message when device is not compatible
         pause game when portrait and show message (lock screen)
         improve performance
         i18n
     bugs
-        solve visualization of title screen (maybe setting portrait at beginning)
+        is more easy at end that at beginning
     learn/research
 non coding logic
     tech
@@ -72,22 +74,23 @@ Done
 
 Ideas:
     Gameplay
-        probar concepto de mover comida
+        probar concepto de robarse comida !!!!
         different ants types
         powers to defend food:
             to kill ants: insecticida, golpe dedo,
             to throw antes outside: tilt phone, soplar, shake the bandeja, 
-
-    alternativas
-        zombies enjabonados/resvalón/resvaladizos en cementerio comen cerebro de una persona asustada
-        virus informáticos comen íconos
-
+    levels
+        difficulty: maybe last some time with some food quantity killing some ants quantity
+        themes: picnic, picada, sushi, macdonals, birthday, candies, junk food, snacks, vegetables/fruits, 
+        
 #####################################
 Spanish Explanation:
 Estoy haciendo un video juego:
-https://euginio.github.io/picnic-ants/    
-Me ayudaría mucho si podés darme cualquier sugerencia como que cosa no te gustó o cambiarías del juego
-Si no pudiste jugarlo decime con que celular lo probaste (No es compatible con iphone ni ipad)
+https://euginio.github.io/soapy-zombies   
+Me ayudaría mucho si podés darme cualquier sugerencia por ejemplo que cosa no te gustó o cambiarías del juego
+(No es compatible con iphone)
+
+Si no le anduvo pedirle en que celular lo probó 
 ---------------------------------
 doubts
     chase food: I want to make enemies that behave something like "Boo" from Mario Bros: that is, enemies that chase the player wherever it goes , after achieve this I want these enemies-chase-movement being affected by the gravity (the gravity will be controller by the player). Any Idea?

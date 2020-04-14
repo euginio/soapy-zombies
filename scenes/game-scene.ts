@@ -126,7 +126,7 @@ export class GameScene extends MyScene {
     //  Input Events
     this.cursors = this.input.keyboard.createCursorKeys();
 
-    let grass = this.add.image(this.width / 2, this.height / 2, 'graveyard');
+    let grass = this.add.image(this.width / 2, this.height / 2, 'grass');
     grass.setScale(2.3)
     this.tray = this.physics.add.sprite(this.width / 2, this.height / 2, 'tray');
     this.tray.setSize(this.tray.width-20,this.tray.height-3)

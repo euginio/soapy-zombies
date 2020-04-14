@@ -27,7 +27,7 @@ export class TitleScene extends MyScene {
      haciendo que se caigan de la bandeja 
      ${this.explanationDevice}!`
 
-    var bg = this.add.sprite(this.width/2, this.height/2, 'graveyard');
+    var bg = this.add.sprite(this.width/2, this.height/2, 'grass');
     bg.setScale(2.3)
 
     var title = this.add.text(this.width/2, this.height/4, '¡Hormigas de Picnic!', {fontSize: '33px', fontStyle: 'bold', fill: '#423'});

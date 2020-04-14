@@ -3,13 +3,13 @@
     "files": [
       {
         "type": "image",
-        "key": "graveyard",
-        "url": "./assets/images/graveyard.png"
+        "key": "grass",
+        "url": "./assets/images/grass.png"
       },
       {
         "type": "image",
         "key": "tray",
-        "url": "./assets/images/tray.png"
+        "url": "./assets/images/trayWithCompleteClothe.png"
       },
       {
         "type": "spritesheet",
