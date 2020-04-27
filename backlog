@@ -5,6 +5,7 @@ coding logic
         make food being eateen gradually
         levels (see level ideas)
         Different bugs types (with its own properties)
+        tutorial levels to learn tilt controls
         attacks
             insecticide
             mata moscas
@@ -14,6 +15,7 @@ coding logic
         ants overlap after died
         solve visualization of title screen (maybe setting portrait at beginning)
     other
+        add some sound/music
         show message when device is not compatible
         pause game when portrait and show message (lock screen)
         improve performance
@@ -21,22 +23,22 @@ coding logic
     bugs
         is more easy at end that at beginning
     learn/research
-non coding logic
+non-coding-logic
     tech
+        cut not used ant_sheet frames
         Learn/research
             PWA? siguiendo este template https://github.com/yandeu/phaser-project-template#readme o este juego hecho con ese template https://github.com/yandeu/phaser3-typescript-platformer-example#readme
             ionic/native wrapper?
-            app stores?
-            ios?
+            play store
             debug in chrome
     non tech
         learn/research
-            sites to download free imagenes/sprites
-            learning curve for how to draw
+            learning curve for how to draw; how to digital draw
             looking for a digital designer for the team
             how to monetize games
 
 Done
+    * sites to download free imagenes/sprites
     * improve time to react 
         * place food at vertical center in order to have more time to react for top and botoom ants
         * climbing time
@@ -79,6 +81,8 @@ Ideas:
         powers to defend food:
             to kill ants: insecticida, golpe dedo,
             to throw antes outside: tilt phone, soplar, shake the bandeja, 
+            temporal frogger that eats ants with its tongue!!!!
+            ant traps (or mines that explode when ants pass)
     levels
         difficulty: maybe last some time with some food quantity killing some ants quantity
         themes: picnic, picada, sushi, macdonals, birthday, candies, junk food, snacks, vegetables/fruits, 
