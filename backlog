@@ -1,28 +1,42 @@
-
 coding logic 
-    gameplay features (see ideas at bottom)
-        High score Scene si es fácil with buton restart game
-        make food being eateen gradually
-        levels (see level ideas)
-        Different bugs types (with its own properties)
-        tutorial levels to learn tilt controls
-        attacks
-            insecticide
-            mata moscas
-        Choose the correct difficult: (ant velocity, quantity, rate, gravity, etc)
-    visual improvements
-        Create and use animations for born, eat, walk and dead
-        ants overlap after died
-        solve visualization of title screen (maybe setting portrait at beginning)
+    gameplay features 
+        improvements (see ideas at bottom)
+            game over Scene with buton restart button and score
+            make food being eateen gradually
+            levels
+            Different bugs types (with its own properties)
+            attacks (insecticide, mata moscas, etc)
+        problems
+            game difficult
+                Choose the correct difficult: (ant velocity, quantity, rate, gravity, etc)
+                increase lvl difficulty more gradualy accordin to died ants (last long) (maybe slower ants)
+            it's easier at the end that at the beginning
+    visual
+        improvements
+            transforms to "tilt effect" on tray for:
+                tilt tutorial or explanation
+                keyboard or virtual joystick controls
+            Create and use animations for born, eat, walk and dead
+        problems
+            ants overlap after died
+            solve visualization of title screen 
+                (maybe setting portrait at beginning)
+                change world width or scene width
+                camera zoom at center
     other
-        add some sound/music
-        show message when device is not compatible
-        pause game when portrait and show message (lock screen)
-        improve performance
-        i18n
-    bugs
-        is more easy at end that at beginning
-    learn/research
+        improvements
+            Implement virtual joysctick for not tilting friends (and for iphone users!)
+            add some sound/music
+            show message when device is not compatible
+            pause game when portrait and show message (lock screen)
+            i18n
+        problems
+            Learn how to play  
+                a title screen with a phone tilting
+                tutorial levels to learn tilt controls
+            improve performance
+            avoid try to translate in Olga's phone
+            debug orientation in firefox mobile
 non-coding-logic
     tech
         cut not used ant_sheet frames
@@ -38,6 +52,10 @@ non-coding-logic
             how to monetize games
 
 Done
+    * test in popular browsers (desktop and mobile)
+    * add tablecloth to tray
+    * discard food textures not appropiate for a picnic
+    * Notify: ¡DEFEND THE FOOD FROM THE ANTS ATTACK!
     * sites to download free imagenes/sprites
     * improve time to react 
         * place food at vertical center in order to have more time to react for top and botoom ants
@@ -77,7 +95,8 @@ Done
 Ideas:
     Gameplay
         probar concepto de robarse comida !!!!
-        different ants types
+        different ants types 
+        ants falling
         powers to defend food:
             to kill ants: insecticida, golpe dedo,
             to throw antes outside: tilt phone, soplar, shake the bandeja, 
