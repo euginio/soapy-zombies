@@ -81,6 +81,7 @@ export class Ant extends MySprite {
 
         // this.setAngle(Phaser.Math.RadToDeg(this.body.angle)+90)
 
+        //TODO: extract this bounds calculus 
         let b=this.scene.tray.getBounds()
         b.setSize(b.width-50,b.height)
         b.setPosition(b.x+25,b.y)

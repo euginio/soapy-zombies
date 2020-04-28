@@ -1,4 +1,4 @@
-transforms to "tilt effect" on tray for:
+transforms to "tilt effect" on tray (flip, quad/mesh, scaleX or Y)
 game over Scene with buton restart button and score
 solve visualization of title screen 
     (maybe setting portrait at beginning)
@@ -11,3 +11,6 @@ add some sound
         food eateen
 pwa
 
+-----------
+for backlog
+    copy ideas from https://github.com/Milchreis/zombie-hunter simplicity for titlescreen,game over and restart

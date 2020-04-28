@@ -26,8 +26,7 @@ export class GameScene extends MyScene {
   accelerometerFactor: number = 2
 
   gravityNum = { x: 30, y: 30 };
-  tray: Phaser.Physics.Arcade.Sprite;
-  
+  tray: Phaser.GameObjects.Image;
 
   constructor() {
     super({
@@ -93,45 +92,14 @@ export class GameScene extends MyScene {
       repeat: -1
     });
 
-    // this.anims.create({
-    //   key: 'walk_up',
-    //   frames: this.anims.generateFrameNumbers('ant_sheet', { frames: [2, 8, 3, 9] }),
-    //   frameRate: 4,
-    //   repeat: -1
-    // });
-
-    // this.anims.create({
-    //   key: 'walk_left',
-    //   frames: this.anims.generateFrameNumbers('ant_sheet', { frames: [4, 10, 16] }),
-    //   frameRate: 4,
-    //   repeat: -1
-    // });
-
-    // this.anims.create({
-    //   key: 'walk_right',
-    //   frames: this.anims.generateFrameNumbers('ant_sheet', { frames: [5, 11, 17] }),
-    //   frameRate: 4,
-    //   repeat: -1
-    // });
-
-    // this.anims.create({
-    //   key: 'eatingFood',
-    //   frames: this.anims.generateFrameNumbers('food', {}),
-    //   // frameRate: 4,
-    //   // repeat:0,
-    //   duration: 1500,
-    //   hideOnComplete: true
-    // });
-
     //  Input Events
     this.cursors = this.input.keyboard.createCursorKeys();
 
     let grass = this.add.image(this.width / 2, this.height / 2, 'grass');
     grass.setScale(2.3)
-    this.tray = this.physics.add.sprite(this.width / 2, this.height / 2, 'tray');
+    this.tray = this.add.image(this.width / 2, this.height / 2, 'tray');
     this.tray.setSize(this.tray.width-20,this.tray.height-3)
     this.tray.setScale(1.6)
-    // this.tray.origin
     
     this.scoreText = this.add.text(16, 16, 'hormigas muertas: 0', { fontSize: '19px', fontStyle: 'bold', fill: '#543' });
 
@@ -142,7 +110,6 @@ export class GameScene extends MyScene {
       let newF= new Food(this)
       this.foods.add(newF, true)
     }
-
 
     this.ants = this.add.group();
     this.ants.runChildUpdate = true;
