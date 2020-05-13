@@ -1,5 +1,10 @@
-transforms to "tilt effect" on tray (flip, quad/mesh, scaleX or Y)
-game over Scene with buton restart button and score
+
+go to title screen when finish "full screen transformation"
+simple score
+title and game over screens are the same (copy ideas from https://github.com/Milchreis/zombie-hunter simplicity for titlescreen,game over and restart)
+    title
+    start button
+    score
 solve visualization of title screen 
     (maybe setting portrait at beginning)
     change world width or scene width
@@ -11,6 +16,8 @@ add some sound
         food eateen
 pwa
 
+*change name!
+
 -----------
 for backlog
-    copy ideas from https://github.com/Milchreis/zombie-hunter simplicity for titlescreen,game over and restart
+    transforms to "tilt effect" on tray (flip, quad/mesh, scaleX or Y)

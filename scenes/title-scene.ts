@@ -30,7 +30,7 @@ export class TitleScene extends MyScene {
     var bg = this.add.sprite(this.width/2, this.height/2, 'grass');
     bg.setScale(2.3)
 
-    var title = this.add.text(this.width/2, this.height/4, '¡Hormigas de Picnic!', {fontSize: '33px', fontStyle: 'bold', fill: '#423'});
+    var title = this.add.text(this.width/2, this.height/4, '¡Ants Feast!', {fontSize: '33px', fontStyle: 'bold', fill: '#423'});
     title.setOrigin(.5,.5)
     this.explanation = this.add.text(this.width/2, this.height*.55, this.explanationDevice, { fontSize: '17px', fontStyle: 'bold', fill: '#000' });
     this.explanation.setOrigin(.5,.5)
