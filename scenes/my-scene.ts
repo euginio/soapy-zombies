@@ -1,7 +1,7 @@
 /**
  * @author       Eugenio Arosteguy <eugenio.arosteguy@gmail.com>
  * @copyright    2020 eugenio arosteguy
- * @description  Picnic ants: Boot Scene
+ * @description  Ants Feast: Boot Scene
  * @license      
  */
 

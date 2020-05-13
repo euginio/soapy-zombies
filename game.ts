@@ -1,7 +1,7 @@
 /**
  * @author       Eugenio Arosteguy <eugenio.arosteguy@gmail.com>
  * @copyright    2020 eugenio arosteguy
- * @description  Picnic ants
+ * @description  Ants Feast
  * @license      
  */
 
@@ -11,7 +11,7 @@ import { GameScene } from "./scenes/game-scene";
 import { TitleScene } from "./scenes/title-scene";
 
 const config: Phaser.Types.Core.GameConfig = {
-  title: "Picnic ants",
+  title: "Ants Feast",
   url: "https://github.com/euginio/picnic-ants",
   version: "1.0",
   width: 580,

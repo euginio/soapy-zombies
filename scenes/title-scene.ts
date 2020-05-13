@@ -1,7 +1,7 @@
 /**
  * @author       Eugenio Arosteguy <eugenio.arosteguy@gmail.com>
  * @copyright    2020 eugenio arosteguy
- * @description  Picnic ants: Title Scene
+ * @description  Ants Feast: Title Scene
  * @license      
  */
 

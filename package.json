@@ -1,7 +1,7 @@
 {
   "name": "picnic-ants",
   "version": "1.0.0",
-  "description": "Picnic ants for Phaser 3 in TypeScript",
+  "description": "Ants Feast for Phaser 3 in TypeScript",
   "keywords": [],
   "devDependencies": {
     "expose-loader": "0.7.5",

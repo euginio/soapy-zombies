@@ -6,7 +6,7 @@ import { MySprite } from "./mySprite";
 /**
  * @author       Eugenio Arosteguy <eugenio.arosteguy@gmail.com>
  * @copyright    2020 eugenio arosteguy
- * @description  Picnic ants: Ant
+ * @description  Ants Feast: Ant
  * @license      
  */
 export class Ant extends MySprite {
