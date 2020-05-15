@@ -1,5 +1,5 @@
 
-go to title screen when finish "full screen transformation"
+*go to game when press start
 simple score
 title and game over screens are the same (copy ideas from https://github.com/Milchreis/zombie-hunter simplicity for titlescreen,game over and restart)
     title
