@@ -21,7 +21,7 @@ export class GameScene extends MyScene {
   gravity: any = {};
   
   foodCount: number;
-  initialAnts: number = 3
+  initialAnts: number = 4
   initialFood: number = 8;
   zombieRate: number = 7;
   accelerometerFactor: number = 2
