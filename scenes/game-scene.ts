@@ -108,7 +108,7 @@ export class GameScene extends MyScene {
     
     this.scoreText = this.add.text(14, 13, '0', { fontSize: '22px', fontStyle: 'bold', fill: '#313' });
     // this.scoreText.setVisible(false);
-    this.currentHighScore = parseInt(localStorage.getItem('highScore'));
+    this.currentHighScore = parseInt(localStorage.getItem('highScore'))||0;
     this.highScoreText = this.add.text(14, 43, 'HI ' + this.currentHighScore, { fontSize: '15px', fontStyle: 'bold', fill: '#201' });
 
     this.foods = this.add.group();

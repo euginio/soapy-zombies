@@ -20,7 +20,7 @@
     "build": "webpack --mode production && webpack-dev-server --mode production",
     "debug-mobile":"sudo adb forward tcp:9222 localabstract:chrome_devtools_remote; google-chrome localhost:9222",
     "commit-production-bundle": "git add dist/bundle.js && (git commit -m \"publishing production bundle\" || true)",
-    "publish": "webpack --mode production && npm run commit-production-bundle && git push"
+    "publish": "npm run build && npm run commit-production-bundle && git push"
   },
   "repository": {
     "type": "git",
