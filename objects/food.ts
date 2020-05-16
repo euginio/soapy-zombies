@@ -22,7 +22,7 @@ export class Food extends MySprite {
         this.setCircle(10,7,8)
 
         // this.setFrame(Phaser.Math.Between(0,24))
-        this.setFrame(Phaser.Math.RND.pick([0,1,2,5,6,9,10,11,13,15,17,20,23,24]))
+        this.setFrame(Phaser.Math.RND.pick([0,1,9,10,11,13,15,17,20,23,24]))
 
         // this.on('animationcomplete', this.destroy, this);
     }
@@ -70,7 +70,6 @@ export class Food extends MySprite {
     }
 
     foodOut() {
-        // this.game.state.score += 20;
-        // this.game.state.scoreText.text = this.game.state.scoreString + this.game.state.score;
+    
     }
 }

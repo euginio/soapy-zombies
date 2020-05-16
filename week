@@ -1,6 +1,4 @@
 
-*go to game when press start
-simple score
 title and game over screens are the same (copy ideas from https://github.com/Milchreis/zombie-hunter simplicity for titlescreen,game over and restart)
     title
     start button
@@ -16,8 +14,11 @@ add some sound
         food eateen
 pwa
 
+*simple score
+*go to game when press start
 *change name!
 
 -----------
 for backlog
     transforms to "tilt effect" on tray (flip, quad/mesh, scaleX or Y)
+    in coqui's phone (samsung s6?) doesn't work with samsung browser

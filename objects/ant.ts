@@ -110,13 +110,13 @@ export class Ant extends MySprite {
         this.isClimbing = false
         this.setImmovable(true);
         this.disableBody(false, false)
+        this.scene.antDied(this)
         
         this.scene.tweens.add({targets:this, 
             scale: { value: 0.01, duration: 750},
             yoyo:true, loop:0,
             onYoyo:()=>{
                 this.disableBody(false, true)
-                this.scene.antDied(this)
             },
             onComplete:()=>{
                 this.init();
@@ -164,7 +164,6 @@ export class Ant extends MySprite {
     // }
 
     antOut() {
-        // this.game.state.score += 20;
-        // this.game.state.scoreText.text = this.game.state.scoreString + this.game.state.score;
+        
     }
 }

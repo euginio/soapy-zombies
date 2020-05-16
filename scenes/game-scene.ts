@@ -16,6 +16,7 @@ export class GameScene extends MyScene {
   gameOver: any;
   cursors: Phaser.Types.Input.Keyboard.CursorKeys;
   scoreText: Phaser.GameObjects.Text;
+  highScoreText: Phaser.GameObjects.Text;
   score = 0;
   gravity: any = {};
   
@@ -27,6 +28,7 @@ export class GameScene extends MyScene {
 
   gravityNum = { x: 30, y: 30 };
   tray: Phaser.GameObjects.Image;
+  currentHighScore: number = 0;
 
   constructor() {
     super({
@@ -41,7 +43,7 @@ export class GameScene extends MyScene {
 
   antDied(outAnt: Ant) {
     this.score++;
-    this.scoreText.setText('hormigas muertas: ' + this.score);
+    this.scoreText.setText(this.score.toString());
     if (this.score % this.zombieRate == 0) {
       this.addNewAnt()
     }
@@ -59,6 +61,9 @@ export class GameScene extends MyScene {
   }
 
   overGame() {
+    if(this.score>this.currentHighScore){
+      localStorage.setItem('highScore',this.score.toString())
+    }
     this.anims.pauseAll()
     this.physics.pause();
     this.gameOver = true
@@ -101,7 +106,10 @@ export class GameScene extends MyScene {
     this.tray.setSize(this.tray.width-20,this.tray.height-3)
     this.tray.setScale(1.6)
     
-    this.scoreText = this.add.text(16, 16, 'hormigas muertas: 0', { fontSize: '19px', fontStyle: 'bold', fill: '#543' });
+    this.scoreText = this.add.text(14, 13, '0', { fontSize: '22px', fontStyle: 'bold', fill: '#313' });
+    // this.scoreText.setVisible(false);
+    this.currentHighScore = parseInt(localStorage.getItem('highScore'));
+    this.highScoreText = this.add.text(14, 43, 'HI ' + this.currentHighScore, { fontSize: '15px', fontStyle: 'bold', fill: '#201' });
 
     this.foods = this.add.group();
     this.foods.runChildUpdate = true;
@@ -129,6 +137,7 @@ export class GameScene extends MyScene {
       }, false);
     }
   }
+
   repositionFood(food: Food, food2: Food) {
     food.placeInTray()
   }
