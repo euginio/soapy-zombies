@@ -1,4 +1,4 @@
-
+pwa (could solve multiple problems)
 title and game over screens are the same (copy ideas from https://github.com/Milchreis/zombie-hunter simplicity for titlescreen,game over and restart)
     title
     start button
@@ -12,8 +12,8 @@ add some sound
     sound
         fall ants
         food eateen
-pwa
 
+*add check "navegador no compatible, use google chrome"
 *simple score
 *go to game when press start
 *change name!

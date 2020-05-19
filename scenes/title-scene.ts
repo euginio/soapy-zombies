@@ -36,7 +36,7 @@ export class TitleScene extends MyScene {
     // this.explanation.setOrigin(.5,.5)
     // this.explanation.setVisible(false);
 
-    this.startTxt = this.add.text(this.width/2, this.height*0.75, '¡Toca la pantalla para comenzar!', {fontSize: '29px', fontStyle: 'bold', fill: '#32F'});
+    this.startTxt = this.add.text(this.width/2, this.height*0.75, '¡Touch screen to start', {fontSize: '29px', fontStyle: 'bold', fill: '#32F'});
     this.startTxt.setOrigin(.5,.5)
 
     this.input.on('pointerup', () => this.start());
@@ -46,11 +46,15 @@ export class TitleScene extends MyScene {
     if (!this.scale.isFullscreen) {
       this.scale.startFullscreen();
     }
-    // this.explanation.setVisible(true);
-    this.startTxt.setVisible(false);
-
     await this.tryOrientation();
-    this.scene.start('GameScene');
+    
+    if(navigator.userAgent.indexOf("Chrome") != -1){
+      this.startTxt.setVisible(false);
+      this.scene.start('GameScene');
+    }else{
+      this.startTxt.setText(`Browser not supported
+please use Chrome`); //do not change that indentation, it is on purpose
+    }
   }
 
   /**
@@ -58,12 +62,20 @@ export class TitleScene extends MyScene {
    */
   private async tryOrientation() {
     const desiredOrientation = 'landscape-primary';
+    // fail
     // @ts-ignore
-    // ScreenOrientation.lock(orientation)
-    // this.game.scale.orientation = orientation
-    // this.scale.lockOrientation(orientation)
-    // window.screen.orientation.lock(orientation);
-    // screen.orientation.lock(orientation)	
+    // ScreenOrientation.lock(desiredOrientation)
+    // screen['mozOrientation'].lock(desiredOrientation);
+    // screen.orientationLock(desiredOrientation);
+    // window.screen.lockOrientation(desiredOrientation)
+    // screen.lockOrientationUniversal(["landscape-primary", "landscape-secondary"])
+    
+    //do nothing
+    // this.game.scale.orientation = desiredOrientation
+    // this.scale.lockOrientation(desiredOrientation)
+    // window.screen.mozLockOrientation(desiredOrientation)
+    // await window.screen.orientation.lock(desiredOrientation);
+    // screen.orientation.lock(desiredOrientation)	
 
     var orientKey = 'orientation';
     if ('mozOrientation' in screen) {
@@ -71,7 +83,7 @@ export class TitleScene extends MyScene {
     } else if ('msOrientation' in screen) {
       orientKey = 'msOrientation';
     }
-    var promise = null;
+    // var promise = null;
     try {
       if (screen[orientKey].lock) {
         // promise = screen[orientKey].lock(screen[orientKey].type); // this lock in current orientation
@@ -82,7 +94,6 @@ export class TitleScene extends MyScene {
         await screen.orientationLock(desiredOrientation);
       }
     }catch(e){
-
     }
   }
 }

@@ -4,7 +4,6 @@
 		"sourceMap": true
 	},
 	"exclude": [
-		"**/*phaser2.ts",
 		"/node_modules/"
 	]
 }
