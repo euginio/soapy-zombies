@@ -4,6 +4,7 @@
   "description": "Ants Feast for Phaser 3 in TypeScript",
   "keywords": [],
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "ts-loader": "9.6.2",
     "typescript": "5.9.3",
     "webpack": "5.111.1",
@@ -17,6 +18,7 @@
     "build": "webpack --mode production",
     "webpack-dev": "webpack --mode development",
     "dev": "webpack serve --mode development",
+    "test:smoke": "npm run build && playwright test",
     "dev-ssl": "webpack serve --mode development --https --host=0.0.0.0 --allowed-hosts all",
     "enable-debug-mobile": "sudo adb forward tcp:9222 localabstract:chrome_devtools_remote; google-chrome localhost:9222",
     "debug-mobile": "npm run enable-debug-mobile && npm run dev-ssl",

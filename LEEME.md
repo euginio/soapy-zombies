@@ -25,3 +25,12 @@ Se necesita Node.js y npm. Desde la carpeta del proyecto, ejecutá:
 npm install
 npm run dev
 ```
+
+## Ejecutar la prueba de navegador
+
+Instalá una vez el navegador Chromium de Playwright y luego ejecutá la prueba:
+
+```sh
+npx playwright install chromium
+npm run test:smoke
+```

@@ -25,3 +25,12 @@ Node.js and npm are required. From the project folder, run:
 npm install
 npm run dev
 ```
+
+## Run the browser smoke test
+
+Install Playwright's Chromium browser once, then run the test:
+
+```sh
+npx playwright install chromium
+npm run test:smoke
+```
