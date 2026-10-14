@@ -75,7 +75,12 @@ export class GameScene extends MyScene {
 
   restart() {
     this.scene.restart()
-    this.foods.children.iterate((f: Food) => f.body.setEnable(true))
+    this.foods.children.iterate((child) => {
+      if (child instanceof Food) {
+        child.body.setEnable(true)
+      }
+      return true
+    })
     this.physics.resume();
     this.anims.resumeAll();
     this.gameOver = false
@@ -106,10 +111,10 @@ export class GameScene extends MyScene {
     this.tray.setSize(this.tray.width-20,this.tray.height-3)
     this.tray.setScale(1.6)
     
-    this.scoreText = this.add.text(14, 13, '0', { fontSize: '22px', fontStyle: 'bold', fill: '#313' });
+    this.scoreText = this.add.text(14, 13, '0', { fontSize: '22px', fontStyle: 'bold', color: '#313' });
     // this.scoreText.setVisible(false);
     this.currentHighScore = parseInt(localStorage.getItem('highScore'))||0;
-    this.highScoreText = this.add.text(14, 43, 'HI ' + this.currentHighScore, { fontSize: '15px', fontStyle: 'bold', fill: '#201' });
+    this.highScoreText = this.add.text(14, 43, 'HI ' + this.currentHighScore, { fontSize: '15px', fontStyle: 'bold', color: '#201' });
 
     this.foods = this.add.group();
     this.foods.runChildUpdate = true;

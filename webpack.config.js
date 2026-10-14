@@ -1,6 +1,5 @@
 var path = require("path");
-var pathToPhaser = path.join(__dirname, "/node_modules/phaser/");
-var phaser = path.join(pathToPhaser, "dist/phaser.js");
+var phaser = path.resolve(__dirname, "node_modules/phaser/dist/phaser.js");
 
 module.exports = {
   entry: "./game.ts",
@@ -10,13 +9,20 @@ module.exports = {
   },
   module: {
     rules: [
-      { test: /\.ts$/, loader: "ts-loader?configFile=tsconfig.webpack.json"},
-      { test: /phaser\.js$/, loader: "expose-loader?Phaser" }
+      {
+        test: /\.ts$/,
+        loader: "ts-loader",
+        options: { configFile: "tsconfig.webpack.json" }
+      }
     ]
   },
   devServer: {
-    contentBase: path.resolve(__dirname, "./"),
-    publicPath: "/dist/",
+    static: {
+      directory: path.resolve(__dirname, "./")
+    },
+    devMiddleware: {
+      publicPath: "/dist/"
+    },
     host: "127.0.0.1",
     port: 8080,
     open: true
