@@ -1,5 +1,27 @@
-# picnic-ants
+# Picnic Ants
 
-para jugar ir a https://euginio.github.io/soapy-zombies   
+Español: [LEEME.md](LEEME.md)
 
-(No es compatible con iphone)
+## About the game
+
+Defend the food from the ants! Ants come in from the edges of the tray and head for the food. Tilt the tray to make them fall off: each ant that falls earns one point. An extra ant appears for every seven ants that fall. The game ends when all the food is gone.
+
+## How to play
+
+1. Open the game at [euginio.github.io/soapy-zombies](https://euginio.github.io/soapy-zombies).
+2. Tap the screen to start. The game attempts to switch to fullscreen and landscape orientation.
+3. Tilt the tray using the controls for your device:
+   - **Computer:** use the arrow keys to tilt it in that direction.
+   - **Phone or tablet:** tilt your device.
+4. Keep the ants away from the food and make them fall off the tray. Your score and high score are displayed; the high score is saved in your browser.
+
+The game requires a Chrome-compatible browser. **It is not compatible with iPhone.**
+
+## Run locally
+
+Node.js and npm are required. From the project folder, run:
+
+```sh
+npm install
+npm run dev
+```
