@@ -12,6 +12,7 @@ import { Food } from "../objects/food";
 import { MyScene } from "./my-scene";
 
 export class GameScene extends MyScene {
+  private static readonly maxVisualTilt = 10;
   ants: Phaser.GameObjects.Group;
   foods: Phaser.GameObjects.Group;
   gameOver: any;
@@ -93,6 +94,14 @@ export class GameScene extends MyScene {
     let self = this;
 
     this.foodCount = this.initialFood;
+    const canvas = this.game.canvas;
+    const canvasParent = canvas.parentElement;
+    canvas.style.transformOrigin = "center center";
+    canvas.style.transition = "transform 120ms ease-out";
+    if (canvasParent) {
+      canvasParent.style.perspective = "900px";
+      canvasParent.style.perspectiveOrigin = "center center";
+    }
 
     let divider = 4
     let antFrames = [...Array(Math.floor(62/divider)).keys()].map(e=>e*divider)//using just 20 frames
@@ -165,6 +174,7 @@ export class GameScene extends MyScene {
 
   update(): void {
     if (this.gameOver) {
+      this.applyBoardTilt(0, 0);
       return;
     }
 
@@ -175,6 +185,16 @@ export class GameScene extends MyScene {
     if (this.sys.game.device.os.desktop) {
       this.checkCursors();
     }
+    this.applyBoardTilt(this.gravity.x, this.gravity.y);
+  }
+
+  private applyBoardTilt(gravityX: number, gravityY: number) {
+    const tiltX = Phaser.Math.Clamp(gravityX / this.gravityNum.x, -1, 1)
+      * GameScene.maxVisualTilt;
+    const tiltY = Phaser.Math.Clamp(gravityY / this.gravityNum.y, -1, 1)
+      * GameScene.maxVisualTilt;
+
+    this.game.canvas.style.transform = `rotateX(${-tiltY}deg) rotateY(${tiltX}deg)`;
   }
 
   checkCursors() {

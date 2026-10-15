@@ -10,7 +10,7 @@ Defend the food from the ants! Ants come in from the edges of the tray and head 
 
 1. Open the game at [euginio.github.io/soapy-zombies](https://euginio.github.io/soapy-zombies).
 2. Tap the screen to start. The game attempts to switch to fullscreen and landscape orientation.
-3. Tilt the tray using the controls for your device:
+3. Tilt the tray using the controls for your device. The playfield leans in the same direction:
    - **Computer:** use the arrow keys to tilt it in that direction.
    - **Phone or tablet:** tilt your device.
 4. Keep the ants away from the food and make them fall off the tray. Your score and high score are displayed; the high score is saved in your browser.

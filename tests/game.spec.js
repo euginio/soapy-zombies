@@ -84,7 +84,7 @@ test("Vite development server loads its assets and starts a game", async ({ page
   expect(failedResponses).toEqual([]);
 });
 
-test("desktop controls can score an escaping ant", async ({ page }) => {
+test("tilt controls apply perspective on both axes", async ({ page }) => {
   await page.addInitScript(() => {
     Element.prototype.requestFullscreen = () => Promise.resolve();
   });
@@ -99,21 +99,34 @@ test("desktop controls can score an escaping ant", async ({ page }) => {
     .poll(async () => Buffer.compare(titleScreen, await canvas.screenshot()))
     .not.toBe(0);
 
-  const scoreRegion = {
-    x: Math.round(bounds.x + 5),
-    y: Math.round(bounds.y + 5),
-    width: 80,
-    height: 45
-  };
-  const initialScore = await page.screenshot({ clip: scoreRegion });
+  const directions = [
+    ["ArrowRight", "rotateX(0deg) rotateY(10deg)"],
+    ["ArrowLeft", "rotateX(0deg) rotateY(-10deg)"],
+    ["ArrowUp", "rotateX(10deg) rotateY(0deg)"],
+    ["ArrowDown", "rotateX(-10deg) rotateY(0deg)"]
+  ];
+  for (const [key, expectedTransform] of directions) {
+    await page.keyboard.down(key);
+    try {
+      await expect
+        .poll(() => canvas.evaluate((element) => element.style.transform))
+        .toBe(expectedTransform);
+    } finally {
+      await page.keyboard.up(key);
+    }
+    await expect
+      .poll(() => canvas.evaluate((element) => element.style.transform))
+      .toBe("rotateX(0deg) rotateY(0deg)");
+  }
+
   await page.keyboard.down("ArrowRight");
+  await page.keyboard.down("ArrowUp");
   try {
     await expect
-      .poll(async () => Buffer.compare(initialScore, await page.screenshot({ clip: scoreRegion })), {
-        timeout: 12_000
-      })
-      .not.toBe(0);
+      .poll(() => canvas.evaluate((element) => element.style.transform))
+      .toBe("rotateX(10deg) rotateY(10deg)");
   } finally {
     await page.keyboard.up("ArrowRight");
+    await page.keyboard.up("ArrowUp");
   }
 });
