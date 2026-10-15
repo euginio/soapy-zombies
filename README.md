@@ -26,9 +26,11 @@ npm install
 npm run dev
 ```
 
+Vite opens `dev.html` for development. The root `index.html` remains the production entry point for GitHub Pages.
+
 ## Run the browser smoke test
 
-Install Playwright's Chromium browser once, then run the test:
+Install Playwright's Chromium browser once, then run the production and development smoke tests:
 
 ```sh
 npx playwright install chromium

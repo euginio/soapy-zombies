@@ -28,5 +28,5 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Build and smoke test production game
+      - name: Build and smoke test production and development game
         run: npm run test:smoke

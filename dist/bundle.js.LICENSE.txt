@@ -1,196 +1,26 @@
-/**
- * @author       Ben Richards <benjamindrichards@gmail.com>
- * @copyright    2024 Photon Storm Ltd.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
+# Licenses
 
-/**
- * @author       Benjamin D. Richards <benjamindrichards@gmail.com>
- * @copyright    2013-2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
+The app bundles dependencies which contain the following licenses:
 
-/**
- * @author       Eugenio Arosteguy <eugenio.arosteguy@gmail.com>
- * @copyright    2020 eugenio arosteguy
- * @description  Ants Feast: Ant
- * @license
- */
+## phaser - 3.90.0 (MIT)
 
-/**
- * @author       Eugenio Arosteguy <eugenio.arosteguy@gmail.com>
- * @copyright    2020 eugenio arosteguy
- * @description  Ants Feast: Title Scene
- * @license
- */
+The MIT License (MIT)
 
-/**
- * @author       Eugenio Arosteguy <eugenio.arosteguy@gmail.com>
- * @copyright    2020 eugenio arosteguy
- * @description  Picnic foods: Food
- * @license
- */
+Copyright (c) 2024 Richard Davey, Phaser Studio Inc.
 
-/**
- * @author       Eugenio Arosteguy <eugenio.arosteguy@gmail.com>
- * @copyright    2020 eugenio arosteguy
- * @description  Picnic mySprites: MySprite
- * @license
- */
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
 
-/**
- * @author       Florian Vazelle
- * @author       Geoffrey Glaive
- * @copyright    2013-2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-/**
- * @author       Jason Nicholls <nicholls.jason@gmail.com>
- * @copyright    2018 Photon Storm Ltd.
- * @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
- */
-
-/**
- * @author       Joachim Grill <joachim@codeandweb.com>
- * @author       Richard Davey <rich@phaser.io>
- * @copyright    2018 CodeAndWeb GmbH
- * @copyright    2013-2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       Niklas von Hertzen (https://github.com/niklasvh/base64-arraybuffer)
- * @author       Richard Davey <rich@phaser.io>
- * @copyright    2013-2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       Richard Davey
- * @copyright    2013-2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       Richard Davey <rich@phaser.io>
- * @author       @samme
- * @copyright    2013-2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       Richard Davey <rich@phaser.io>
- * @author       Angry Bytes (and contributors)
- * @copyright    2013-2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       Richard Davey <rich@phaser.io>
- * @author       Felipe Alfonso <@bitnenfer>
- * @author       Matthew Groves <@doormat>
- * @copyright    2013-2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       Richard Davey <rich@phaser.io>
- * @author       Felipe Alfonso <@bitnenfer>
- * @copyright    2013-2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       Richard Davey <rich@phaser.io>
- * @author       Florian Mertens
- * @copyright    2013-2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       Richard Davey <rich@phaser.io>
- * @author       Igor Ognichenko <ognichenko.igor@gmail.com>
- * @copyright    2013-2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       Richard Davey <rich@phaser.io>
- * @author       Pavle Goloskokovic <pgoloskokovic@gmail.com> (http://prunegames.com)
- * @copyright    2013-2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       Richard Davey <rich@phaser.io>
- * @author       samme <samme.npm@gmail.com>
- * @copyright    2013-2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       Richard Davey <rich@phaser.io>
- * @copyright    2013-2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       Richard Davey <rich@phaser.io>
- * @copyright    2021 Photon Storm Ltd.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       Richard Davey <rich@photonstorm.com>
- * @copyright    2013-2023 Photon Storm Ltd.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       Seth Berrier <berriers@uwstout.edu>
- * @copyright    2013-2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       Stefan Hedman <schteppe@gmail.com> (http://steffe.se)
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       Vladimir Agafonkin
- * @author       Richard Davey <rich@phaser.io>
- * @copyright    2013-2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       pi-kei
- * @copyright    2013-2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       samme
- * @copyright    2013-2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       samme
- * @copyright    2021 Photon Storm Ltd.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
- * @author       samme
- * @copyright    2025 Phaser Studio Inc.
- * @license      {@link https://opensource.org/licenses/MIT|MIT License}
- */
-
-/**
-* @author       Richard Davey <rich@phaser.io>
-* @copyright    2013-2025 Phaser Studio Inc.
-* @license      {@link https://github.com/photonstorm/phaser3-plugin-template/blob/master/LICENSE|MIT License}
-*/
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
