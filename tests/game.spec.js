@@ -27,16 +27,13 @@ test("production build loads its assets and starts a game", async ({ page }) => 
 
   await page.goto("/");
   await expect(page).toHaveTitle("Ants Feast");
-  const canvas = page.locator("#game canvas");
+  const canvas = page.locator("#game canvas").first();
   await expect(canvas).toBeVisible();
   await expect.poll(() => [...loadedAssets]).toHaveLength(requiredAssets.length);
 
-  const titleScreen = await canvas.screenshot();
   const bounds = await canvas.boundingBox();
   await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height * 0.75);
-  await expect
-    .poll(async () => Buffer.compare(titleScreen, await canvas.screenshot()))
-    .not.toBe(0);
+  await expect(page.locator("#tilting-board")).toBeVisible();
 
   expect(pageErrors).toEqual([]);
   expect(failedResponses).toEqual([]);
@@ -69,16 +66,13 @@ test("Vite development server loads its assets and starts a game", async ({ page
 
   await page.goto("http://127.0.0.1:4174/dev.html");
   await expect(page).toHaveTitle("Ants Feast");
-  const canvas = page.locator("#game canvas");
+  const canvas = page.locator("#game canvas").first();
   await expect(canvas).toBeVisible();
   await expect.poll(() => [...loadedAssets]).toHaveLength(requiredAssets.length);
 
-  const titleScreen = await canvas.screenshot();
   const bounds = await canvas.boundingBox();
   await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height * 0.75);
-  await expect
-    .poll(async () => Buffer.compare(titleScreen, await canvas.screenshot()))
-    .not.toBe(0);
+  await expect(page.locator("#tilting-board")).toBeVisible();
 
   expect(pageErrors).toEqual([]);
   expect(failedResponses).toEqual([]);
@@ -90,14 +84,37 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
   });
 
   await page.goto("/");
-  const canvas = page.locator("#game canvas");
+  const canvas = page.locator("#game canvas").first();
+  const tiltedBoard = page.locator("#tilting-board");
+  const stationaryHud = page.locator("#stationary-hud");
   await expect(canvas).toBeVisible();
-  const titleScreen = await canvas.screenshot();
   const bounds = await canvas.boundingBox();
   await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height * 0.75);
+  await expect(tiltedBoard).toBeVisible();
+  await expect(tiltedBoard).toBeVisible();
+  await expect(stationaryHud).toBeVisible();
+  expect(await page.locator("#game").locator("#tilting-board-layer").count()).toBe(1);
+  expect(await page.locator("#game").locator("#stationary-hud").count()).toBe(1);
   await expect
-    .poll(async () => Buffer.compare(titleScreen, await canvas.screenshot()))
-    .not.toBe(0);
+    .poll(() => tiltedBoard.evaluate((element) => {
+      const pixels = element.getContext("2d").getImageData(0, 0, element.width, element.height).data;
+      return pixels.some((value, index) => index % 4 === 3 && value > 0);
+    }))
+    .toBe(true);
+  await expect
+    .poll(() => stationaryHud.evaluate((element) => {
+      const pixels = element.getContext("2d").getImageData(0, 0, element.width, element.height).data;
+      return pixels.some((value, index) => index % 4 === 3 && value > 0);
+    }))
+    .toBe(true);
+
+  const alignedBounds = await Promise.all([
+    canvas.boundingBox(),
+    page.locator("#tilting-board-layer").boundingBox(),
+    stationaryHud.boundingBox()
+  ]);
+  expect(alignedBounds[1]).toEqual(alignedBounds[0]);
+  expect(alignedBounds[2]).toEqual(alignedBounds[0]);
 
   const directions = [
     ["ArrowRight", "rotateX(0deg) rotateY(10deg)"],
@@ -109,13 +126,15 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
     await page.keyboard.down(key);
     try {
       await expect
-        .poll(() => canvas.evaluate((element) => element.style.transform))
+        .poll(() => tiltedBoard.evaluate((element) => element.style.transform))
         .toBe(expectedTransform);
+      await expect(canvas).toHaveCSS("transform", "none");
+      await expect(stationaryHud).toHaveCSS("transform", "none");
     } finally {
       await page.keyboard.up(key);
     }
     await expect
-      .poll(() => canvas.evaluate((element) => element.style.transform))
+      .poll(() => tiltedBoard.evaluate((element) => element.style.transform))
       .toBe("rotateX(0deg) rotateY(0deg)");
   }
 
@@ -123,8 +142,10 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
   await page.keyboard.down("ArrowUp");
   try {
     await expect
-      .poll(() => canvas.evaluate((element) => element.style.transform))
+      .poll(() => tiltedBoard.evaluate((element) => element.style.transform))
       .toBe("rotateX(10deg) rotateY(10deg)");
+    await expect(canvas).toHaveCSS("transform", "none");
+    await expect(stationaryHud).toHaveCSS("transform", "none");
   } finally {
     await page.keyboard.up("ArrowRight");
     await page.keyboard.up("ArrowUp");

@@ -10,7 +10,7 @@ English: [README.md](README.md)
 
 1. Abrí el juego en [euginio.github.io/soapy-zombies](https://euginio.github.io/soapy-zombies).
 2. Tocá la pantalla para comenzar. El juego intenta pasar a pantalla completa y jugar en horizontal.
-3. Mové la bandeja según el dispositivo. El tablero también se inclina visualmente en esa dirección:
+3. Mové la bandeja según el dispositivo. La bandeja, las hormigas y la comida se inclinan en esa dirección; el fondo y el puntaje quedan fijos:
    - **Computadora:** usá las flechas del teclado para inclinarla en esa dirección.
    - **Celular o tableta:** incliná el dispositivo.
 4. Evitá que las hormigas lleguen a la comida y hacelas caer de la bandeja. Tu puntaje y el récord se muestran en pantalla; el récord queda guardado en el navegador.

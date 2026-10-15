@@ -13,6 +13,13 @@ import { MyScene } from "./my-scene";
 
 export class GameScene extends MyScene {
   private static readonly maxVisualTilt = 10;
+  private boardLayer: HTMLDivElement;
+  private boardCanvas: HTMLCanvasElement;
+  private boardContext: CanvasRenderingContext2D;
+  private hudCanvas: HTMLCanvasElement;
+  private hudContext: CanvasRenderingContext2D;
+  private visualLayerParent: HTMLElement;
+  private originalParentPosition: string;
   ants: Phaser.GameObjects.Group;
   foods: Phaser.GameObjects.Group;
   gameOver: any;
@@ -95,13 +102,9 @@ export class GameScene extends MyScene {
 
     this.foodCount = this.initialFood;
     const canvas = this.game.canvas;
-    const canvasParent = canvas.parentElement;
-    canvas.style.transformOrigin = "center center";
-    canvas.style.transition = "transform 120ms ease-out";
-    if (canvasParent) {
-      canvasParent.style.perspective = "900px";
-      canvasParent.style.perspectiveOrigin = "center center";
-    }
+    this.createVisualLayers(canvas);
+    this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.renderVisualLayers, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroyVisualLayers, this);
 
     let divider = 4
     let antFrames = [...Array(Math.floor(62/divider)).keys()].map(e=>e*divider)//using just 20 frames
@@ -122,11 +125,13 @@ export class GameScene extends MyScene {
     this.tray = this.add.image(this.width / 2, this.height / 2, 'tray');
     this.tray.setSize(this.tray.width-20,this.tray.height-3)
     this.tray.setScale(1.6)
+    this.tray.setVisible(false);
     
     this.scoreText = this.add.text(14, 13, '0', { fontSize: '22px', fontStyle: 'bold', color: '#313' });
-    // this.scoreText.setVisible(false);
+    this.scoreText.setVisible(false);
     this.currentHighScore = parseInt(localStorage.getItem('highScore'))||0;
     this.highScoreText = this.add.text(14, 43, 'HI ' + this.currentHighScore, { fontSize: '15px', fontStyle: 'bold', color: '#201' });
+    this.highScoreText.setVisible(false);
 
     this.foods = this.add.group();
     this.foods.runChildUpdate = true;
@@ -134,6 +139,7 @@ export class GameScene extends MyScene {
     for (let index = 0; index < this.foodCount; index++) {
       let newF= new Food(this)
       this.foods.add(newF, true)
+      newF.setVisible(false);
     }
 
     this.ants = this.add.group();
@@ -164,7 +170,9 @@ export class GameScene extends MyScene {
   // }
 
   addNewAnt() {
-    this.ants.add(new Ant(this), true)
+    const ant = new Ant(this);
+    ant.setVisible(false);
+    this.ants.add(ant, true);
   }
 
   eatFood(ant: Ant, food: Food) {
@@ -194,7 +202,144 @@ export class GameScene extends MyScene {
     const tiltY = Phaser.Math.Clamp(gravityY / this.gravityNum.y, -1, 1)
       * GameScene.maxVisualTilt;
 
-    this.game.canvas.style.transform = `rotateX(${-tiltY}deg) rotateY(${tiltX}deg)`;
+    this.boardCanvas.style.transform = `rotateX(${-tiltY}deg) rotateY(${tiltX}deg)`;
+  }
+
+  private createVisualLayers(gameCanvas: HTMLCanvasElement) {
+    this.visualLayerParent = gameCanvas.parentElement || document.body;
+    this.originalParentPosition = this.visualLayerParent.style.position;
+    if (getComputedStyle(this.visualLayerParent).position === "static") {
+      this.visualLayerParent.style.position = "relative";
+    }
+
+    this.boardLayer = document.createElement("div");
+    this.boardLayer.id = "tilting-board-layer";
+    Object.assign(this.boardLayer.style, {
+      position: "absolute",
+      pointerEvents: "none",
+      zIndex: "10",
+      perspective: "900px",
+      perspectiveOrigin: "center center"
+    });
+
+    this.boardCanvas = document.createElement("canvas");
+    this.boardCanvas.id = "tilting-board";
+    this.boardCanvas.width = gameCanvas.width;
+    this.boardCanvas.height = gameCanvas.height;
+    Object.assign(this.boardCanvas.style, {
+      display: "block",
+      width: "100%",
+      height: "100%",
+      transformOrigin: "center center",
+      transition: "transform 120ms ease-out"
+    });
+    this.boardContext = this.boardCanvas.getContext("2d");
+    this.boardLayer.appendChild(this.boardCanvas);
+    this.visualLayerParent.appendChild(this.boardLayer);
+
+    this.hudCanvas = document.createElement("canvas");
+    this.hudCanvas.id = "stationary-hud";
+    this.hudCanvas.width = gameCanvas.width;
+    this.hudCanvas.height = gameCanvas.height;
+    Object.assign(this.hudCanvas.style, {
+      position: "absolute",
+      pointerEvents: "none",
+      zIndex: "11"
+    });
+    this.hudContext = this.hudCanvas.getContext("2d");
+    this.visualLayerParent.appendChild(this.hudCanvas);
+    this.syncVisualLayerBounds(gameCanvas);
+  }
+
+  private syncVisualLayerBounds(gameCanvas: HTMLCanvasElement) {
+    const bounds = gameCanvas.getBoundingClientRect();
+    const parentBounds = this.visualLayerParent.getBoundingClientRect();
+    for (const layer of [this.boardLayer, this.hudCanvas]) {
+      Object.assign(layer.style, {
+        left: `${bounds.left - parentBounds.left + this.visualLayerParent.scrollLeft}px`,
+        top: `${bounds.top - parentBounds.top + this.visualLayerParent.scrollTop}px`,
+        width: `${bounds.width}px`,
+        height: `${bounds.height}px`
+      });
+    }
+  }
+
+  private renderVisualLayers() {
+    const gameCanvas = this.game.canvas;
+    this.syncVisualLayerBounds(gameCanvas);
+
+    const scaleX = this.boardCanvas.width / this.width;
+    const scaleY = this.boardCanvas.height / this.height;
+    this.boardContext.setTransform(scaleX, 0, 0, scaleY, 0, 0);
+    this.boardContext.clearRect(0, 0, this.width, this.height);
+
+    this.drawBoardObject(this.tray);
+    this.foods.children.iterate((child) => {
+      if (child instanceof Food) {
+        this.drawBoardObject(child);
+      }
+      return true;
+    });
+    this.ants.children.iterate((child) => {
+      if (child instanceof Ant) {
+        this.drawBoardObject(child);
+      }
+      return true;
+    });
+
+    this.hudContext.setTransform(scaleX, 0, 0, scaleY, 0, 0);
+    this.hudContext.clearRect(0, 0, this.width, this.height);
+    this.drawHudText(this.scoreText);
+    this.drawHudText(this.highScoreText);
+  }
+
+  private drawBoardObject(object: Phaser.GameObjects.Image | Ant | Food) {
+    if (!object.active || object.alpha === 0) {
+      return;
+    }
+
+    const frame = object.frame;
+    const image = frame.source.image;
+    if (image instanceof Uint8Array) {
+      return;
+    }
+
+    const context = this.boardContext;
+    context.save();
+    context.globalAlpha = object.alpha;
+    context.translate(object.x, object.y);
+    context.rotate(object.rotation);
+    context.scale(object.scaleX, object.scaleY);
+    context.drawImage(
+      image,
+      frame.cutX,
+      frame.cutY,
+      frame.cutWidth,
+      frame.cutHeight,
+      -object.width * object.originX,
+      -object.height * object.originY,
+      object.width,
+      object.height
+    );
+    context.restore();
+  }
+
+  private drawHudText(text: Phaser.GameObjects.Text) {
+    const style = text.style;
+    this.hudContext.save();
+    this.hudContext.font = `${style.fontStyle || "normal"} ${style.fontSize}px ${style.fontFamily}`;
+    this.hudContext.fillStyle = style.color;
+    this.hudContext.textBaseline = "top";
+    this.hudContext.fillText(text.text, text.x, text.y);
+    this.hudContext.restore();
+  }
+
+  private destroyVisualLayers() {
+    this.boardLayer?.remove();
+    this.hudCanvas?.remove();
+    if (this.originalParentPosition !== undefined) {
+      this.visualLayerParent.style.position = this.originalParentPosition;
+    }
   }
 
   checkCursors() {
