@@ -1,10 +1,34 @@
 import assert = require("node:assert/strict");
 import { describe, it } from "node:test";
 import {
+  calculateAntVelocity,
   isNewHighScore,
   resolveAntEscape,
   resolveFoodLoss
 } from "../game-rules";
+
+describe("ant steering", () => {
+  it("moves toward food with the configured speed", () => {
+    assert.deepEqual(calculateAntVelocity(10, -5, 60, 0, 0, 10), {
+      x: -40,
+      y: 20
+    });
+  });
+
+  it("combines movement toward food with tray gravity", () => {
+    assert.deepEqual(calculateAntVelocity(10, 0, 50, 2, -1, 10), {
+      x: -30,
+      y: -10
+    });
+  });
+
+  it("does not produce invalid velocity when already at the target", () => {
+    assert.deepEqual(calculateAntVelocity(0, 0, 50, 2, -1, 10), {
+      x: 20,
+      y: -10
+    });
+  });
+});
 
 describe("ant escape scoring", () => {
   it("awards one point and adds an ant at each seventh escape", () => {

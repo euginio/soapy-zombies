@@ -1,4 +1,5 @@
 import { Scene, Physics, GameObjects } from "phaser";
+import { calculateAntVelocity } from "../game-rules";
 import { GameScene } from "../scenes/game-scene";
 import { Food } from "./food";
 import { MySprite } from "./mySprite";
@@ -141,11 +142,16 @@ export class Ant extends MySprite {
         // this.setAcceleration(
         // let xDistance = Math.abs(this.x-this.scene.food.x)
         // let yDistance = Math.abs(this.y-this.scene.food.y)
-        let total = Math.abs(xDistance) + Math.abs(yDistance);
-        let antSpeedX = (this.ANT_SPEED * -xDistance) / total + this.scene.gravity.x * this.gravityFactor;
-        let antSpeedY = (this.ANT_SPEED * -yDistance) / total + this.scene.gravity.y * this.gravityFactor;
-        this.setVelocityX(antSpeedX);
-        this.setVelocityY(antSpeedY);
+        const velocity = calculateAntVelocity(
+            xDistance,
+            yDistance ?? 0,
+            this.ANT_SPEED,
+            this.scene.gravity.x,
+            this.scene.gravity.y,
+            this.gravityFactor
+        );
+        this.setVelocityX(velocity.x);
+        this.setVelocityY(velocity.y);
         return this
     }
 
