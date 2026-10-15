@@ -28,9 +28,9 @@ npm run dev
 
 Vite abre `dev.html` para el desarrollo. El `index.html` de la raíz sigue siendo el punto de entrada de producción para GitHub Pages.
 
-## Ejecutar las pruebas de navegador
+## Ejecutar las comprobaciones y pruebas de navegador
 
-Instalá una vez el navegador Chromium de Playwright y luego ejecutá las pruebas de producción y desarrollo:
+Instalá una vez el navegador Chromium de Playwright. Luego ejecutá el chequeo de TypeScript, las pruebas unitarias de las reglas y las pruebas de navegador de producción y desarrollo:
 
 ```sh
 npx playwright install chromium

@@ -5,7 +5,9 @@
   "keywords": [],
   "devDependencies": {
     "@playwright/test": "1.64.1",
+    "@types/node": "^24.19.2",
     "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "tsx": "^4.21.0",
     "typescript": "5.9.3",
     "vite": "8.3.4"
   },
@@ -16,7 +18,8 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "dev": "vite --host 127.0.0.1 --open /dev.html",
-    "test:smoke": "npm run typecheck && npm run build && playwright test",
+    "test:unit": "tsx --test tests/game-rules.test.ts",
+    "test:smoke": "npm run typecheck && npm run test:unit && npm run build && playwright test",
     "dev-ssl": "vite --config vite.ssl.config.js --host 0.0.0.0 --open /dev.html",
     "enable-debug-mobile": "sudo adb forward tcp:9222 localabstract:chrome_devtools_remote; google-chrome localhost:9222",
     "debug-mobile": "npm run enable-debug-mobile && npm run dev-ssl",

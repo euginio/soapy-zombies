@@ -83,3 +83,37 @@ test("Vite development server loads its assets and starts a game", async ({ page
   expect(pageErrors).toEqual([]);
   expect(failedResponses).toEqual([]);
 });
+
+test("desktop controls can score an escaping ant", async ({ page }) => {
+  await page.addInitScript(() => {
+    Element.prototype.requestFullscreen = () => Promise.resolve();
+  });
+
+  await page.goto("/");
+  const canvas = page.locator("#game canvas");
+  await expect(canvas).toBeVisible();
+  const titleScreen = await canvas.screenshot();
+  const bounds = await canvas.boundingBox();
+  await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height * 0.75);
+  await expect
+    .poll(async () => Buffer.compare(titleScreen, await canvas.screenshot()))
+    .not.toBe(0);
+
+  const scoreRegion = {
+    x: Math.round(bounds.x + 5),
+    y: Math.round(bounds.y + 5),
+    width: 80,
+    height: 45
+  };
+  const initialScore = await page.screenshot({ clip: scoreRegion });
+  await page.keyboard.down("ArrowRight");
+  try {
+    await expect
+      .poll(async () => Buffer.compare(initialScore, await page.screenshot({ clip: scoreRegion })), {
+        timeout: 12_000
+      })
+      .not.toBe(0);
+  } finally {
+    await page.keyboard.up("ArrowRight");
+  }
+});

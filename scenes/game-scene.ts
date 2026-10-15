@@ -6,6 +6,7 @@
  */
 
 import { CONST } from "../const/const";
+import { isNewHighScore, resolveAntEscape, resolveFoodLoss } from "../game-rules";
 import { Ant } from "../objects/ant";
 import { Food } from "../objects/food";
 import { MyScene } from "./my-scene";
@@ -42,9 +43,10 @@ export class GameScene extends MyScene {
   }
 
   antDied(outAnt: Ant) {
-    this.score++;
+    const outcome = resolveAntEscape(this.score, this.zombieRate);
+    this.score = outcome.score;
     this.scoreText.setText(this.score.toString());
-    if (this.score % this.zombieRate == 0) {
+    if (outcome.spawnAnt) {
       this.addNewAnt()
     }
   }
@@ -54,14 +56,15 @@ export class GameScene extends MyScene {
   }
 
   destroyFood(food: Food) {
-    this.foodCount--
-    if (this.foodCount == 0) {
+    const outcome = resolveFoodLoss(this.foodCount);
+    this.foodCount = outcome.foodCount;
+    if (outcome.gameOver) {
       this.overGame()
     }
   }
 
   overGame() {
-    if(this.score>this.currentHighScore){
+    if(isNewHighScore(this.score, this.currentHighScore)){
       localStorage.setItem('highScore',this.score.toString())
     }
     this.anims.pauseAll()
