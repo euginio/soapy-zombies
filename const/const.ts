@@ -15,3 +15,16 @@ export let CONST = {
     "west"
   ]
 };
+
+export const DEBUG_MODE = true;
+
+export const ANT_DEBUG_COLORS = [
+  "#ff4136",
+  "#0074d9",
+  "#2ecc40",
+  "#ff851b",
+  "#b10dc9",
+  "#39cccc",
+  "#f012be",
+  "#ffdc00"
+];

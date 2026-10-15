@@ -5,7 +5,7 @@
  * @license      
  */
 
-import { CONST } from "../const/const";
+import { ANT_DEBUG_COLORS, DEBUG_MODE } from "../const/const";
 import { isNewHighScore, resolveAntEscape, resolveFoodLoss } from "../game-rules";
 import { Ant } from "../objects/ant";
 import { Food } from "../objects/food";
@@ -16,6 +16,8 @@ export class GameScene extends MyScene {
   private boardLayer: HTMLDivElement;
   private boardCanvas: HTMLCanvasElement;
   private boardContext: CanvasRenderingContext2D;
+  private antTintCanvas: HTMLCanvasElement;
+  private antTintContext: CanvasRenderingContext2D;
   private hudCanvas: HTMLCanvasElement;
   private hudContext: CanvasRenderingContext2D;
   private visualLayerParent: HTMLElement;
@@ -171,6 +173,17 @@ export class GameScene extends MyScene {
 
   addNewAnt() {
     const ant = new Ant(this);
+    if (DEBUG_MODE) {
+      const usedColors = new Set(
+        this.ants.getChildren()
+          .filter((child): child is Ant => child instanceof Ant)
+          .map((existingAnt) => existingAnt.debugColor)
+      );
+      const availableColors = ANT_DEBUG_COLORS.filter((color) => !usedColors.has(color));
+      ant.debugColor = Phaser.Utils.Array.GetRandom(
+        availableColors.length > 0 ? availableColors : ANT_DEBUG_COLORS
+      );
+    }
     ant.setVisible(false);
     this.ants.add(ant, true);
   }
@@ -234,6 +247,8 @@ export class GameScene extends MyScene {
       transition: "transform 120ms ease-out"
     });
     this.boardContext = this.boardCanvas.getContext("2d");
+    this.antTintCanvas = document.createElement("canvas");
+    this.antTintContext = this.antTintCanvas.getContext("2d");
     this.boardLayer.appendChild(this.boardCanvas);
     this.visualLayerParent.appendChild(this.boardLayer);
 
@@ -310,17 +325,43 @@ export class GameScene extends MyScene {
     context.translate(object.x, object.y);
     context.rotate(object.rotation);
     context.scale(object.scaleX, object.scaleY);
-    context.drawImage(
-      image,
-      frame.cutX,
-      frame.cutY,
-      frame.cutWidth,
-      frame.cutHeight,
-      -object.width * object.originX,
-      -object.height * object.originY,
-      object.width,
-      object.height
-    );
+    const drawX = -object.width * object.originX;
+    const drawY = -object.height * object.originY;
+    if (DEBUG_MODE && object instanceof Ant && object.debugColor) {
+      if (this.antTintCanvas.width !== frame.cutWidth || this.antTintCanvas.height !== frame.cutHeight) {
+        this.antTintCanvas.width = frame.cutWidth;
+        this.antTintCanvas.height = frame.cutHeight;
+      }
+      this.antTintContext.clearRect(0, 0, frame.cutWidth, frame.cutHeight);
+      this.antTintContext.drawImage(
+        image,
+        frame.cutX,
+        frame.cutY,
+        frame.cutWidth,
+        frame.cutHeight,
+        0,
+        0,
+        frame.cutWidth,
+        frame.cutHeight
+      );
+      this.antTintContext.globalCompositeOperation = "source-atop";
+      this.antTintContext.fillStyle = object.debugColor;
+      this.antTintContext.fillRect(0, 0, frame.cutWidth, frame.cutHeight);
+      this.antTintContext.globalCompositeOperation = "source-over";
+      context.drawImage(this.antTintCanvas, drawX, drawY, object.width, object.height);
+    } else {
+      context.drawImage(
+        image,
+        frame.cutX,
+        frame.cutY,
+        frame.cutWidth,
+        frame.cutHeight,
+        drawX,
+        drawY,
+        object.width,
+        object.height
+      );
+    }
     context.restore();
   }
 

@@ -91,7 +91,6 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
   const bounds = await canvas.boundingBox();
   await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height * 0.75);
   await expect(tiltedBoard).toBeVisible();
-  await expect(tiltedBoard).toBeVisible();
   await expect(stationaryHud).toBeVisible();
   expect(await page.locator("#game").locator("#tilting-board-layer").count()).toBe(1);
   expect(await page.locator("#game").locator("#stationary-hud").count()).toBe(1);
@@ -101,6 +100,31 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
       return pixels.some((value, index) => index % 4 === 3 && value > 0);
     }))
     .toBe(true);
+  const renderedDebugColors = await tiltedBoard.evaluate((element) => {
+    const context = element.getContext("2d");
+    const pixels = context.getImageData(0, 0, element.width, element.height).data;
+    const palette = [
+      [255, 65, 54],
+      [0, 116, 217],
+      [46, 204, 64],
+      [255, 133, 27],
+      [177, 13, 201],
+      [57, 204, 204],
+      [240, 18, 190],
+      [255, 220, 0]
+    ];
+
+    return palette.map(([red, green, blue]) => {
+      let count = 0;
+      for (let index = 0; index < pixels.length; index += 4) {
+        if (pixels[index] === red && pixels[index + 1] === green && pixels[index + 2] === blue) {
+          count++;
+        }
+      }
+      return count;
+    }).filter((count) => count > 0).length;
+  });
+  expect(renderedDebugColors).toBeGreaterThanOrEqual(2);
   await expect
     .poll(() => stationaryHud.evaluate((element) => {
       const pixels = element.getContext("2d").getImageData(0, 0, element.width, element.height).data;

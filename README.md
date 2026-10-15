@@ -28,6 +28,8 @@ npm run dev
 
 Vite opens `dev.html` for development. The root `index.html` remains the production entry point for GitHub Pages.
 
+To toggle the ant debug colors, change `DEBUG_MODE` in `const/const.ts` and rebuild the production bundle.
+
 ## Run the checks and browser tests
 
 Install Playwright's Chromium browser once. Then run the TypeScript check, gameplay-rule unit tests, and production/development browser tests:

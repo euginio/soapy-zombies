@@ -12,6 +12,7 @@ import { MySprite } from "./mySprite";
 export class Ant extends MySprite {
     
     ANT_SPEED: number = 55;
+    debugColor: string | null = null;
     gravityFactor = 10;
     myFood: Food;
     isAlive: boolean;
