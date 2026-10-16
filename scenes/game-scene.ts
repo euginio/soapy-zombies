@@ -30,10 +30,12 @@ export class GameScene extends MyScene {
   private deviceOrientationHandler: (event: DeviceOrientationEvent) => void;
   private deviceMotionHandler: (event: DeviceMotionEvent) => void;
   private sensorDiagnostics: HTMLPreElement | null = null;
+  private sensorRecenterButton: HTMLButtonElement | null = null;
   private orientationEventCount = 0;
   private motionEventCount = 0;
   private lastOrientation = "waiting";
   private lastMotion = "waiting";
+  private latestOrientation: { beta: number; gamma: number } | null = null;
   private sensorBaseline: { beta: number; gamma: number } | null = null;
   private deviceTilt: { x: number; y: number } | null = null;
   ants: Phaser.GameObjects.Group;
@@ -126,6 +128,7 @@ export class GameScene extends MyScene {
     this.motionEventCount = 0;
     this.lastOrientation = "waiting";
     this.lastMotion = "waiting";
+    this.latestOrientation = null;
     if (new URLSearchParams(window.location.search).has("sensorDebug")) {
       this.sensorDiagnostics = document.createElement("pre");
       Object.assign(this.sensorDiagnostics.style, {
@@ -144,6 +147,32 @@ export class GameScene extends MyScene {
       this.visualLayerParent.appendChild(this.sensorDiagnostics);
       this.updateSensorDiagnostics();
     }
+    this.sensorRecenterButton = document.createElement("button");
+    this.sensorRecenterButton.id = "recenter-device-tilt";
+    this.sensorRecenterButton.type = "button";
+    this.sensorRecenterButton.textContent = "Re-center";
+    this.sensorRecenterButton.setAttribute("aria-label", "Re-center tray tilt");
+    Object.assign(this.sensorRecenterButton.style, {
+      position: "absolute",
+      top: "8px",
+      right: "8px",
+      zIndex: "10001",
+      display: "none",
+      padding: "7px 10px",
+      border: "0",
+      borderRadius: "4px",
+      color: "#201",
+      background: "rgba(255, 255, 255, 0.9)",
+      font: "bold 14px sans-serif",
+      cursor: "pointer",
+      pointerEvents: "auto"
+    });
+    this.sensorRecenterButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.recenterDeviceTilt();
+    });
+    this.visualLayerParent.appendChild(this.sensorRecenterButton);
 
     let divider = 4
     let antFrames = [...Array(Math.floor(62/divider)).keys()].map(e=>e*divider)//using just 20 frames
@@ -215,6 +244,8 @@ export class GameScene extends MyScene {
         this.updateSensorDiagnostics();
         return;
       }
+      this.latestOrientation = { beta: event.beta, gamma: event.gamma };
+      this.sensorRecenterButton.style.display = "block";
       if (!this.sensorBaseline) {
         this.sensorBaseline = { beta: event.beta, gamma: event.gamma };
         this.deviceTilt = { x: 0, y: 0 };
@@ -323,6 +354,18 @@ export class GameScene extends MyScene {
     ].join("\n");
   }
 
+  private recenterDeviceTilt() {
+    if (!this.latestOrientation) {
+      return;
+    }
+
+    this.sensorBaseline = { ...this.latestOrientation };
+    this.deviceTilt = { x: 0, y: 0 };
+    this.gravity.x = 0;
+    this.gravity.y = 0;
+    this.updateSensorDiagnostics();
+  }
+
   private createVisualLayers(gameCanvas: HTMLCanvasElement) {
     this.visualLayerParent = gameCanvas.parentElement || document.body;
     this.setVisualLayerParent(this.visualLayerParent);
@@ -386,6 +429,16 @@ export class GameScene extends MyScene {
         top: `${bounds.top - parentBounds.top + this.visualLayerParent.scrollTop + 8}px`
       });
     }
+    if (this.sensorRecenterButton) {
+      this.sensorRecenterButton.style.left = `${
+        bounds.left - parentBounds.left + this.visualLayerParent.scrollLeft +
+        bounds.width - this.sensorRecenterButton.offsetWidth - 8
+      }px`;
+      this.sensorRecenterButton.style.top = `${
+        bounds.top - parentBounds.top + this.visualLayerParent.scrollTop + 8
+      }px`;
+      this.sensorRecenterButton.style.right = "auto";
+    }
   }
 
   private setVisualLayerParent(parent: HTMLElement) {
@@ -397,7 +450,12 @@ export class GameScene extends MyScene {
     }
     this.visualLayerParent = parent;
 
-    for (const layer of [this.boardLayer, this.hudCanvas, this.sensorDiagnostics]) {
+    for (const layer of [
+      this.boardLayer,
+      this.hudCanvas,
+      this.sensorDiagnostics,
+      this.sensorRecenterButton
+    ]) {
       if (layer && layer.parentElement !== parent) {
         parent.appendChild(layer);
       }
@@ -503,6 +561,8 @@ export class GameScene extends MyScene {
   private destroyVisualLayers() {
     this.boardLayer?.remove();
     this.hudCanvas?.remove();
+    this.sensorRecenterButton?.remove();
+    this.sensorRecenterButton = null;
     for (const [parent, originalPosition] of this.visualLayerParentPositions) {
       parent.style.position = originalPosition;
     }

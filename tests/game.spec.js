@@ -230,6 +230,23 @@ test("mobile device orientation visibly tilts the board", async ({ browser }) =>
       x: window.__gameSceneForTest.gravity.x,
       y: window.__gameSceneForTest.gravity.y
     }))).toEqual({ x: 30, y: 0 });
+    const recenterButton = page.locator("#recenter-device-tilt");
+    await expect(recenterButton).toBeVisible();
+    await recenterButton.click();
+    await expect.poll(() => page.evaluate(() => ({
+      x: window.__gameSceneForTest.gravity.x,
+      y: window.__gameSceneForTest.gravity.y
+    }))).toEqual({ x: 0, y: 0 });
+    await page.evaluate(() => {
+      window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", {
+        beta: 0,
+        gamma: 45
+      }));
+    });
+    await expect.poll(() => page.evaluate(() => ({
+      x: window.__gameSceneForTest.gravity.x,
+      y: window.__gameSceneForTest.gravity.y
+    }))).toEqual({ x: 15, y: 0 });
     await expect(page.locator("pre")).toContainText(/Orientation events: [1-9]\d*/);
     await expect(page.locator("pre")).toContainText(/Motion events: [1-9]\d*/);
     await page.evaluate(() => {
@@ -246,9 +263,10 @@ test("mobile device orientation visibly tilts the board", async ({ browser }) =>
       return [
         document.querySelector("#tilting-board-layer").parentElement === fullscreenTarget,
         document.querySelector("#stationary-hud").parentElement === fullscreenTarget,
-        document.querySelector("pre").parentElement === fullscreenTarget
+        document.querySelector("pre").parentElement === fullscreenTarget,
+        document.querySelector("#recenter-device-tilt").parentElement === fullscreenTarget
       ];
-    })).toEqual([true, true, true]);
+    })).toEqual([true, true, true, true]);
     await page.evaluate(() => {
       window.__originalCanvasParentForFullscreenTest.appendChild(window.__gameCanvasForFullscreenTest);
       delete window.__gameCanvasForFullscreenTest;
@@ -260,9 +278,10 @@ test("mobile device orientation visibly tilts the board", async ({ browser }) =>
       return [
         document.querySelector("#tilting-board-layer").parentElement === canvasParent,
         document.querySelector("#stationary-hud").parentElement === canvasParent,
-        document.querySelector("pre").parentElement === canvasParent
+        document.querySelector("pre").parentElement === canvasParent,
+        document.querySelector("#recenter-device-tilt").parentElement === canvasParent
       ];
-    })).toEqual([true, true, true]);
+    })).toEqual([true, true, true, true]);
     expect(pageErrors).toEqual([]);
   } finally {
     await context.close();

@@ -12,7 +12,7 @@ Defend the food from the ants! Ants come in from the edges of the tray and head 
 2. Tap the screen to start. The game attempts to switch to fullscreen and landscape orientation.
 3. Tilt the tray using the controls for your device. The tray, ants, and food lean in the same direction while the background and score stay fixed:
    - **Computer:** use the arrow keys to tilt it in that direction.
-   - **Phone or tablet:** tilt your device. Motion sensors must be available to the browser; serve the game over HTTPS (localhost is also allowed).
+   - **Phone or tablet:** tilt your device. Motion sensors must be available to the browser; serve the game over HTTPS (localhost is also allowed). Tap **Re-center** while holding the device at the angle you want to treat as level.
    - To inspect mobile sensor readings, add `?sensorDebug=1` to the game URL. The readout follows the game into fullscreen.
 4. Keep the ants away from the food and make them fall off the tray. Your score and high score are displayed; the high score is saved in your browser.
 
