@@ -203,7 +203,7 @@ test("mobile device orientation visibly tilts the board", async ({ browser }) =>
         };
       }, { once: true });
     });
-    await page.goto("/");
+    await page.goto("/?sensorDebug=1");
     const gameCanvas = page.locator("#game canvas").first();
     await expect(gameCanvas).toBeVisible();
     const bounds = await gameCanvas.boundingBox();
@@ -230,6 +230,8 @@ test("mobile device orientation visibly tilts the board", async ({ browser }) =>
       x: window.__gameSceneForTest.gravity.x,
       y: window.__gameSceneForTest.gravity.y
     }))).toEqual({ x: 30, y: 0 });
+    await expect(page.locator("pre")).toContainText(/Orientation events: [1-9]\d*/);
+    await expect(page.locator("pre")).toContainText(/Motion events: [1-9]\d*/);
     expect(pageErrors).toEqual([]);
   } finally {
     await context.close();

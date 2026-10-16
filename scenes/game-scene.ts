@@ -29,6 +29,11 @@ export class GameScene extends MyScene {
   private originalParentPosition: string;
   private deviceOrientationHandler: (event: DeviceOrientationEvent) => void;
   private deviceMotionHandler: (event: DeviceMotionEvent) => void;
+  private sensorDiagnostics: HTMLPreElement | null = null;
+  private orientationEventCount = 0;
+  private motionEventCount = 0;
+  private lastOrientation = "waiting";
+  private lastMotion = "waiting";
   private sensorBaseline: { beta: number; gamma: number } | null = null;
   private deviceTilt: { x: number; y: number } | null = null;
   ants: Phaser.GameObjects.Group;
@@ -117,6 +122,28 @@ export class GameScene extends MyScene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.removeMotionListeners, this);
     this.sensorBaseline = null;
     this.deviceTilt = null;
+    this.orientationEventCount = 0;
+    this.motionEventCount = 0;
+    this.lastOrientation = "waiting";
+    this.lastMotion = "waiting";
+    if (new URLSearchParams(window.location.search).has("sensorDebug")) {
+      this.sensorDiagnostics = document.createElement("pre");
+      Object.assign(this.sensorDiagnostics.style, {
+        position: "fixed",
+        top: "8px",
+        left: "8px",
+        zIndex: "10000",
+        margin: "0",
+        padding: "8px",
+        color: "#fff",
+        background: "rgba(0, 0, 0, 0.85)",
+        font: "12px/1.4 monospace",
+        whiteSpace: "pre-wrap",
+        pointerEvents: "none"
+      });
+      document.body.appendChild(this.sensorDiagnostics);
+      this.updateSensorDiagnostics();
+    }
 
     let divider = 4
     let antFrames = [...Array(Math.floor(62/divider)).keys()].map(e=>e*divider)//using just 20 frames
@@ -165,10 +192,15 @@ export class GameScene extends MyScene {
     // this.physics.add.overlap(this.ants, this.tray, this.antOut, null, this);
     // this.ants.children.iterate((z:Ant)=>z.init())
     this.deviceMotionHandler = (event: DeviceMotionEvent) => {
+      this.motionEventCount++;
+      const acceleration = event.accelerationIncludingGravity;
+      this.lastMotion = acceleration
+        ? `x=${acceleration.x}, y=${acceleration.y}, z=${acceleration.z}`
+        : "event received, no acceleration data";
+      this.updateSensorDiagnostics();
       if (this.deviceTilt) {
         return;
       }
-      const acceleration = event.accelerationIncludingGravity;
       if (!acceleration) {
         return;
       }
@@ -177,7 +209,10 @@ export class GameScene extends MyScene {
       this.gravity.z = acceleration.z;
     };
     this.deviceOrientationHandler = (event: DeviceOrientationEvent) => {
+      this.orientationEventCount++;
+      this.lastOrientation = `alpha=${event.alpha}, beta=${event.beta}, gamma=${event.gamma}`;
       if (event.beta === null || event.gamma === null) {
+        this.updateSensorDiagnostics();
         return;
       }
       if (!this.sensorBaseline) {
@@ -185,6 +220,7 @@ export class GameScene extends MyScene {
         this.deviceTilt = { x: 0, y: 0 };
         this.gravity.x = 0;
         this.gravity.y = 0;
+        this.updateSensorDiagnostics();
         return;
       }
 
@@ -198,6 +234,7 @@ export class GameScene extends MyScene {
       );
       this.gravity.x = this.deviceTilt.x * this.gravityNum.x;
       this.gravity.y = this.deviceTilt.y * this.gravityNum.y;
+      this.updateSensorDiagnostics();
     };
     window.addEventListener("devicemotion", this.deviceMotionHandler);
     window.addEventListener("deviceorientation", this.deviceOrientationHandler);
@@ -267,6 +304,23 @@ export class GameScene extends MyScene {
 
   private applyVisualTilt(tiltX: number, tiltY: number) {
     this.boardCanvas.style.transform = `rotateX(${-tiltY}deg) rotateY(${tiltX}deg)`;
+  }
+
+  private updateSensorDiagnostics() {
+    if (!this.sensorDiagnostics) {
+      return;
+    }
+
+    const screenAngle = screen.orientation?.angle ?? 0;
+    this.sensorDiagnostics.textContent = [
+      `Orientation events: ${this.orientationEventCount}`,
+      this.lastOrientation,
+      `Motion events: ${this.motionEventCount}`,
+      this.lastMotion,
+      `Screen angle: ${screenAngle}`,
+      `Tilt: x=${this.deviceTilt?.x ?? "n/a"}, y=${this.deviceTilt?.y ?? "n/a"}`,
+      `Gravity: x=${this.gravity.x}, y=${this.gravity.y}`
+    ].join("\n");
   }
 
   private createVisualLayers(gameCanvas: HTMLCanvasElement) {
@@ -443,6 +497,8 @@ export class GameScene extends MyScene {
       window.removeEventListener("deviceorientation", this.deviceOrientationHandler);
       this.deviceOrientationHandler = null;
     }
+    this.sensorDiagnostics?.remove();
+    this.sensorDiagnostics = null;
   }
 
   checkCursors() {
