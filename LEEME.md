@@ -12,7 +12,7 @@ English: [README.md](README.md)
 2. Tocá la pantalla para comenzar. El juego intenta pasar a pantalla completa y jugar en horizontal.
 3. Mové la bandeja según el dispositivo. La bandeja, las hormigas y la comida se inclinan en esa dirección; el fondo y el puntaje quedan fijos:
    - **Computadora:** usá las flechas del teclado para inclinarla en esa dirección.
-   - **Celular o tableta:** incliná el dispositivo.
+   - **Celular o tableta:** incliná el dispositivo. El navegador debe tener acceso a los sensores; serví el juego por HTTPS (localhost también está permitido).
 4. Evitá que las hormigas lleguen a la comida y hacelas caer de la bandeja. Tu puntaje y el récord se muestran en pantalla; el récord queda guardado en el navegador.
 
 El juego requiere un navegador compatible con Chrome. **No es compatible con iPhone.**

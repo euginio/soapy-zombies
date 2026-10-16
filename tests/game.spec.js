@@ -176,6 +176,51 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
   }
 });
 
+test("mobile device orientation visibly tilts the board", async ({ browser }) => {
+  const context = await browser.newContext({
+    isMobile: true,
+    hasTouch: true,
+    viewport: { width: 390, height: 844 },
+    userAgent:
+      "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Mobile Safari/537.36"
+  });
+
+  try {
+    const page = await context.newPage();
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+    await page.addInitScript(() => {
+      Element.prototype.requestFullscreen = () => Promise.resolve();
+    });
+    await page.goto("/");
+    const gameCanvas = page.locator("#game canvas").first();
+    await expect(gameCanvas).toBeVisible();
+    const bounds = await gameCanvas.boundingBox();
+    await page.touchscreen.tap(bounds.x + bounds.width / 2, bounds.y + bounds.height * 0.75);
+
+    const tiltedBoard = page.locator("#tilting-board");
+    await expect(tiltedBoard).toBeVisible();
+    await page.evaluate(() => {
+      window.dispatchEvent(new DeviceMotionEvent("devicemotion", {}));
+      window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", {
+        beta: 0,
+        gamma: 0
+      }));
+      window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", {
+        beta: 0,
+        gamma: 30
+      }));
+    });
+
+    await expect
+      .poll(() => tiltedBoard.evaluate((element) => element.style.transform))
+      .toBe("rotateX(0deg) rotateY(10deg)");
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
 test("game over saves a new high score and restarts the round", async ({ page }) => {
   const pageErrors = [];
   await page.addInitScript(() => {

@@ -6,7 +6,12 @@
  */
 
 import { ANT_DEBUG_COLORS, DEBUG_MODE } from "../const/const";
-import { isNewHighScore, resolveAntEscape, resolveFoodLoss } from "../game-rules";
+import {
+  calculateDeviceTilt,
+  isNewHighScore,
+  resolveAntEscape,
+  resolveFoodLoss
+} from "../game-rules";
 import { Ant } from "../objects/ant";
 import { Food } from "../objects/food";
 import { MyScene } from "./my-scene";
@@ -22,6 +27,10 @@ export class GameScene extends MyScene {
   private hudContext: CanvasRenderingContext2D;
   private visualLayerParent: HTMLElement;
   private originalParentPosition: string;
+  private deviceOrientationHandler: (event: DeviceOrientationEvent) => void;
+  private deviceMotionHandler: (event: DeviceMotionEvent) => void;
+  private sensorBaseline: { beta: number; gamma: number } | null = null;
+  private deviceTilt: { x: number; y: number } | null = null;
   ants: Phaser.GameObjects.Group;
   foods: Phaser.GameObjects.Group;
   gameOver: any;
@@ -29,7 +38,7 @@ export class GameScene extends MyScene {
   scoreText: Phaser.GameObjects.Text;
   highScoreText: Phaser.GameObjects.Text;
   score = 0;
-  gravity: any = {};
+  gravity: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
   
   foodCount: number;
   initialAnts: number = 4
@@ -100,13 +109,14 @@ export class GameScene extends MyScene {
   }
 
   create(): void {
-    let self = this;
-
     this.foodCount = this.initialFood;
     const canvas = this.game.canvas;
     this.createVisualLayers(canvas);
     this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.renderVisualLayers, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroyVisualLayers, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.removeMotionListeners, this);
+    this.sensorBaseline = null;
+    this.deviceTilt = null;
 
     let divider = 4
     let antFrames = [...Array(Math.floor(62/divider)).keys()].map(e=>e*divider)//using just 20 frames
@@ -155,11 +165,35 @@ export class GameScene extends MyScene {
     // this.physics.add.overlap(this.ants, this.tray, this.antOut, null, this);
     // this.ants.children.iterate((z:Ant)=>z.init())
     if (!this.sys.game.device.os.desktop) {
-      window.addEventListener("devicemotion", function (event: DeviceMotionEvent) {
-        self.gravity.y = event.accelerationIncludingGravity.x * self.accelerometerFactor;
-        self.gravity.x = event.accelerationIncludingGravity.y * self.accelerometerFactor;
-        self.gravity.z = event.accelerationIncludingGravity.z;
-      }, false);
+      this.deviceMotionHandler = (event: DeviceMotionEvent) => {
+        const acceleration = event.accelerationIncludingGravity;
+        if (!acceleration) {
+          return;
+        }
+        this.gravity.y = acceleration.x * this.accelerometerFactor;
+        this.gravity.x = acceleration.y * this.accelerometerFactor;
+        this.gravity.z = acceleration.z;
+      };
+      this.deviceOrientationHandler = (event: DeviceOrientationEvent) => {
+        if (event.beta === null || event.gamma === null) {
+          return;
+        }
+        if (!this.sensorBaseline) {
+          this.sensorBaseline = { beta: event.beta, gamma: event.gamma };
+          return;
+        }
+
+        const screenAngle = screen.orientation?.angle ?? 0;
+        this.deviceTilt = calculateDeviceTilt(
+          event.beta,
+          event.gamma,
+          this.sensorBaseline.beta,
+          this.sensorBaseline.gamma,
+          screenAngle
+        );
+      };
+      window.addEventListener("devicemotion", this.deviceMotionHandler);
+      window.addEventListener("deviceorientation", this.deviceOrientationHandler);
     }
   }
 
@@ -205,8 +239,15 @@ export class GameScene extends MyScene {
 
     if (this.sys.game.device.os.desktop) {
       this.checkCursors();
+      this.applyBoardTilt(this.gravity.x, this.gravity.y);
+    } else if (this.deviceTilt) {
+      this.applyVisualTilt(
+        this.deviceTilt.x * GameScene.maxVisualTilt,
+        this.deviceTilt.y * GameScene.maxVisualTilt
+      );
+    } else {
+      this.applyBoardTilt(this.gravity.x, this.gravity.y);
     }
-    this.applyBoardTilt(this.gravity.x, this.gravity.y);
   }
 
   private applyBoardTilt(gravityX: number, gravityY: number) {
@@ -215,6 +256,10 @@ export class GameScene extends MyScene {
     const tiltY = Phaser.Math.Clamp(gravityY / this.gravityNum.y, -1, 1)
       * GameScene.maxVisualTilt;
 
+    this.applyVisualTilt(tiltX, tiltY);
+  }
+
+  private applyVisualTilt(tiltX: number, tiltY: number) {
     this.boardCanvas.style.transform = `rotateX(${-tiltY}deg) rotateY(${tiltX}deg)`;
   }
 
@@ -380,6 +425,17 @@ export class GameScene extends MyScene {
     this.hudCanvas?.remove();
     if (this.originalParentPosition !== undefined) {
       this.visualLayerParent.style.position = this.originalParentPosition;
+    }
+  }
+
+  private removeMotionListeners() {
+    if (this.deviceMotionHandler) {
+      window.removeEventListener("devicemotion", this.deviceMotionHandler);
+      this.deviceMotionHandler = null;
+    }
+    if (this.deviceOrientationHandler) {
+      window.removeEventListener("deviceorientation", this.deviceOrientationHandler);
+      this.deviceOrientationHandler = null;
     }
   }
 

@@ -50,3 +50,28 @@ export function calculateAntVelocity(
     y: directionY + gravityY * gravityFactor
   };
 }
+
+export interface DeviceTilt {
+  x: number;
+  y: number;
+}
+
+export function calculateDeviceTilt(
+  beta: number,
+  gamma: number,
+  baselineBeta: number,
+  baselineGamma: number,
+  screenAngle: number,
+  maxSensorAngle = 30
+): DeviceTilt {
+  const angle = screenAngle * Math.PI / 180;
+  const deltaBeta = beta - baselineBeta;
+  const deltaGamma = gamma - baselineGamma;
+  const screenX = deltaGamma * Math.cos(angle) + deltaBeta * Math.sin(angle);
+  const screenY = deltaBeta * Math.cos(angle) - deltaGamma * Math.sin(angle);
+
+  return {
+    x: Math.max(-1, Math.min(1, screenX / maxSensorAngle)),
+    y: Math.max(-1, Math.min(1, screenY / maxSensorAngle))
+  };
+}

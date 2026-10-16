@@ -2,10 +2,33 @@ import assert = require("node:assert/strict");
 import { describe, it } from "node:test";
 import {
   calculateAntVelocity,
+  calculateDeviceTilt,
   isNewHighScore,
   resolveAntEscape,
   resolveFoodLoss
 } from "../game-rules";
+
+describe("mobile device tilt", () => {
+  it("maps portrait orientation changes to horizontal and vertical tilt", () => {
+    assert.deepEqual(calculateDeviceTilt(15, -15, 0, 0, 0), {
+      x: -0.5,
+      y: 0.5
+    });
+  });
+
+  it("maps sensor axes to screen axes in landscape orientation", () => {
+    const tilt = calculateDeviceTilt(30, 0, 0, 0, 90);
+    assert.ok(Math.abs(tilt.x - 1) < 1e-10);
+    assert.ok(Math.abs(tilt.y) < 1e-10);
+  });
+
+  it("clamps extreme device angles to the supported tilt range", () => {
+    assert.deepEqual(calculateDeviceTilt(90, -90, 0, 0, 0), {
+      x: -1,
+      y: 1
+    });
+  });
+});
 
 describe("ant steering", () => {
   it("moves toward food with the configured speed", () => {
