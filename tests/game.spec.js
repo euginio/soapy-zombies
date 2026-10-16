@@ -175,3 +175,72 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
     await page.keyboard.up("ArrowUp");
   }
 });
+
+test("game over saves a new high score and restarts the round", async ({ page }) => {
+  const pageErrors = [];
+  await page.addInitScript(() => {
+    Element.prototype.requestFullscreen = () => Promise.resolve();
+    localStorage.clear();
+    localStorage.setItem("highScore", "2");
+
+    window.addEventListener("load", () => {
+      const sceneManager = window.Phaser.Scenes.SceneManager.prototype;
+      const startScene = sceneManager.start;
+      sceneManager.start = function (key, ...args) {
+        const result = startScene.call(this, key, ...args);
+        if (key === "GameScene") {
+          window.__gameSceneForTest = this.getScene(key);
+        }
+        return result;
+      };
+    }, { once: true });
+  });
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+
+  await page.goto("/");
+  const canvas = page.locator("#game canvas").first();
+  await expect(canvas).toBeVisible();
+  const bounds = await canvas.boundingBox();
+  await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height * 0.75);
+  await expect(page.locator("#tilting-board")).toBeVisible();
+
+  await expect.poll(() => page.evaluate(() => Boolean(window.__gameSceneForTest))).toBe(true);
+  await page.evaluate(() => {
+    const gameScene = window.__gameSceneForTest;
+    gameScene.score = 5;
+    gameScene.scoreText.setText("5");
+    gameScene.foods.getChildren().slice().forEach((food) => food.destroy());
+  });
+
+  await expect.poll(() => page.evaluate(() => ({
+    gameOver: window.__gameSceneForTest.gameOver,
+    foodCount: window.__gameSceneForTest.foodCount,
+    highScore: localStorage.getItem("highScore")
+  }))).toEqual({
+    gameOver: true,
+    foodCount: 0,
+    highScore: "5"
+  });
+
+  await expect.poll(() => page.evaluate(() => {
+    const gameScene = window.__gameSceneForTest;
+    const availableFood = gameScene.foods.getChildren()
+      .filter((food) => food.body.enable).length;
+    return {
+      gameOver: gameScene.gameOver,
+      score: gameScene.score,
+      foodCount: gameScene.foodCount,
+      availableFood,
+      highScoreText: gameScene.highScoreText.text,
+      highScore: localStorage.getItem("highScore")
+    };
+  }), { timeout: 8_000 }).toEqual({
+    gameOver: false,
+    score: 0,
+    foodCount: 8,
+    availableFood: 8,
+    highScoreText: "HI 5",
+    highScore: "5"
+  });
+  expect(pageErrors).toEqual([]);
+});
