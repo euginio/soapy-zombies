@@ -26,7 +26,7 @@ export class GameScene extends MyScene {
   private hudCanvas: HTMLCanvasElement;
   private hudContext: CanvasRenderingContext2D;
   private visualLayerParent: HTMLElement;
-  private originalParentPosition: string;
+  private readonly visualLayerParentPositions = new Map<HTMLElement, string>();
   private deviceOrientationHandler: (event: DeviceOrientationEvent) => void;
   private deviceMotionHandler: (event: DeviceMotionEvent) => void;
   private sensorDiagnostics: HTMLPreElement | null = null;
@@ -129,7 +129,7 @@ export class GameScene extends MyScene {
     if (new URLSearchParams(window.location.search).has("sensorDebug")) {
       this.sensorDiagnostics = document.createElement("pre");
       Object.assign(this.sensorDiagnostics.style, {
-        position: "fixed",
+        position: "absolute",
         top: "8px",
         left: "8px",
         zIndex: "10000",
@@ -141,7 +141,7 @@ export class GameScene extends MyScene {
         whiteSpace: "pre-wrap",
         pointerEvents: "none"
       });
-      document.body.appendChild(this.sensorDiagnostics);
+      this.visualLayerParent.appendChild(this.sensorDiagnostics);
       this.updateSensorDiagnostics();
     }
 
@@ -325,10 +325,7 @@ export class GameScene extends MyScene {
 
   private createVisualLayers(gameCanvas: HTMLCanvasElement) {
     this.visualLayerParent = gameCanvas.parentElement || document.body;
-    this.originalParentPosition = this.visualLayerParent.style.position;
-    if (getComputedStyle(this.visualLayerParent).position === "static") {
-      this.visualLayerParent.style.position = "relative";
-    }
+    this.setVisualLayerParent(this.visualLayerParent);
 
     this.boardLayer = document.createElement("div");
     this.boardLayer.id = "tilting-board-layer";
@@ -372,6 +369,7 @@ export class GameScene extends MyScene {
   }
 
   private syncVisualLayerBounds(gameCanvas: HTMLCanvasElement) {
+    this.setVisualLayerParent(gameCanvas.parentElement || document.body);
     const bounds = gameCanvas.getBoundingClientRect();
     const parentBounds = this.visualLayerParent.getBoundingClientRect();
     for (const layer of [this.boardLayer, this.hudCanvas]) {
@@ -381,6 +379,28 @@ export class GameScene extends MyScene {
         width: `${bounds.width}px`,
         height: `${bounds.height}px`
       });
+    }
+    if (this.sensorDiagnostics) {
+      Object.assign(this.sensorDiagnostics.style, {
+        left: `${bounds.left - parentBounds.left + this.visualLayerParent.scrollLeft + 8}px`,
+        top: `${bounds.top - parentBounds.top + this.visualLayerParent.scrollTop + 8}px`
+      });
+    }
+  }
+
+  private setVisualLayerParent(parent: HTMLElement) {
+    if (!this.visualLayerParentPositions.has(parent)) {
+      this.visualLayerParentPositions.set(parent, parent.style.position);
+    }
+    if (getComputedStyle(parent).position === "static") {
+      parent.style.position = "relative";
+    }
+    this.visualLayerParent = parent;
+
+    for (const layer of [this.boardLayer, this.hudCanvas, this.sensorDiagnostics]) {
+      if (layer && layer.parentElement !== parent) {
+        parent.appendChild(layer);
+      }
     }
   }
 
@@ -483,9 +503,10 @@ export class GameScene extends MyScene {
   private destroyVisualLayers() {
     this.boardLayer?.remove();
     this.hudCanvas?.remove();
-    if (this.originalParentPosition !== undefined) {
-      this.visualLayerParent.style.position = this.originalParentPosition;
+    for (const [parent, originalPosition] of this.visualLayerParentPositions) {
+      parent.style.position = originalPosition;
     }
+    this.visualLayerParentPositions.clear();
   }
 
   private removeMotionListeners() {

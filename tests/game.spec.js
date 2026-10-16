@@ -232,6 +232,37 @@ test("mobile device orientation visibly tilts the board", async ({ browser }) =>
     }))).toEqual({ x: 30, y: 0 });
     await expect(page.locator("pre")).toContainText(/Orientation events: [1-9]\d*/);
     await expect(page.locator("pre")).toContainText(/Motion events: [1-9]\d*/);
+    await page.evaluate(() => {
+      const target = document.createElement("div");
+      target.id = "simulated-fullscreen-target";
+      target.style.cssText = "position:relative;width:580px;height:300px";
+      document.body.appendChild(target);
+      window.__gameCanvasForFullscreenTest = document.querySelector("#game canvas");
+      window.__originalCanvasParentForFullscreenTest = window.__gameCanvasForFullscreenTest.parentElement;
+      target.appendChild(window.__gameCanvasForFullscreenTest);
+    });
+    await expect.poll(() => page.evaluate(() => {
+      const fullscreenTarget = document.querySelector("#simulated-fullscreen-target");
+      return [
+        document.querySelector("#tilting-board-layer").parentElement === fullscreenTarget,
+        document.querySelector("#stationary-hud").parentElement === fullscreenTarget,
+        document.querySelector("pre").parentElement === fullscreenTarget
+      ];
+    })).toEqual([true, true, true]);
+    await page.evaluate(() => {
+      window.__originalCanvasParentForFullscreenTest.appendChild(window.__gameCanvasForFullscreenTest);
+      delete window.__gameCanvasForFullscreenTest;
+      delete window.__originalCanvasParentForFullscreenTest;
+      document.querySelector("#simulated-fullscreen-target").remove();
+    });
+    await expect.poll(() => page.evaluate(() => {
+      const canvasParent = document.querySelector("#game canvas").parentElement;
+      return [
+        document.querySelector("#tilting-board-layer").parentElement === canvasParent,
+        document.querySelector("#stationary-hud").parentElement === canvasParent,
+        document.querySelector("pre").parentElement === canvasParent
+      ];
+    })).toEqual([true, true, true]);
     expect(pageErrors).toEqual([]);
   } finally {
     await context.close();
