@@ -164,37 +164,43 @@ export class GameScene extends MyScene {
     this.physics.add.collider(this.ants, this.ants, null, null, this);
     // this.physics.add.overlap(this.ants, this.tray, this.antOut, null, this);
     // this.ants.children.iterate((z:Ant)=>z.init())
-    if (!this.sys.game.device.os.desktop) {
-      this.deviceMotionHandler = (event: DeviceMotionEvent) => {
-        const acceleration = event.accelerationIncludingGravity;
-        if (!acceleration) {
-          return;
-        }
-        this.gravity.y = acceleration.x * this.accelerometerFactor;
-        this.gravity.x = acceleration.y * this.accelerometerFactor;
-        this.gravity.z = acceleration.z;
-      };
-      this.deviceOrientationHandler = (event: DeviceOrientationEvent) => {
-        if (event.beta === null || event.gamma === null) {
-          return;
-        }
-        if (!this.sensorBaseline) {
-          this.sensorBaseline = { beta: event.beta, gamma: event.gamma };
-          return;
-        }
+    this.deviceMotionHandler = (event: DeviceMotionEvent) => {
+      if (this.deviceTilt) {
+        return;
+      }
+      const acceleration = event.accelerationIncludingGravity;
+      if (!acceleration) {
+        return;
+      }
+      this.gravity.y = acceleration.x * this.accelerometerFactor;
+      this.gravity.x = acceleration.y * this.accelerometerFactor;
+      this.gravity.z = acceleration.z;
+    };
+    this.deviceOrientationHandler = (event: DeviceOrientationEvent) => {
+      if (event.beta === null || event.gamma === null) {
+        return;
+      }
+      if (!this.sensorBaseline) {
+        this.sensorBaseline = { beta: event.beta, gamma: event.gamma };
+        this.deviceTilt = { x: 0, y: 0 };
+        this.gravity.x = 0;
+        this.gravity.y = 0;
+        return;
+      }
 
-        const screenAngle = screen.orientation?.angle ?? 0;
-        this.deviceTilt = calculateDeviceTilt(
-          event.beta,
-          event.gamma,
-          this.sensorBaseline.beta,
-          this.sensorBaseline.gamma,
-          screenAngle
-        );
-      };
-      window.addEventListener("devicemotion", this.deviceMotionHandler);
-      window.addEventListener("deviceorientation", this.deviceOrientationHandler);
-    }
+      const screenAngle = screen.orientation?.angle ?? 0;
+      this.deviceTilt = calculateDeviceTilt(
+        event.beta,
+        event.gamma,
+        this.sensorBaseline.beta,
+        this.sensorBaseline.gamma,
+        screenAngle
+      );
+      this.gravity.x = this.deviceTilt.x * this.gravityNum.x;
+      this.gravity.y = this.deviceTilt.y * this.gravityNum.y;
+    };
+    window.addEventListener("devicemotion", this.deviceMotionHandler);
+    window.addEventListener("deviceorientation", this.deviceOrientationHandler);
   }
 
   repositionFood(food: Food, food2: Food) {
@@ -237,7 +243,7 @@ export class GameScene extends MyScene {
     // let ant:Ant = <Ant>this.ants.getChildren()[0];
     // this.scoreText.setText(`angulo: ${ant.body.angle},${ant.body.facing},${ant.angle}`);
 
-    if (this.sys.game.device.os.desktop) {
+    if (this.sys.game.device.os.desktop && !this.deviceTilt) {
       this.checkCursors();
       this.applyBoardTilt(this.gravity.x, this.gravity.y);
     } else if (this.deviceTilt) {

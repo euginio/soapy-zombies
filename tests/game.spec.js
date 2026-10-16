@@ -191,6 +191,17 @@ test("mobile device orientation visibly tilts the board", async ({ browser }) =>
     page.on("pageerror", (error) => pageErrors.push(error.message));
     await page.addInitScript(() => {
       Element.prototype.requestFullscreen = () => Promise.resolve();
+      window.addEventListener("load", () => {
+        const sceneManager = window.Phaser.Scenes.SceneManager.prototype;
+        const startScene = sceneManager.start;
+        sceneManager.start = function (key, ...args) {
+          const result = startScene.call(this, key, ...args);
+          if (key === "GameScene") {
+            window.__gameSceneForTest = this.getScene(key);
+          }
+          return result;
+        };
+      }, { once: true });
     });
     await page.goto("/");
     const gameCanvas = page.locator("#game canvas").first();
@@ -215,6 +226,10 @@ test("mobile device orientation visibly tilts the board", async ({ browser }) =>
     await expect
       .poll(() => tiltedBoard.evaluate((element) => element.style.transform))
       .toBe("rotateX(0deg) rotateY(10deg)");
+    await expect.poll(() => page.evaluate(() => ({
+      x: window.__gameSceneForTest.gravity.x,
+      y: window.__gameSceneForTest.gravity.y
+    }))).toEqual({ x: 30, y: 0 });
     expect(pageErrors).toEqual([]);
   } finally {
     await context.close();
