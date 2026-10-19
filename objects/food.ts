@@ -41,14 +41,20 @@ export class Food extends MySprite {
         this.setRandomPosition(trayB.left+margin, trayB.top+margin*2, trayB.right-trayB.left-margin*2, trayB.bottom-margin*4);
     }
 
-    destroy(animation?) {
-        if (this.body.enable) {
+    destroy(fromScene?: boolean) {
+        if (this.scene?.tweens) {
             this.scene.tweens.killTweensOf(this);
-            this.isBeingEaten = false;
-            this.scene.destroyFood(this)
-            // this.scene.time.delayedCall(1500, () => {
-            this.disableBody(false, true);
-            // })
+        }
+        this.isBeingEaten = false;
+
+        if (fromScene) {
+            super.destroy(fromScene);
+            return;
+        }
+
+        if (this.body && this.body.enable) {
+            this.scene.destroyFood(this);
+            this.disableBody(true, true);
         }
     }
     update() {

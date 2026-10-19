@@ -100,8 +100,8 @@ export class GameScene extends MyScene {
 
   restart() {
     this.scene.restart()
-    this.foods.children.iterate((child) => {
-      if (child instanceof Food) {
+    this.foods?.children?.iterate((child) => {
+      if (child instanceof Food && child.body) {
         child.body.setEnable(true)
       }
       return true

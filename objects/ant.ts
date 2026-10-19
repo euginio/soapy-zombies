@@ -165,7 +165,7 @@ export class Ant extends MySprite {
 
     pickNearestFood(): Food | null {
         const availableFood = this.scene.foods.getChildren()
-            .filter((food: Food) => food.body.enable) as Food[];
+            .filter((food: Food) => food.body && food.body.enable) as Food[];
         return pickNearestTarget(this.x, this.y, availableFood);
     }
 
