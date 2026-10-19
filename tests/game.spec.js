@@ -1,5 +1,18 @@
 const { expect, test } = require("@playwright/test");
 
+const REQUIRED_ASSETS = [
+  "/assets/images/grass.png",
+  "/assets/images/trayWithCompleteClothe.png",
+  "/assets/images/food.png",
+  "/assets/images/ant_sheet.png"
+];
+
+async function stubFullscreen(page) {
+  await page.addInitScript(() => {
+    Element.prototype.requestFullscreen = () => Promise.resolve();
+  });
+}
+
 async function stubFullscreenAndExposeScenes(page) {
   await page.addInitScript(() => {
     Element.prototype.requestFullscreen = () => Promise.resolve();
@@ -20,32 +33,52 @@ async function stubFullscreenAndExposeScenes(page) {
   });
 }
 
-async function clickStartOnCanvas(page) {
+async function clickStartOnCanvas(page, input = "mouse") {
   const canvas = page.locator("#game canvas").first();
   await expect(canvas).toBeVisible();
   const bounds = await canvas.boundingBox();
-  await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height * 0.75);
+  const x = bounds.x + bounds.width / 2;
+  const y = bounds.y + bounds.height * 0.75;
+  if (input === "touch") {
+    await page.touchscreen.tap(x, y);
+  } else {
+    await page.mouse.click(x, y);
+  }
   return canvas;
 }
 
-test("production build loads its assets and starts a game", async ({ page }) => {
+async function waitForGameScene(page) {
+  await expect.poll(() => page.evaluate(() => Boolean(window.__gameSceneForTest))).toBe(true);
+}
+
+async function readGameState(page) {
+  return page.evaluate(() => {
+    const gameScene = window.__gameSceneForTest;
+    return {
+      score: gameScene.score,
+      scoreText: gameScene.scoreText.text,
+      highScoreText: gameScene.highScoreText.text,
+      foodCount: gameScene.foodCount,
+      foodSprites: gameScene.foods.getChildren().length,
+      availableFood: gameScene.foods.getChildren().filter((food) => food.body.enable).length,
+      antSprites: gameScene.ants.getChildren().length,
+      gameOver: Boolean(gameScene.gameOver),
+      gravity: { x: gameScene.gravity.x, y: gameScene.gravity.y },
+      highScore: localStorage.getItem("highScore")
+    };
+  });
+}
+
+async function expectGameLoads(page, url) {
   const pageErrors = [];
   const failedResponses = [];
   const loadedAssets = new Set();
-  const requiredAssets = [
-    "/assets/images/grass.png",
-    "/assets/images/trayWithCompleteClothe.png",
-    "/assets/images/food.png",
-    "/assets/images/ant_sheet.png"
-  ];
 
-  await page.addInitScript(() => {
-    Element.prototype.requestFullscreen = () => Promise.resolve();
-  });
+  await stubFullscreen(page);
   page.on("pageerror", (error) => pageErrors.push(error.message));
   page.on("response", (response) => {
     const pathname = new URL(response.url()).pathname;
-    if (requiredAssets.includes(pathname) && response.ok()) {
+    if (REQUIRED_ASSETS.includes(pathname) && response.ok()) {
       loadedAssets.add(pathname);
     }
     if (response.status() >= 400) {
@@ -53,75 +86,34 @@ test("production build loads its assets and starts a game", async ({ page }) => 
     }
   });
 
-  await page.goto("/");
+  await page.goto(url);
   await expect(page).toHaveTitle("Ants Feast");
-  const canvas = page.locator("#game canvas").first();
-  await expect(canvas).toBeVisible();
-  await expect.poll(() => [...loadedAssets]).toHaveLength(requiredAssets.length);
-
-  const bounds = await canvas.boundingBox();
-  await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height * 0.75);
+  await clickStartOnCanvas(page);
   await expect(page.locator("#tilting-board")).toBeVisible();
-
+  await expect.poll(() => [...loadedAssets]).toHaveLength(REQUIRED_ASSETS.length);
   expect(pageErrors).toEqual([]);
   expect(failedResponses).toEqual([]);
+}
+
+test("production build loads its assets and starts a game", async ({ page }) => {
+  await expectGameLoads(page, "/");
 });
 
 test("Vite development server loads its assets and starts a game", async ({ page }) => {
-  const pageErrors = [];
-  const failedResponses = [];
-  const loadedAssets = new Set();
-  const requiredAssets = [
-    "/assets/images/grass.png",
-    "/assets/images/trayWithCompleteClothe.png",
-    "/assets/images/food.png",
-    "/assets/images/ant_sheet.png"
-  ];
-
-  await page.addInitScript(() => {
-    Element.prototype.requestFullscreen = () => Promise.resolve();
-  });
-  page.on("pageerror", (error) => pageErrors.push(error.message));
-  page.on("response", (response) => {
-    const pathname = new URL(response.url()).pathname;
-    if (requiredAssets.includes(pathname) && response.ok()) {
-      loadedAssets.add(pathname);
-    }
-    if (response.status() >= 400) {
-      failedResponses.push(`${response.status()} ${response.url()}`);
-    }
-  });
-
-  await page.goto("http://127.0.0.1:4174/dev.html");
-  await expect(page).toHaveTitle("Ants Feast");
-  const canvas = page.locator("#game canvas").first();
-  await expect(canvas).toBeVisible();
-  await expect.poll(() => [...loadedAssets]).toHaveLength(requiredAssets.length);
-
-  const bounds = await canvas.boundingBox();
-  await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height * 0.75);
-  await expect(page.locator("#tilting-board")).toBeVisible();
-
-  expect(pageErrors).toEqual([]);
-  expect(failedResponses).toEqual([]);
+  await expectGameLoads(page, "http://127.0.0.1:4174/dev.html");
 });
 
 test("tilt controls apply perspective on both axes", async ({ page }) => {
-  await page.addInitScript(() => {
-    Element.prototype.requestFullscreen = () => Promise.resolve();
-  });
-
+  await stubFullscreenAndExposeScenes(page);
   await page.goto("/");
-  const canvas = page.locator("#game canvas").first();
+  const canvas = await clickStartOnCanvas(page);
   const tiltedBoard = page.locator("#tilting-board");
   const stationaryHud = page.locator("#stationary-hud");
-  await expect(canvas).toBeVisible();
-  const bounds = await canvas.boundingBox();
-  await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height * 0.75);
   await expect(tiltedBoard).toBeVisible();
   await expect(stationaryHud).toBeVisible();
   expect(await page.locator("#game").locator("#tilting-board-layer").count()).toBe(1);
   expect(await page.locator("#game").locator("#stationary-hud").count()).toBe(1);
+  await waitForGameScene(page);
   await expect
     .poll(() => tiltedBoard.evaluate((element) => {
       const pixels = element.getContext("2d").getImageData(0, 0, element.width, element.height).data;
@@ -169,17 +161,21 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
   expect(alignedBounds[2]).toEqual(alignedBounds[0]);
 
   const directions = [
-    ["ArrowRight", "rotateX(0deg) rotateY(10deg)"],
-    ["ArrowLeft", "rotateX(0deg) rotateY(-10deg)"],
-    ["ArrowUp", "rotateX(10deg) rotateY(0deg)"],
-    ["ArrowDown", "rotateX(-10deg) rotateY(0deg)"]
+    ["ArrowRight", "rotateX(0deg) rotateY(10deg)", { x: 30, y: 0 }],
+    ["ArrowLeft", "rotateX(0deg) rotateY(-10deg)", { x: -30, y: 0 }],
+    ["ArrowUp", "rotateX(10deg) rotateY(0deg)", { x: 0, y: -30 }],
+    ["ArrowDown", "rotateX(-10deg) rotateY(0deg)", { x: 0, y: 30 }]
   ];
-  for (const [key, expectedTransform] of directions) {
+  for (const [key, expectedTransform, expectedGravity] of directions) {
     await page.keyboard.down(key);
     try {
       await expect
         .poll(() => tiltedBoard.evaluate((element) => element.style.transform))
         .toBe(expectedTransform);
+      await expect.poll(() => page.evaluate(() => ({
+        x: window.__gameSceneForTest.gravity.x,
+        y: window.__gameSceneForTest.gravity.y
+      }))).toEqual(expectedGravity);
       await expect(canvas).toHaveCSS("transform", "none");
       await expect(stationaryHud).toHaveCSS("transform", "none");
     } finally {
@@ -196,6 +192,10 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
     await expect
       .poll(() => tiltedBoard.evaluate((element) => element.style.transform))
       .toBe("rotateX(10deg) rotateY(10deg)");
+    await expect.poll(() => page.evaluate(() => ({
+      x: window.__gameSceneForTest.gravity.x,
+      y: window.__gameSceneForTest.gravity.y
+    }))).toEqual({ x: 30, y: -30 });
     await expect(canvas).toHaveCSS("transform", "none");
     await expect(stationaryHud).toHaveCSS("transform", "none");
   } finally {
@@ -204,7 +204,7 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
   }
 });
 
-test("mobile device orientation visibly tilts the board", async ({ browser }) => {
+test("tablet orientation tilts the board and re-centers from the current angle", async ({ browser }) => {
   const context = await browser.newContext({
     isMobile: false,
     hasTouch: true,
@@ -217,25 +217,9 @@ test("mobile device orientation visibly tilts the board", async ({ browser }) =>
     const page = await context.newPage();
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
-    await page.addInitScript(() => {
-      Element.prototype.requestFullscreen = () => Promise.resolve();
-      window.addEventListener("load", () => {
-        const sceneManager = window.Phaser.Scenes.SceneManager.prototype;
-        const startScene = sceneManager.start;
-        sceneManager.start = function (key, ...args) {
-          const result = startScene.call(this, key, ...args);
-          if (key === "GameScene") {
-            window.__gameSceneForTest = this.getScene(key);
-          }
-          return result;
-        };
-      }, { once: true });
-    });
+    await stubFullscreenAndExposeScenes(page);
     await page.goto("/");
-    const gameCanvas = page.locator("#game canvas").first();
-    await expect(gameCanvas).toBeVisible();
-    const bounds = await gameCanvas.boundingBox();
-    await page.touchscreen.tap(bounds.x + bounds.width / 2, bounds.y + bounds.height * 0.75);
+    await clickStartOnCanvas(page, "touch");
 
     const tiltedBoard = page.locator("#tilting-board");
     await expect(tiltedBoard).toBeVisible();
@@ -254,27 +238,18 @@ test("mobile device orientation visibly tilts the board", async ({ browser }) =>
     await expect
       .poll(() => tiltedBoard.evaluate((element) => element.style.transform))
       .toBe("rotateX(0deg) rotateY(10deg)");
-    await expect.poll(() => page.evaluate(() => ({
-      x: window.__gameSceneForTest.gravity.x,
-      y: window.__gameSceneForTest.gravity.y
-    }))).toEqual({ x: 30, y: 0 });
+    await expect.poll(() => readGameState(page)).toMatchObject({ gravity: { x: 30, y: 0 } });
     const recenterButton = page.locator("#recenter-device-tilt");
     await expect(recenterButton).toBeVisible();
     await recenterButton.click();
-    await expect.poll(() => page.evaluate(() => ({
-      x: window.__gameSceneForTest.gravity.x,
-      y: window.__gameSceneForTest.gravity.y
-    }))).toEqual({ x: 0, y: 0 });
+    await expect.poll(() => readGameState(page)).toMatchObject({ gravity: { x: 0, y: 0 } });
     await page.evaluate(() => {
       window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", {
         beta: 0,
         gamma: 45
       }));
     });
-    await expect.poll(() => page.evaluate(() => ({
-      x: window.__gameSceneForTest.gravity.x,
-      y: window.__gameSceneForTest.gravity.y
-    }))).toEqual({ x: 15, y: 0 });
+    await expect.poll(() => readGameState(page)).toMatchObject({ gravity: { x: 15, y: 0 } });
     await page.evaluate(() => {
       const target = document.createElement("div");
       target.id = "simulated-fullscreen-target";
@@ -312,35 +287,25 @@ test("mobile device orientation visibly tilts the board", async ({ browser }) =>
   }
 });
 
-test("game over saves a new high score and restarts the round", async ({ page }) => {
+test("game over saves a new high score, levels the tray, and restarts the round", async ({ page }) => {
   const pageErrors = [];
+  await stubFullscreenAndExposeScenes(page);
   await page.addInitScript(() => {
-    Element.prototype.requestFullscreen = () => Promise.resolve();
     localStorage.clear();
     localStorage.setItem("highScore", "2");
-
-    window.addEventListener("load", () => {
-      const sceneManager = window.Phaser.Scenes.SceneManager.prototype;
-      const startScene = sceneManager.start;
-      sceneManager.start = function (key, ...args) {
-        const result = startScene.call(this, key, ...args);
-        if (key === "GameScene") {
-          window.__gameSceneForTest = this.getScene(key);
-        }
-        return result;
-      };
-    }, { once: true });
   });
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
   await page.goto("/");
-  const canvas = page.locator("#game canvas").first();
-  await expect(canvas).toBeVisible();
-  const bounds = await canvas.boundingBox();
-  await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height * 0.75);
+  await clickStartOnCanvas(page);
   await expect(page.locator("#tilting-board")).toBeVisible();
+  await waitForGameScene(page);
 
-  await expect.poll(() => page.evaluate(() => Boolean(window.__gameSceneForTest))).toBe(true);
+  await page.keyboard.down("ArrowRight");
+  await expect
+    .poll(() => page.locator("#tilting-board").evaluate((element) => element.style.transform))
+    .toBe("rotateX(0deg) rotateY(10deg)");
+
   await page.evaluate(() => {
     const gameScene = window.__gameSceneForTest;
     gameScene.score = 5;
@@ -348,29 +313,17 @@ test("game over saves a new high score and restarts the round", async ({ page })
     gameScene.foods.getChildren().slice().forEach((food) => food.destroy());
   });
 
-  await expect.poll(() => page.evaluate(() => ({
-    gameOver: window.__gameSceneForTest.gameOver,
-    foodCount: window.__gameSceneForTest.foodCount,
-    highScore: localStorage.getItem("highScore")
-  }))).toEqual({
+  await expect.poll(() => readGameState(page)).toMatchObject({
     gameOver: true,
     foodCount: 0,
     highScore: "5"
   });
+  await expect
+    .poll(() => page.locator("#tilting-board").evaluate((element) => element.style.transform))
+    .toBe("rotateX(0deg) rotateY(0deg)");
+  await page.keyboard.up("ArrowRight");
 
-  await expect.poll(() => page.evaluate(() => {
-    const gameScene = window.__gameSceneForTest;
-    const availableFood = gameScene.foods.getChildren()
-      .filter((food) => food.body.enable).length;
-    return {
-      gameOver: gameScene.gameOver,
-      score: gameScene.score,
-      foodCount: gameScene.foodCount,
-      availableFood,
-      highScoreText: gameScene.highScoreText.text,
-      highScore: localStorage.getItem("highScore")
-    };
-  }), { timeout: 8_000 }).toEqual({
+  await expect.poll(() => readGameState(page), { timeout: 8_000 }).toMatchObject({
     gameOver: false,
     score: 0,
     foodCount: 8,
@@ -391,30 +344,52 @@ test("new game shows the saved high score and starting ant and food counts", asy
   await page.goto("/");
   await clickStartOnCanvas(page);
   await expect(page.locator("#tilting-board")).toBeVisible();
-  await expect.poll(() => page.evaluate(() => ({
-    score: window.__gameSceneForTest.score,
-    scoreText: window.__gameSceneForTest.scoreText.text,
-    highScoreText: window.__gameSceneForTest.highScoreText.text,
-    foodCount: window.__gameSceneForTest.foodCount,
-    foodSprites: window.__gameSceneForTest.foods.getChildren().length,
-    antSprites: window.__gameSceneForTest.ants.getChildren().length
-  }))).toEqual({
+  await expect.poll(() => readGameState(page)).toMatchObject({
     score: 0,
     scoreText: "0",
     highScoreText: "HI 9",
     foodCount: 8,
     foodSprites: 8,
+    availableFood: 8,
     antSprites: 4
+  });
+});
+
+test("an ant that leaves the tray awards a point through the fall path", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const before = await readGameState(page);
+  await page.evaluate(() => {
+    const gameScene = window.__gameSceneForTest;
+    gameScene.ants.getChildren().forEach((ant, index) => {
+      if (index === 0) {
+        ant.isClimbing = false;
+        ant.isAlive = true;
+        ant.setPosition(-200, -200);
+        return;
+      }
+      ant.isAlive = false;
+      ant.isClimbing = true;
+    });
+  });
+
+  await expect.poll(() => readGameState(page)).toMatchObject({
+    score: before.score + 1,
+    scoreText: String(before.score + 1),
+    antSprites: before.antSprites
   });
 });
 
 test("falling ants raise the score and spawn an extra ant every seventh escape", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
-
   await page.goto("/");
   await clickStartOnCanvas(page);
-  await expect.poll(() => page.evaluate(() => Boolean(window.__gameSceneForTest))).toBe(true);
+  await waitForGameScene(page);
 
+  const before = await readGameState(page);
   await page.evaluate(() => {
     const gameScene = window.__gameSceneForTest;
     for (let index = 0; index < 7; index++) {
@@ -422,14 +397,10 @@ test("falling ants raise the score and spawn an extra ant every seventh escape",
     }
   });
 
-  await expect.poll(() => page.evaluate(() => ({
-    score: window.__gameSceneForTest.score,
-    scoreText: window.__gameSceneForTest.scoreText.text,
-    antSprites: window.__gameSceneForTest.ants.getChildren().length
-  }))).toEqual({
-    score: 7,
-    scoreText: "7",
-    antSprites: 5
+  await expect.poll(() => readGameState(page)).toMatchObject({
+    score: before.score + 7,
+    scoreText: String(before.score + 7),
+    antSprites: before.antSprites + 1
   });
 });
 
@@ -442,23 +413,18 @@ test("eating food lowers the remaining count without a new high score when tied"
 
   await page.goto("/");
   await clickStartOnCanvas(page);
-  await expect.poll(() => page.evaluate(() => Boolean(window.__gameSceneForTest))).toBe(true);
+  await waitForGameScene(page);
 
   await page.evaluate(() => {
     const gameScene = window.__gameSceneForTest;
     gameScene.score = 4;
     gameScene.scoreText.setText("4");
-    const food = gameScene.foods.getChildren()[0];
-    gameScene.destroyFood(food);
-    food.disableBody(false, true);
+    gameScene.eatFood(gameScene.ants.getChildren()[0], gameScene.foods.getChildren()[0]);
   });
 
-  await expect.poll(() => page.evaluate(() => ({
-    foodCount: window.__gameSceneForTest.foodCount,
-    gameOver: Boolean(window.__gameSceneForTest.gameOver),
-    highScore: localStorage.getItem("highScore")
-  }))).toEqual({
+  await expect.poll(() => readGameState(page), { timeout: 8_000 }).toMatchObject({
     foodCount: 7,
+    availableFood: 7,
     gameOver: false,
     highScore: "4"
   });
@@ -472,39 +438,11 @@ test("eating food lowers the remaining count without a new high score when tied"
     });
   });
 
-  await expect.poll(() => page.evaluate(() => ({
-    gameOver: window.__gameSceneForTest.gameOver,
-    foodCount: window.__gameSceneForTest.foodCount,
-    highScore: localStorage.getItem("highScore")
-  }))).toEqual({
+  await expect.poll(() => readGameState(page)).toMatchObject({
     gameOver: true,
     foodCount: 0,
     highScore: "4"
   });
-});
-
-test("arrow keys set tray gravity while the score HUD stays untilted", async ({ page }) => {
-  await stubFullscreenAndExposeScenes(page);
-
-  await page.goto("/");
-  await clickStartOnCanvas(page);
-  const tiltedBoard = page.locator("#tilting-board");
-  const stationaryHud = page.locator("#stationary-hud");
-  await expect(tiltedBoard).toBeVisible();
-
-  await page.keyboard.down("ArrowLeft");
-  try {
-    await expect.poll(() => page.evaluate(() => ({
-      x: window.__gameSceneForTest.gravity.x,
-      y: window.__gameSceneForTest.gravity.y
-    }))).toEqual({ x: -30, y: 0 });
-    await expect
-      .poll(() => tiltedBoard.evaluate((element) => element.style.transform))
-      .toBe("rotateX(0deg) rotateY(-10deg)");
-    await expect(stationaryHud).toHaveCSS("transform", "none");
-  } finally {
-    await page.keyboard.up("ArrowLeft");
-  }
 });
 
 test("phones skip the tablet re-center control", async ({ browser }) => {
@@ -520,10 +458,7 @@ test("phones skip the tablet re-center control", async ({ browser }) => {
     const page = await context.newPage();
     await stubFullscreenAndExposeScenes(page);
     await page.goto("/");
-    const canvas = page.locator("#game canvas").first();
-    await expect(canvas).toBeVisible();
-    const bounds = await canvas.boundingBox();
-    await page.touchscreen.tap(bounds.x + bounds.width / 2, bounds.y + bounds.height * 0.75);
+    await clickStartOnCanvas(page, "touch");
     await expect(page.locator("#tilting-board")).toBeVisible();
     await expect(page.locator("#recenter-device-tilt")).toHaveCount(0);
   } finally {

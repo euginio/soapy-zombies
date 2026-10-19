@@ -49,9 +49,13 @@ describe("mobile device tilt", () => {
   });
 
   it("maps sensor axes to screen axes in landscape orientation", () => {
-    const tilt = calculateDeviceTilt(30, 0, 0, 0, 90);
-    assert.ok(Math.abs(tilt.x - 1) < 1e-10);
-    assert.ok(Math.abs(tilt.y) < 1e-10);
+    const clockwise = calculateDeviceTilt(30, 0, 0, 0, 90);
+    assert.ok(Math.abs(clockwise.x - 1) < 1e-10);
+    assert.ok(Math.abs(clockwise.y) < 1e-10);
+
+    const counterClockwise = calculateDeviceTilt(30, 0, 0, 0, -90);
+    assert.ok(Math.abs(counterClockwise.x + 1) < 1e-10);
+    assert.ok(Math.abs(counterClockwise.y) < 1e-10);
   });
 
   it("clamps extreme device angles to the supported tilt range", () => {
@@ -170,5 +174,12 @@ describe("tray overlap", () => {
     assert.deepEqual(tray, { x: 25, y: 0, width: 150, height: 100 });
     assert.equal(rectanglesOverlap(tray, { x: 40, y: 10, width: 20, height: 20 }), true);
     assert.equal(rectanglesOverlap(tray, { x: 0, y: 10, width: 20, height: 20 }), false);
+  });
+
+  it("treats touching edges as outside the tray", () => {
+    const tray = { x: 25, y: 0, width: 150, height: 100 };
+    assert.equal(rectanglesOverlap(tray, { x: 5, y: 10, width: 20, height: 20 }), false);
+    assert.equal(rectanglesOverlap(tray, { x: 40, y: -20, width: 20, height: 20 }), false);
+    assert.equal(rectanglesOverlap(tray, { x: 40, y: 100, width: 20, height: 20 }), false);
   });
 });
