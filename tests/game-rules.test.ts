@@ -156,7 +156,7 @@ describe("nearest food", () => {
       { id: "near", x: 3, y: 4 },
       { id: "farther", x: 20, y: 20 }
     ]);
-    assert.equal(nearest.id, "near");
+    assert.equal(nearest?.id, "near");
   });
 
   it("keeps the first target when two foods are equally close", () => {
@@ -164,7 +164,12 @@ describe("nearest food", () => {
       { id: "first", x: 5, y: 0 },
       { id: "second", x: 0, y: 5 }
     ]);
-    assert.equal(nearest.id, "first");
+    assert.equal(nearest?.id, "first");
+  });
+
+  it("returns null when no targets are available", () => {
+    const nearest = pickNearestTarget(0, 0, []);
+    assert.equal(nearest, null);
   });
 });
 

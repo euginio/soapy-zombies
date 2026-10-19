@@ -20,7 +20,7 @@ export class Ant extends MySprite {
     ANT_SPEED: number = 55;
     debugColor: string | null = null;
     gravityFactor = 10;
-    myFood: Food;
+    myFood: Food | null = null;
     isAlive: boolean;
     isClimbing: boolean;
     isTouchingTray: boolean;
@@ -78,12 +78,15 @@ export class Ant extends MySprite {
             return
         }
 
-        this.myFood = this.pickNearestFood()
-        this.faceMyFood();
-
-        let xDistance = this.x - this.myFood.x
-        let yDistance = this.y - this.myFood.y
-        this.setVelocity(xDistance, yDistance);
+        this.myFood = this.pickNearestFood();
+        if (this.myFood) {
+            this.faceMyFood();
+            let xDistance = this.x - this.myFood.x;
+            let yDistance = this.y - this.myFood.y;
+            this.setVelocity(xDistance, yDistance);
+        } else {
+            this.setVelocity(0, 0);
+        }
         // this.choseSpriteDirection(xDistance, yDistance);
 
         // this.setAngle(Phaser.Math.RadToDeg(this.body.angle)+90)
@@ -105,6 +108,9 @@ export class Ant extends MySprite {
     }
 
     private faceMyFood() {
+        if (!this.myFood) {
+            return;
+        }
         let angle = Phaser.Math.Angle.Between(this.x, this.y, this.myFood.x, this.myFood.y);
         this.setAngle(Phaser.Math.RadToDeg(angle) + 90);
     }
@@ -157,7 +163,7 @@ export class Ant extends MySprite {
         return this
     }
 
-    pickNearestFood(): Food {
+    pickNearestFood(): Food | null {
         const availableFood = this.scene.foods.getChildren()
             .filter((food: Food) => food.body.enable) as Food[];
         return pickNearestTarget(this.x, this.y, availableFood);

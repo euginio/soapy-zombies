@@ -112,7 +112,10 @@ export function pickNearestTarget<T extends Point>(
   originX: number,
   originY: number,
   targets: T[]
-): T {
+): T | null {
+  if (targets.length === 0) {
+    return null;
+  }
   return targets.reduce((nearest, current) => {
     const nearestDistance = Math.hypot(nearest.x - originX, nearest.y - originY);
     const currentDistance = Math.hypot(current.x - originX, current.y - originY);
