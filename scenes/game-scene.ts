@@ -60,8 +60,9 @@ export class GameScene extends MyScene {
   }
 
   init(): void {
-    super.init()
+    super.init();
     this.score = 0;
+    this.gameOver = false;
   }
 
   antDied(outAnt: Ant) {
@@ -72,49 +73,50 @@ export class GameScene extends MyScene {
     this.score = outcome.score;
     this.scoreText.setText(this.score.toString());
     if (outcome.spawnAnt) {
-      this.addNewAnt()
+      this.addNewAnt();
     }
   }
 
   foodOut(food: Food) {
-    food.destroy()
+    food.destroy();
   }
 
   destroyFood(food: Food) {
+    if (this.gameOver) {
+      return;
+    }
     const outcome = resolveFoodLoss(this.foodCount);
     this.foodCount = outcome.foodCount;
     if (outcome.gameOver) {
-      this.overGame()
+      this.overGame();
     }
   }
 
   overGame() {
-    if(isNewHighScore(this.score, this.currentHighScore)){
-      localStorage.setItem('highScore',this.score.toString())
+    if (this.gameOver) {
+      return;
     }
-    this.anims.pauseAll()
+    this.gameOver = true;
+    if (isNewHighScore(this.score, this.currentHighScore)) {
+      this.currentHighScore = this.score;
+      localStorage.setItem('highScore', this.score.toString());
+    }
+    this.anims.pauseAll();
     this.physics.pause();
-    this.gameOver = true
 
     this.time.delayedCall(4000, () => {
       this.restart();
-    })
+    });
   }
 
   restart() {
-    this.scene.restart()
-    this.foods?.children?.iterate((child) => {
-      if (child instanceof Food && child.body) {
-        child.body.setEnable(true)
-      }
-      return true
-    })
-    this.physics.resume();
-    this.anims.resumeAll();
-    this.gameOver = false
+    this.scene.restart();
   }
 
   create(): void {
+    this.physics.resume();
+    this.anims.resumeAll();
+    this.gameOver = false;
     this.foodCount = this.initialFood;
     const canvas = this.game.canvas;
     this.createVisualLayers(canvas);
@@ -519,6 +521,7 @@ export class GameScene extends MyScene {
   }
 
   private destroyVisualLayers() {
+    this.events.off(Phaser.Scenes.Events.POST_UPDATE, this.renderVisualLayers, this);
     this.boardLayer?.remove();
     this.hudCanvas?.remove();
     this.sensorRecenterButton?.remove();
