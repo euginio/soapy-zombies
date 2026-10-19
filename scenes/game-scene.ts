@@ -28,6 +28,11 @@ export class GameScene extends MyScene {
   private hudContext: CanvasRenderingContext2D;
   private visualLayerParent: HTMLElement;
   private readonly visualLayerParentPositions = new Map<HTMLElement, string>();
+  private visualLayerResizeObserver: ResizeObserver | null = null;
+  private visualLayerBoundsDirty = false;
+  private readonly invalidateVisualLayerBounds = () => {
+    this.visualLayerBoundsDirty = true;
+  };
   private deviceOrientationHandler: (event: DeviceOrientationEvent) => void;
   private deviceMotionHandler: (event: DeviceMotionEvent) => void;
   private sensorRecenterButton: HTMLButtonElement | null = null;
@@ -382,6 +387,12 @@ export class GameScene extends MyScene {
     this.hudContext = this.hudCanvas.getContext("2d");
     this.visualLayerParent.appendChild(this.hudCanvas);
     this.syncVisualLayerBounds(gameCanvas);
+
+    this.visualLayerResizeObserver = new ResizeObserver(this.invalidateVisualLayerBounds);
+    this.visualLayerResizeObserver.observe(gameCanvas);
+    this.visualLayerResizeObserver.observe(this.visualLayerParent);
+    window.addEventListener("resize", this.invalidateVisualLayerBounds);
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.invalidateVisualLayerBounds);
   }
 
   private syncVisualLayerBounds(gameCanvas: HTMLCanvasElement) {
@@ -406,6 +417,7 @@ export class GameScene extends MyScene {
       }px`;
       this.sensorRecenterButton.style.right = "auto";
     }
+    this.visualLayerBoundsDirty = false;
   }
 
   private setVisualLayerParent(parent: HTMLElement) {
@@ -426,7 +438,9 @@ export class GameScene extends MyScene {
 
   private renderVisualLayers() {
     const gameCanvas = this.game.canvas;
-    this.syncVisualLayerBounds(gameCanvas);
+    if (this.visualLayerBoundsDirty) {
+      this.syncVisualLayerBounds(gameCanvas);
+    }
 
     const scaleX = this.boardCanvas.width / this.width;
     const scaleY = this.boardCanvas.height / this.height;
@@ -522,6 +536,10 @@ export class GameScene extends MyScene {
 
   private destroyVisualLayers() {
     this.events.off(Phaser.Scenes.Events.POST_UPDATE, this.renderVisualLayers, this);
+    this.visualLayerResizeObserver?.disconnect();
+    this.visualLayerResizeObserver = null;
+    window.removeEventListener("resize", this.invalidateVisualLayerBounds);
+    this.scale.off(Phaser.Scale.Events.RESIZE, this.invalidateVisualLayerBounds);
     this.boardLayer?.remove();
     this.hudCanvas?.remove();
     this.sensorRecenterButton?.remove();
