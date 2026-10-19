@@ -65,6 +65,9 @@ export class GameScene extends MyScene {
   }
 
   antDied(outAnt: Ant) {
+    if (this.gameOver) {
+      return;
+    }
     const outcome = resolveAntEscape(this.score, this.zombieRate);
     this.score = outcome.score;
     this.scoreText.setText(this.score.toString());

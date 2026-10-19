@@ -33,9 +33,13 @@ export class Ant extends MySprite {
     }
 
     init() {
-        this.isAlive = true
-        this.enableBody(false, this.x, this.y, false, true)
-        this.setRandomBorderPosition()
+        if (this.scene.gameOver) {
+            return;
+        }
+        this.isAlive = true;
+        this.setScale(0.2);
+        this.enableBody(false, this.x, this.y, false, true);
+        this.setRandomBorderPosition();
         
         this.faceCenter();
         this.play('walk');
@@ -47,8 +51,10 @@ export class Ant extends MySprite {
     private climb() {
         this.isClimbing = true;
         this.scene.time.delayedCall(1500, () => {
-            this.isClimbing = false;
-        })
+            if (this.scene && !this.scene.gameOver) {
+                this.isClimbing = false;
+            }
+        });
     }
 
     setRandomBorderPosition() {
@@ -116,23 +122,36 @@ export class Ant extends MySprite {
     }
 
     kill() {
-        this.isAlive = false
-        this.isClimbing = false
+        if (!this.isAlive || this.scene.gameOver) {
+            return;
+        }
+        this.isAlive = false;
+        this.isClimbing = false;
         this.setImmovable(true);
-        this.disableBody(false, false)
-        this.scene.antDied(this)
+        this.disableBody(false, false);
+        this.scene.antDied(this);
         
-        this.scene.tweens.add({targets:this, 
-            scale: { value: 0.01, duration: 750},
-            yoyo:true, loop:0,
-            onYoyo:()=>{
-                this.disableBody(false, true)
+        this.scene.tweens.add({
+            targets: this, 
+            scale: { value: 0.01, duration: 750 },
+            yoyo: true,
+            loop: 0,
+            onYoyo: () => {
+                this.disableBody(false, true);
             },
-            onComplete:()=>{
-                this.init();
+            onComplete: () => {
+                if (this.scene && !this.scene.gameOver) {
+                    this.init();
+                }
             }
-        })
+        });
+    }
 
+    destroy(fromScene?: boolean) {
+        if (this.scene?.tweens) {
+            this.scene.tweens.killTweensOf(this);
+        }
+        super.destroy(fromScene);
     }
 
     // private choseSpriteDirection(xDistance: number, yDistance: number) {
