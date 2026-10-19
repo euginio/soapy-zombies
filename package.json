@@ -18,6 +18,7 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "dev": "vite --host 127.0.0.1 --open /dev.html",
+    "test": "npm run test:smoke",
     "test:unit": "tsx --test tests/game-rules.test.ts",
     "test:smoke": "npm run typecheck && npm run test:unit && npm run build && playwright test",
     "dev-ssl": "vite --config vite.ssl.config.js --host 0.0.0.0 --open /dev.html",

@@ -1,5 +1,10 @@
 import { Scene, Physics, GameObjects } from "phaser";
-import { calculateAntVelocity } from "../game-rules";
+import {
+  calculateAntVelocity,
+  insetHorizontalTrayBounds,
+  pickNearestTarget,
+  rectanglesOverlap
+} from "../game-rules";
 import { GameScene } from "../scenes/game-scene";
 import { Food } from "./food";
 import { MySprite } from "./mySprite";
@@ -83,11 +88,8 @@ export class Ant extends MySprite {
 
         // this.setAngle(Phaser.Math.RadToDeg(this.body.angle)+90)
 
-        //TODO: extract this bounds calculus 
-        let b=this.scene.tray.getBounds()
-        b.setSize(b.width-50,b.height)
-        b.setPosition(b.x+25,b.y)
-        this.isTouchingTray=Phaser.Geom.Rectangle.Overlaps(b, this.getBounds())
+        const trayOverlapBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
+        this.isTouchingTray = rectanglesOverlap(trayOverlapBounds, this.getBounds());
         if (this.isClimbing && this.isTouchingTray) {
             // the ant has reached the "tray"
             this.isClimbing = false;
@@ -156,12 +158,9 @@ export class Ant extends MySprite {
     }
 
     pickNearestFood(): Food {
-        return <Food>this.scene.foods.getChildren().filter((f: Food) => f.body.enable).reduce(
-            (prev: Food, curr: Food) => this.distanceAgainst(prev) < this.distanceAgainst(curr) ? prev : curr)
-    }
-
-    distanceAgainst(go: Phaser.GameObjects.Sprite) {
-        return Phaser.Math.Distance.Between(this.x, this.y, go.x, go.y)
+        const availableFood = this.scene.foods.getChildren()
+            .filter((food: Food) => food.body.enable) as Food[];
+        return pickNearestTarget(this.x, this.y, availableFood);
     }
 
     // eating() {

@@ -102,3 +102,40 @@ export function calculateDeviceTilt(
     y: Math.max(-1, Math.min(1, screenY / maxSensorAngle))
   };
 }
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export function pickNearestTarget<T extends Point>(
+  originX: number,
+  originY: number,
+  targets: T[]
+): T {
+  return targets.reduce((nearest, current) => {
+    const nearestDistance = Math.hypot(nearest.x - originX, nearest.y - originY);
+    const currentDistance = Math.hypot(current.x - originX, current.y - originY);
+    return currentDistance < nearestDistance ? current : nearest;
+  });
+}
+
+export interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export function insetHorizontalTrayBounds(tray: Rect, horizontalInset = 25): Rect {
+  return {
+    x: tray.x + horizontalInset,
+    y: tray.y,
+    width: tray.width - horizontalInset * 2,
+    height: tray.height
+  };
+}
+
+export function rectanglesOverlap(a: Rect, b: Rect): boolean {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+}

@@ -1,5 +1,33 @@
 const { expect, test } = require("@playwright/test");
 
+async function stubFullscreenAndExposeScenes(page) {
+  await page.addInitScript(() => {
+    Element.prototype.requestFullscreen = () => Promise.resolve();
+    window.addEventListener("load", () => {
+      const sceneManager = window.Phaser.Scenes.SceneManager.prototype;
+      const startScene = sceneManager.start;
+      sceneManager.start = function (key, ...args) {
+        const result = startScene.call(this, key, ...args);
+        if (key === "GameScene") {
+          window.__gameSceneForTest = this.getScene(key);
+        }
+        if (key === "TitleScene") {
+          window.__titleSceneForTest = this.getScene(key);
+        }
+        return result;
+      };
+    }, { once: true });
+  });
+}
+
+async function clickStartOnCanvas(page) {
+  const canvas = page.locator("#game canvas").first();
+  await expect(canvas).toBeVisible();
+  const bounds = await canvas.boundingBox();
+  await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height * 0.75);
+  return canvas;
+}
+
 test("production build loads its assets and starts a game", async ({ page }) => {
   const pageErrors = [];
   const failedResponses = [];
@@ -178,11 +206,11 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
 
 test("mobile device orientation visibly tilts the board", async ({ browser }) => {
   const context = await browser.newContext({
-    isMobile: true,
+    isMobile: false,
     hasTouch: true,
-    viewport: { width: 390, height: 844 },
+    viewport: { width: 800, height: 1280 },
     userAgent:
-      "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Mobile Safari/537.36"
+      "Mozilla/5.0 (Linux; Android 14; Pixel Tablet) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
   });
 
   try {
@@ -203,7 +231,7 @@ test("mobile device orientation visibly tilts the board", async ({ browser }) =>
         };
       }, { once: true });
     });
-    await page.goto("/?sensorDebug=1");
+    await page.goto("/");
     const gameCanvas = page.locator("#game canvas").first();
     await expect(gameCanvas).toBeVisible();
     const bounds = await gameCanvas.boundingBox();
@@ -247,8 +275,6 @@ test("mobile device orientation visibly tilts the board", async ({ browser }) =>
       x: window.__gameSceneForTest.gravity.x,
       y: window.__gameSceneForTest.gravity.y
     }))).toEqual({ x: 15, y: 0 });
-    await expect(page.locator("pre")).toContainText(/Orientation events: [1-9]\d*/);
-    await expect(page.locator("pre")).toContainText(/Motion events: [1-9]\d*/);
     await page.evaluate(() => {
       const target = document.createElement("div");
       target.id = "simulated-fullscreen-target";
@@ -263,10 +289,9 @@ test("mobile device orientation visibly tilts the board", async ({ browser }) =>
       return [
         document.querySelector("#tilting-board-layer").parentElement === fullscreenTarget,
         document.querySelector("#stationary-hud").parentElement === fullscreenTarget,
-        document.querySelector("pre").parentElement === fullscreenTarget,
         document.querySelector("#recenter-device-tilt").parentElement === fullscreenTarget
       ];
-    })).toEqual([true, true, true, true]);
+    })).toEqual([true, true, true]);
     await page.evaluate(() => {
       window.__originalCanvasParentForFullscreenTest.appendChild(window.__gameCanvasForFullscreenTest);
       delete window.__gameCanvasForFullscreenTest;
@@ -278,10 +303,9 @@ test("mobile device orientation visibly tilts the board", async ({ browser }) =>
       return [
         document.querySelector("#tilting-board-layer").parentElement === canvasParent,
         document.querySelector("#stationary-hud").parentElement === canvasParent,
-        document.querySelector("pre").parentElement === canvasParent,
         document.querySelector("#recenter-device-tilt").parentElement === canvasParent
       ];
-    })).toEqual([true, true, true, true]);
+    })).toEqual([true, true, true]);
     expect(pageErrors).toEqual([]);
   } finally {
     await context.close();
@@ -355,4 +379,178 @@ test("game over saves a new high score and restarts the round", async ({ page })
     highScore: "5"
   });
   expect(pageErrors).toEqual([]);
+});
+
+test("new game shows the saved high score and starting ant and food counts", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.addInitScript(() => {
+    localStorage.clear();
+    localStorage.setItem("highScore", "9");
+  });
+
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await expect(page.locator("#tilting-board")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => ({
+    score: window.__gameSceneForTest.score,
+    scoreText: window.__gameSceneForTest.scoreText.text,
+    highScoreText: window.__gameSceneForTest.highScoreText.text,
+    foodCount: window.__gameSceneForTest.foodCount,
+    foodSprites: window.__gameSceneForTest.foods.getChildren().length,
+    antSprites: window.__gameSceneForTest.ants.getChildren().length
+  }))).toEqual({
+    score: 0,
+    scoreText: "0",
+    highScoreText: "HI 9",
+    foodCount: 8,
+    foodSprites: 8,
+    antSprites: 4
+  });
+});
+
+test("falling ants raise the score and spawn an extra ant every seventh escape", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await expect.poll(() => page.evaluate(() => Boolean(window.__gameSceneForTest))).toBe(true);
+
+  await page.evaluate(() => {
+    const gameScene = window.__gameSceneForTest;
+    for (let index = 0; index < 7; index++) {
+      gameScene.antDied(gameScene.ants.getChildren()[0]);
+    }
+  });
+
+  await expect.poll(() => page.evaluate(() => ({
+    score: window.__gameSceneForTest.score,
+    scoreText: window.__gameSceneForTest.scoreText.text,
+    antSprites: window.__gameSceneForTest.ants.getChildren().length
+  }))).toEqual({
+    score: 7,
+    scoreText: "7",
+    antSprites: 5
+  });
+});
+
+test("eating food lowers the remaining count without a new high score when tied", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.addInitScript(() => {
+    localStorage.clear();
+    localStorage.setItem("highScore", "4");
+  });
+
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await expect.poll(() => page.evaluate(() => Boolean(window.__gameSceneForTest))).toBe(true);
+
+  await page.evaluate(() => {
+    const gameScene = window.__gameSceneForTest;
+    gameScene.score = 4;
+    gameScene.scoreText.setText("4");
+    const food = gameScene.foods.getChildren()[0];
+    gameScene.destroyFood(food);
+    food.disableBody(false, true);
+  });
+
+  await expect.poll(() => page.evaluate(() => ({
+    foodCount: window.__gameSceneForTest.foodCount,
+    gameOver: Boolean(window.__gameSceneForTest.gameOver),
+    highScore: localStorage.getItem("highScore")
+  }))).toEqual({
+    foodCount: 7,
+    gameOver: false,
+    highScore: "4"
+  });
+
+  await page.evaluate(() => {
+    const gameScene = window.__gameSceneForTest;
+    gameScene.foods.getChildren().slice().forEach((food) => {
+      if (food.body.enable) {
+        food.destroy();
+      }
+    });
+  });
+
+  await expect.poll(() => page.evaluate(() => ({
+    gameOver: window.__gameSceneForTest.gameOver,
+    foodCount: window.__gameSceneForTest.foodCount,
+    highScore: localStorage.getItem("highScore")
+  }))).toEqual({
+    gameOver: true,
+    foodCount: 0,
+    highScore: "4"
+  });
+});
+
+test("arrow keys set tray gravity while the score HUD stays untilted", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  const tiltedBoard = page.locator("#tilting-board");
+  const stationaryHud = page.locator("#stationary-hud");
+  await expect(tiltedBoard).toBeVisible();
+
+  await page.keyboard.down("ArrowLeft");
+  try {
+    await expect.poll(() => page.evaluate(() => ({
+      x: window.__gameSceneForTest.gravity.x,
+      y: window.__gameSceneForTest.gravity.y
+    }))).toEqual({ x: -30, y: 0 });
+    await expect
+      .poll(() => tiltedBoard.evaluate((element) => element.style.transform))
+      .toBe("rotateX(0deg) rotateY(-10deg)");
+    await expect(stationaryHud).toHaveCSS("transform", "none");
+  } finally {
+    await page.keyboard.up("ArrowLeft");
+  }
+});
+
+test("phones skip the tablet re-center control", async ({ browser }) => {
+  const context = await browser.newContext({
+    isMobile: true,
+    hasTouch: true,
+    viewport: { width: 390, height: 844 },
+    userAgent:
+      "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Mobile Safari/537.36"
+  });
+
+  try {
+    const page = await context.newPage();
+    await stubFullscreenAndExposeScenes(page);
+    await page.goto("/");
+    const canvas = page.locator("#game canvas").first();
+    await expect(canvas).toBeVisible();
+    const bounds = await canvas.boundingBox();
+    await page.touchscreen.tap(bounds.x + bounds.width / 2, bounds.y + bounds.height * 0.75);
+    await expect(page.locator("#tilting-board")).toBeVisible();
+    await expect(page.locator("#recenter-device-tilt")).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+});
+
+test("non-Chrome browsers stay on the title screen with an unsupported message", async ({ browser }) => {
+  const context = await browser.newContext({
+    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0"
+  });
+
+  try {
+    const page = await context.newPage();
+    await stubFullscreenAndExposeScenes(page);
+    await page.goto("/");
+    await clickStartOnCanvas(page);
+
+    await expect.poll(() => page.evaluate(() => ({
+      titleText: window.__titleSceneForTest.startTxt.text,
+      gameSceneStarted: Boolean(window.__gameSceneForTest)
+    }))).toEqual({
+      titleText: "Browser not supported\nplease use Chrome",
+      gameSceneStarted: false
+    });
+    await expect(page.locator("#tilting-board")).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
 });

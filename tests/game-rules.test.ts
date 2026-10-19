@@ -3,8 +3,11 @@ import { describe, it } from "node:test";
 import {
   calculateAntVelocity,
   calculateDeviceTilt,
+  insetHorizontalTrayBounds,
   isNewHighScore,
   isTabletDevice,
+  pickNearestTarget,
+  rectanglesOverlap,
   resolveAntEscape,
   resolveFoodLoss
 } from "../game-rules";
@@ -24,6 +27,16 @@ describe("tablet detection", () => {
     assert.equal(isTabletDevice(undefined, "MacIntel", "Mozilla/5.0", 5, 390, 844), true);
     assert.equal(isTabletDevice(undefined, "Linux", "Mozilla/5.0", 5, 600, 960), true);
     assert.equal(isTabletDevice(undefined, "Linux", "Mozilla/5.0", 5, 390, 844), false);
+  });
+
+  it("recognizes Silk, PlayBook, and Tablet user agents even on a small screen", () => {
+    assert.equal(isTabletDevice(undefined, "Linux", "Silk/3.13 Safari/535.19", 5, 390, 844), true);
+    assert.equal(isTabletDevice(undefined, "Linux", "PlayBook Tablet OS", 5, 390, 844), true);
+    assert.equal(isTabletDevice(undefined, "Linux", "Tablet; rv:1.0", 5, 390, 844), true);
+  });
+
+  it("rejects devices without touch even when the user agent looks like a tablet", () => {
+    assert.equal(isTabletDevice(undefined, "iPad", "Mozilla/5.0", 0, 800, 1280), false);
   });
 });
 
@@ -46,6 +59,23 @@ describe("mobile device tilt", () => {
       x: -1,
       y: 1
     });
+  });
+
+  it("measures tilt relative to the re-centered baseline", () => {
+    assert.deepEqual(calculateDeviceTilt(45, 10, 15, 10, 0), {
+      x: 0,
+      y: 1
+    });
+    assert.deepEqual(calculateDeviceTilt(15, -15, 15, -15, 0), {
+      x: 0,
+      y: 0
+    });
+  });
+
+  it("inverts the vertical axis when the screen is rotated 180 degrees", () => {
+    const tilt = calculateDeviceTilt(30, 0, 0, 0, 180);
+    assert.ok(Math.abs(tilt.x) < 1e-10);
+    assert.ok(Math.abs(tilt.y + 1) < 1e-10);
   });
 });
 
@@ -80,6 +110,14 @@ describe("ant escape scoring", () => {
   it("awards a point without adding an ant between milestones", () => {
     assert.deepEqual(resolveAntEscape(5, 7), { score: 6, spawnAnt: false });
   });
+
+  it("does not spawn an extra ant on the first escape", () => {
+    assert.deepEqual(resolveAntEscape(0, 7), { score: 1, spawnAnt: false });
+  });
+
+  it("spawns another extra ant at the next milestone", () => {
+    assert.deepEqual(resolveAntEscape(13, 7), { score: 14, spawnAnt: true });
+  });
 });
 
 describe("food loss", () => {
@@ -100,5 +138,37 @@ describe("high score", () => {
   it("does not replace an equal or higher high score", () => {
     assert.equal(isNewHighScore(7, 7), false);
     assert.equal(isNewHighScore(6, 7), false);
+  });
+
+  it("treats the first scored game as a new high score", () => {
+    assert.equal(isNewHighScore(1, 0), true);
+  });
+});
+
+describe("nearest food", () => {
+  it("picks the closest enabled target", () => {
+    const nearest = pickNearestTarget(0, 0, [
+      { id: "far", x: 10, y: 0 },
+      { id: "near", x: 3, y: 4 },
+      { id: "farther", x: 20, y: 20 }
+    ]);
+    assert.equal(nearest.id, "near");
+  });
+
+  it("keeps the first target when two foods are equally close", () => {
+    const nearest = pickNearestTarget(0, 0, [
+      { id: "first", x: 5, y: 0 },
+      { id: "second", x: 0, y: 5 }
+    ]);
+    assert.equal(nearest.id, "first");
+  });
+});
+
+describe("tray overlap", () => {
+  it("insets the tray horizontally before checking whether an ant has fallen", () => {
+    const tray = insetHorizontalTrayBounds({ x: 0, y: 0, width: 200, height: 100 });
+    assert.deepEqual(tray, { x: 25, y: 0, width: 150, height: 100 });
+    assert.equal(rectanglesOverlap(tray, { x: 40, y: 10, width: 20, height: 20 }), true);
+    assert.equal(rectanglesOverlap(tray, { x: 0, y: 10, width: 20, height: 20 }), false);
   });
 });
