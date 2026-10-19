@@ -56,6 +56,33 @@ export interface DeviceTilt {
   y: number;
 }
 
+export function isTabletDevice(
+  userAgentMobile: boolean | undefined,
+  platform: string,
+  userAgent: string,
+  maxTouchPoints: number,
+  screenWidth: number,
+  screenHeight: number
+): boolean {
+  if (maxTouchPoints < 1 || userAgentMobile === true) {
+    return false;
+  }
+
+  if (/iPad/i.test(platform) || (platform === "MacIntel" && maxTouchPoints > 1)) {
+    return true;
+  }
+
+  if (userAgentMobile === false && /Android/i.test(platform)) {
+    return true;
+  }
+
+  if (/Tablet|PlayBook|Silk/i.test(userAgent)) {
+    return true;
+  }
+
+  return Math.min(screenWidth, screenHeight) >= 600;
+}
+
 export function calculateDeviceTilt(
   beta: number,
   gamma: number,

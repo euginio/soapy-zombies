@@ -4,9 +4,28 @@ import {
   calculateAntVelocity,
   calculateDeviceTilt,
   isNewHighScore,
+  isTabletDevice,
   resolveAntEscape,
   resolveFoodLoss
 } from "../game-rules";
+
+describe("tablet detection", () => {
+  it("recognizes Android tablets from user agent client hints", () => {
+    assert.equal(isTabletDevice(false, "Android", "Mozilla/5.0", 5, 800, 1280), true);
+  });
+
+  it("does not classify phones or non-touch devices as tablets", () => {
+    assert.equal(isTabletDevice(true, "Android", "Mozilla/5.0", 5, 800, 1280), false);
+    assert.equal(isTabletDevice(false, "Android", "Mozilla/5.0", 0, 800, 1280), false);
+  });
+
+  it("recognizes iPads and falls back to tablet-sized touch screens", () => {
+    assert.equal(isTabletDevice(undefined, "iPad", "Mozilla/5.0", 5, 390, 844), true);
+    assert.equal(isTabletDevice(undefined, "MacIntel", "Mozilla/5.0", 5, 390, 844), true);
+    assert.equal(isTabletDevice(undefined, "Linux", "Mozilla/5.0", 5, 600, 960), true);
+    assert.equal(isTabletDevice(undefined, "Linux", "Mozilla/5.0", 5, 390, 844), false);
+  });
+});
 
 describe("mobile device tilt", () => {
   it("maps portrait orientation changes to horizontal and vertical tilt", () => {
