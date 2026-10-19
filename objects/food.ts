@@ -11,6 +11,7 @@ import { MySprite } from "./mySprite";
  */
 export class Food extends MySprite {
     gravityFactor = .2;
+    isBeingEaten: boolean = false;
 
     constructor(scene: GameScene) {
         super(scene, 0, 0, 'food');
@@ -28,6 +29,8 @@ export class Food extends MySprite {
     }
 
     init() {
+        this.isBeingEaten = false;
+        this.setScale(1.5);
         this.placeInTray()
     }
     
@@ -40,6 +43,8 @@ export class Food extends MySprite {
 
     destroy(animation?) {
         if (this.body.enable) {
+            this.scene.tweens.killTweensOf(this);
+            this.isBeingEaten = false;
             this.scene.destroyFood(this)
             // this.scene.time.delayedCall(1500, () => {
             this.disableBody(false, true);
@@ -59,13 +64,15 @@ export class Food extends MySprite {
     }
 
     beingEat() {
-        if (this.body.enable && !this.anims.isPlaying) {
-            // this.play('eatingFood');
-
-            this.scene.tweens.add({targets:this, 
+        if (this.body.enable && !this.isBeingEaten) {
+            this.isBeingEaten = true;
+            this.scene.tweens.add({
+                targets: this, 
                 scale: { value: 0, duration: 1500, ease: 'Power1' },
-                yoyo:false, loop:0,
-                onComplete:()=>this.destroy()})
+                yoyo: false,
+                loop: 0,
+                onComplete: () => this.destroy()
+            });
         }
     }
 

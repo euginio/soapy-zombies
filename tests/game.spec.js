@@ -415,12 +415,16 @@ test("eating food lowers the remaining count without a new high score when tied"
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
-  await page.evaluate(() => {
+  const tweenCount = await page.evaluate(() => {
     const gameScene = window.__gameSceneForTest;
     gameScene.score = 4;
     gameScene.scoreText.setText("4");
-    gameScene.eatFood(gameScene.ants.getChildren()[0], gameScene.foods.getChildren()[0]);
+    const targetFood = gameScene.foods.getChildren()[0];
+    gameScene.eatFood(gameScene.ants.getChildren()[0], targetFood);
+    gameScene.eatFood(gameScene.ants.getChildren()[0], targetFood);
+    return gameScene.tweens.getTweensOf(targetFood).length;
   });
+  expect(tweenCount).toBe(1);
 
   await expect.poll(() => readGameState(page), { timeout: 8_000 }).toMatchObject({
     foodCount: 7,
