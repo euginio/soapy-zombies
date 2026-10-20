@@ -151,7 +151,6 @@ export class GameScene extends MyScene {
 
     //  Input Events
     this.cursors = this.input.keyboard.createCursorKeys();
-    this.input.keyboard.addCapture(["UP", "DOWN", "LEFT", "RIGHT"]);
 
     this.tray = this.add.image(this.width / 2, this.height / 2, 'tray');
     this.tray.setSize(this.tray.width-20,this.tray.height-3)
