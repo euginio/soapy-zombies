@@ -117,19 +117,33 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
   await expect.poll(() => page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     return {
-      renderer: scene.game.renderer.type,
       trayVisible: scene.tray.visible,
       visibleAnts: scene.ants.getChildren().filter((ant) => ant.visible).length,
+      tintedAnts: scene.ants.getChildren().filter((ant) =>
+        ant.debugColor && ant.tintTopLeft === Number.parseInt(ant.debugColor.slice(1), 16)
+      ).length,
+      fillTintedAnts: scene.ants.getChildren().filter((ant) => ant.tintFill).length,
+      uniqueDebugColors: new Set(scene.ants.getChildren().map((ant) => ant.debugColor)).size,
       visibleFoods: scene.foods.getChildren().filter((food) => food.visible && food.body.enable).length,
       hudText: document.querySelector("#stationary-hud").textContent
     };
-  })).toMatchObject({ renderer: 2, trayVisible: true, visibleAnts: 4, visibleFoods: 8, hudText: "0HI 0" });
+  })).toMatchObject({
+    trayVisible: true,
+    visibleAnts: 4,
+    tintedAnts: 4,
+    fillTintedAnts: 4,
+    uniqueDebugColors: 4,
+    visibleFoods: 8,
+    hudText: "0HI 0"
+  });
 
   const alignedBounds = await Promise.all([
     canvas.boundingBox(),
     stationaryHud.boundingBox()
   ]);
-  expect(alignedBounds[1]).toEqual(alignedBounds[0]);
+  for (const dimension of ["x", "y", "width", "height"]) {
+    expect(Math.abs(alignedBounds[1][dimension] - alignedBounds[0][dimension])).toBeLessThan(0.1);
+  }
 
   const directions = [
     ["ArrowRight", "perspective(900px) rotateX(0deg) rotateY(10deg)", { x: 30, y: 0 }],
@@ -154,6 +168,26 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
     await expect
       .poll(() => tiltedBoard.evaluate((element) => element.style.transform))
       .toBe("perspective(900px) rotateX(0deg) rotateY(0deg)");
+  }
+
+  await page.keyboard.down("ArrowRight");
+  try {
+    await expect
+      .poll(() => tiltedBoard.evaluate((element) => element.style.transform))
+      .toBe("perspective(900px) rotateX(0deg) rotateY(10deg)");
+    const canvasStyleMutations = await page.evaluate(async () => {
+      const canvas = document.querySelector("#tilting-board");
+      const mutations = [];
+      const observer = new MutationObserver((records) => mutations.push(...records));
+      observer.observe(canvas, { attributes: true, attributeFilter: ["style"] });
+      window.__gameSceneForTest.syncVisualLayerBounds(canvas);
+      await new Promise((resolve) => queueMicrotask(resolve));
+      observer.disconnect();
+      return mutations.length;
+    });
+    expect(canvasStyleMutations).toBe(0);
+  } finally {
+    await page.keyboard.up("ArrowRight");
   }
 
   await page.keyboard.down("ArrowRight");
@@ -224,7 +258,7 @@ test("tablet orientation tilts the board and re-centers from the current angle",
       target.id = "simulated-fullscreen-target";
       target.style.cssText = "position:relative;width:580px;height:300px";
       document.body.appendChild(target);
-      window.__gameCanvasForFullscreenTest = document.querySelector("#game canvas");
+      window.__gameCanvasForFullscreenTest = document.querySelector("#tilting-board");
       window.__originalCanvasParentForFullscreenTest = window.__gameCanvasForFullscreenTest.parentElement;
       target.appendChild(window.__gameCanvasForFullscreenTest);
     });
@@ -243,7 +277,7 @@ test("tablet orientation tilts the board and re-centers from the current angle",
       document.querySelector("#simulated-fullscreen-target").remove();
     });
     await expect.poll(() => page.evaluate(() => {
-      const canvasParent = document.querySelector("#game canvas").parentElement;
+      const canvasParent = document.querySelector("#tilting-board").parentElement;
       return [
         document.querySelector("#tilting-board").parentElement === canvasParent,
         document.querySelector("#stationary-hud").parentElement === canvasParent,

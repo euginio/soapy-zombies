@@ -8,6 +8,8 @@
 import { ANT_DEBUG_COLORS, DEBUG_MODE } from "../const/const";
 import {
   calculateDeviceTilt,
+  calculateVisualLayerLayout,
+  debugColorToTint,
   isNewHighScore,
   isTabletDevice,
   resolveAntEscape,
@@ -34,6 +36,7 @@ export class GameScene extends MyScene {
   private deviceOrientationHandler: (event: DeviceOrientationEvent) => void;
   private deviceMotionHandler: (event: DeviceMotionEvent) => void;
   private sensorRecenterButton: HTMLButtonElement | null = null;
+  private stationaryBackground: HTMLDivElement;
   private latestOrientation: { beta: number; gamma: number } | null = null;
   private sensorBaseline: { beta: number; gamma: number } | null = null;
   private deviceTilt: { x: number; y: number } | null = null;
@@ -148,8 +151,6 @@ export class GameScene extends MyScene {
     //  Input Events
     this.cursors = this.input.keyboard.createCursorKeys();
 
-    let grass = this.add.image(this.width / 2, this.height / 2, 'grass');
-    grass.setScale(2.3)
     this.tray = this.add.image(this.width / 2, this.height / 2, 'tray');
     this.tray.setSize(this.tray.width-20,this.tray.height-3)
     this.tray.setScale(1.6)
@@ -246,7 +247,7 @@ export class GameScene extends MyScene {
     }
     this.ants.add(ant, true);
     if (DEBUG_MODE && ant.debugColor) {
-      ant.setTint(Phaser.Display.Color.HexStringToColor(ant.debugColor).color);
+      ant.setTintFill(debugColorToTint(ant.debugColor));
     }
   }
 
@@ -355,6 +356,17 @@ export class GameScene extends MyScene {
     this.visualLayerParent = gameCanvas.parentElement || document.body;
     this.setVisualLayerParent(this.visualLayerParent);
 
+    this.stationaryBackground = document.createElement("div");
+    this.stationaryBackground.id = "stationary-background";
+    Object.assign(this.stationaryBackground.style, {
+      position: "absolute",
+      backgroundImage: 'url("./assets/images/grass.png")',
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+      pointerEvents: "none"
+    });
+    this.visualLayerParent.insertBefore(this.stationaryBackground, gameCanvas);
+
     this.hudOverlay = document.createElement("div");
     this.hudOverlay.id = "stationary-hud";
     Object.assign(this.hudOverlay.style, {
@@ -397,39 +409,42 @@ export class GameScene extends MyScene {
 
   private syncVisualLayerBounds(gameCanvas: HTMLCanvasElement) {
     this.setVisualLayerParent(gameCanvas.parentElement || document.body);
-    const originalTransform = gameCanvas.style.transform;
-    const originalTransition = gameCanvas.style.transition;
-    gameCanvas.style.transition = "none";
-    gameCanvas.style.transform = "none";
-    const bounds = gameCanvas.getBoundingClientRect();
-    const parentBounds = this.visualLayerParent.getBoundingClientRect();
-    const left = bounds.left - parentBounds.left + this.visualLayerParent.scrollLeft;
-    const top = bounds.top - parentBounds.top + this.visualLayerParent.scrollTop;
+    const canvasStyle = getComputedStyle(gameCanvas);
+    const layout = calculateVisualLayerLayout({
+      left: gameCanvas.offsetLeft,
+      top: gameCanvas.offsetTop,
+      width: Number.parseFloat(canvasStyle.width),
+      height: Number.parseFloat(canvasStyle.height)
+    }, this.width, this.height);
     Object.assign(this.hudOverlay.style, {
-      left: `${left}px`,
-      top: `${top}px`,
-      width: `${bounds.width}px`,
-      height: `${bounds.height}px`
+      left: `${layout.left}px`,
+      top: `${layout.top}px`,
+      width: `${layout.width}px`,
+      height: `${layout.height}px`
     });
-    const scaleX = bounds.width / this.width;
-    const scaleY = bounds.height / this.height;
+    const grass = this.textures.get("grass").getSourceImage() as HTMLImageElement;
+    Object.assign(this.stationaryBackground.style, {
+      left: `${layout.left}px`,
+      top: `${layout.top}px`,
+      width: `${layout.width}px`,
+      height: `${layout.height}px`,
+      backgroundSize: `${grass.width * 2.3 * layout.scaleX}px ${grass.height * 2.3 * layout.scaleY}px`
+    });
     Object.assign(this.scoreLabel.style, {
-      left: `${14 * scaleX}px`,
-      top: `${13 * scaleY}px`,
-      fontSize: `${22 * scaleX}px`
+      left: `${14 * layout.scaleX}px`,
+      top: `${13 * layout.scaleY}px`,
+      fontSize: `${22 * layout.scaleX}px`
     });
     Object.assign(this.highScoreLabel.style, {
-      left: `${14 * scaleX}px`,
-      top: `${43 * scaleY}px`,
-      fontSize: `${15 * scaleX}px`
+      left: `${14 * layout.scaleX}px`,
+      top: `${43 * layout.scaleY}px`,
+      fontSize: `${15 * layout.scaleX}px`
     });
     if (this.sensorRecenterButton) {
-      this.sensorRecenterButton.style.left = `${left + bounds.width - this.sensorRecenterButton.offsetWidth - 8}px`;
-      this.sensorRecenterButton.style.top = `${top + 8}px`;
+      this.sensorRecenterButton.style.left = `${layout.left + layout.width - this.sensorRecenterButton.offsetWidth - 8}px`;
+      this.sensorRecenterButton.style.top = `${layout.top + 8}px`;
       this.sensorRecenterButton.style.right = "auto";
     }
-    gameCanvas.style.transform = originalTransform;
-    gameCanvas.style.transition = originalTransition;
     this.visualLayerBoundsDirty = false;
   }
 
@@ -453,6 +468,10 @@ export class GameScene extends MyScene {
         parent.appendChild(layer);
       }
     }
+    if (this.stationaryBackground && this.gameCanvas.parentElement === parent
+      && this.stationaryBackground.parentElement !== parent) {
+      parent.insertBefore(this.stationaryBackground, this.gameCanvas);
+    }
   }
 
   private destroyVisualLayers() {
@@ -464,6 +483,7 @@ export class GameScene extends MyScene {
     window.removeEventListener("resize", this.invalidateVisualLayerBounds);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.invalidateVisualLayerBounds);
     this.hudOverlay?.remove();
+    this.stationaryBackground?.remove();
     this.gameCanvas.style.transform = "";
     this.sensorRecenterButton?.remove();
     this.sensorRecenterButton = null;

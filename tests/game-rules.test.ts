@@ -3,6 +3,8 @@ import { describe, it } from "node:test";
 import {
   calculateAntVelocity,
   calculateDeviceTilt,
+  calculateVisualLayerLayout,
+  debugColorToTint,
   insetHorizontalTrayBounds,
   isNewHighScore,
   isTabletDevice,
@@ -11,6 +13,20 @@ import {
   resolveAntEscape,
   resolveFoodLoss
 } from "../game-rules";
+
+describe("visual rendering helpers", () => {
+  it("converts debug hex colors to Phaser fill tint values", () => {
+    assert.equal(debugColorToTint("#ff4136"), 0xff4136);
+    assert.equal(debugColorToTint("#0074d9"), 0x0074d9);
+  });
+
+  it("uses untransformed layout metrics to position the HUD", () => {
+    assert.deepEqual(
+      calculateVisualLayerLayout({ left: 18, top: 24, width: 290, height: 150 }, 580, 300),
+      { left: 18, top: 24, width: 290, height: 150, scaleX: 0.5, scaleY: 0.5 }
+    );
+  });
+});
 
 describe("tablet detection", () => {
   it("recognizes Android tablets from user agent client hints", () => {

@@ -108,6 +108,34 @@ export interface Point {
   y: number;
 }
 
+export function debugColorToTint(debugColor: string): number {
+  return Number.parseInt(debugColor.slice(1), 16);
+}
+
+export interface VisualLayerMetrics {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+export interface VisualLayerLayout extends VisualLayerMetrics {
+  scaleX: number;
+  scaleY: number;
+}
+
+export function calculateVisualLayerLayout(
+  metrics: VisualLayerMetrics,
+  gameWidth: number,
+  gameHeight: number
+): VisualLayerLayout {
+  return {
+    ...metrics,
+    scaleX: metrics.width / gameWidth,
+    scaleY: metrics.height / gameHeight
+  };
+}
+
 export function pickNearestTarget<T extends Point>(
   originX: number,
   originY: number,
