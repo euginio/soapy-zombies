@@ -2,6 +2,8 @@
 
 Español: [LEEME.md](LEEME.md)
 
+Code tour: [GAME_GUIDE.md](GAME_GUIDE.md)
+
 ## About the game
 
 Defend the food from the ants! Ants come in from the edges of the tray and head for the food. Tilt the tray to make them fall off: each ant that falls earns one point. An extra ant appears for every seven ants that fall. The game ends when all the food is gone.

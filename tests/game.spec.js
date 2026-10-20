@@ -288,9 +288,10 @@ test("tablet orientation tilts the board and re-centers from the current angle",
       return [
         document.querySelector("#tilting-board").parentElement === fullscreenTarget,
         document.querySelector("#stationary-hud").parentElement === fullscreenTarget,
+        document.querySelector("#game-over-overlay").parentElement === fullscreenTarget,
         document.querySelector("#recenter-device-tilt").parentElement === fullscreenTarget
       ];
-    })).toEqual([true, true, true]);
+    })).toEqual([true, true, true, true]);
     await page.evaluate(() => {
       window.__originalCanvasParentForFullscreenTest.appendChild(window.__gameCanvasForFullscreenTest);
       delete window.__gameCanvasForFullscreenTest;
@@ -299,19 +300,16 @@ test("tablet orientation tilts the board and re-centers from the current angle",
     });
     await expect.poll(() => page.evaluate(() => {
       const canvasParent = document.querySelector("#tilting-board").parentElement;
-      return [
-        document.querySelector("#tilting-board").parentElement === canvasParent,
-        document.querySelector("#stationary-hud").parentElement === canvasParent,
-        document.querySelector("#recenter-device-tilt").parentElement === canvasParent
-      ];
-    })).toEqual([true, true, true]);
+      return ["#tilting-board", "#stationary-hud", "#game-over-overlay", "#recenter-device-tilt"]
+        .every((selector) => document.querySelector(selector)?.parentElement === canvasParent);
+    })).toBe(true);
     expect(pageErrors).toEqual([]);
   } finally {
     await context.close();
   }
 });
 
-test("game over saves a new high score, levels the tray, and restarts the round", async ({ page }) => {
+test("game over shows the score and offers restart and home actions", async ({ page }) => {
   const pageErrors = [];
   await stubFullscreenAndExposeScenes(page);
   await page.addInitScript(() => {
@@ -342,12 +340,18 @@ test("game over saves a new high score, levels the tray, and restarts the round"
     foodCount: 0,
     highScore: "5"
   });
+  const gameOverOverlay = page.locator("#game-over-overlay");
+  await expect(gameOverOverlay).toBeVisible();
+  await expect(gameOverOverlay).toContainText("¡Fin de la partida!");
+  await expect(gameOverOverlay.locator("#game-over-score")).toHaveText("5");
+  await expect(gameOverOverlay.locator("#game-over-record")).toHaveText("5");
   await expect
     .poll(() => page.locator("#tilting-board").evaluate((element) => element.style.transform))
     .toBe("perspective(900px) rotateX(0deg) rotateY(0deg)");
   await page.keyboard.up("ArrowRight");
 
-  await expect.poll(() => readGameState(page), { timeout: 8_000 }).toMatchObject({
+  await page.locator("#game-over-restart").click();
+  await expect.poll(() => readGameState(page)).toMatchObject({
     gameOver: false,
     score: 0,
     foodCount: 8,
@@ -355,6 +359,22 @@ test("game over saves a new high score, levels the tray, and restarts the round"
     highScoreText: "HI 5",
     highScore: "5"
   });
+  await expect(page.locator("#stationary-background")).toHaveCount(1);
+  await expect(page.locator("#stationary-hud")).toHaveCount(1);
+  await expect(page.locator("#game-over-overlay")).toHaveCount(1);
+
+  await page.evaluate(() => {
+    const gameScene = window.__gameSceneForTest;
+    gameScene.foods.getChildren().slice().forEach((food) => food.destroy());
+  });
+  await expect(page.locator("#game-over-overlay")).toBeVisible();
+  await page.locator("#game-over-home").click();
+  await expect.poll(() => page.evaluate(() => Boolean(
+    window.__titleSceneForTest?.sys.isActive()
+  ))).toBe(true);
+  await expect(page.locator("#stationary-background")).toHaveCount(0);
+  await expect(page.locator("#stationary-hud")).toHaveCount(0);
+  await expect(page.locator("#game-over-overlay")).toHaveCount(0);
   expect(pageErrors).toEqual([]);
 });
 

@@ -4,6 +4,7 @@ export interface AntEscapeOutcome {
 }
 
 export function resolveAntEscape(score: number, antSpawnRate: number): AntEscapeOutcome {
+  // The score is also the counter used to decide when the next ant appears.
   const nextScore = score + 1;
   return {
     score: nextScore,
@@ -17,6 +18,7 @@ export interface FoodLossOutcome {
 }
 
 export function resolveFoodLoss(foodCount: number): FoodLossOutcome {
+  // The round ends exactly when the final piece of food is removed.
   const remainingFood = foodCount - 1;
   return {
     foodCount: remainingFood,
@@ -41,6 +43,7 @@ export function calculateAntVelocity(
   gravityY: number,
   gravityFactor: number
 ): AntVelocity {
+  // Divide by the sum of axis distances so diagonal pursuit is not faster than straight pursuit.
   const totalDistance = Math.abs(xDistance) + Math.abs(yDistance);
   const directionX = totalDistance === 0 ? 0 : (-xDistance / totalDistance) * antSpeed;
   const directionY = totalDistance === 0 ? 0 : (-yDistance / totalDistance) * antSpeed;
@@ -91,6 +94,7 @@ export function calculateDeviceTilt(
   screenAngle: number,
   maxSensorAngle = 30
 ): DeviceTilt {
+  // Rotate sensor axes into the current screen orientation, then normalize and clamp them.
   const angle = screenAngle * Math.PI / 180;
   const deltaBeta = beta - baselineBeta;
   const deltaGamma = gamma - baselineGamma;
@@ -129,6 +133,7 @@ export function calculateVisualLayerLayout(
   gameWidth: number,
   gameHeight: number
 ): VisualLayerLayout {
+  // Convert canvas pixel dimensions into scale factors relative to the game's logical size.
   return {
     ...metrics,
     scaleX: metrics.width / gameWidth,
@@ -141,6 +146,7 @@ export function pickNearestTarget<T extends Point>(
   originY: number,
   targets: T[]
 ): T | null {
+  // A missing target is represented explicitly so callers can stop movement safely.
   if (targets.length === 0) {
     return null;
   }
@@ -159,6 +165,7 @@ export interface Rect {
 }
 
 export function insetHorizontalTrayBounds(tray: Rect, horizontalInset = 25): Rect {
+  // Shrink the tray's side edges so ants can fall when they move beyond its usable surface.
   return {
     x: tray.x + horizontalInset,
     y: tray.y,

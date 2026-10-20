@@ -22,7 +22,7 @@ import { MyScene } from "./my-scene";
 export class GameScene extends MyScene {
   private static readonly maxVisualTilt = 10;
   private gameCanvas: HTMLCanvasElement;
-  private hudOverlay: HTMLDivElement;
+  private hudOverlay: HTMLDivElement | null = null;
   private scoreLabel: HTMLDivElement;
   private highScoreLabel: HTMLDivElement;
   private visualLayerParent: HTMLElement;
@@ -37,7 +37,10 @@ export class GameScene extends MyScene {
   private deviceOrientationHandler: (event: DeviceOrientationEvent) => void;
   private deviceMotionHandler: (event: DeviceMotionEvent) => void;
   private sensorRecenterButton: HTMLButtonElement | null = null;
-  private stationaryBackground: HTMLDivElement;
+  private stationaryBackground: HTMLDivElement | null = null;
+  private gameOverOverlay: HTMLDivElement | null = null;
+  private finalScoreValue: HTMLSpanElement;
+  private finalHighScoreValue: HTMLSpanElement;
   private latestOrientation: { beta: number; gamma: number } | null = null;
   private sensorBaseline: { beta: number; gamma: number } | null = null;
   private deviceTilt: { x: number; y: number } | null = null;
@@ -76,6 +79,7 @@ export class GameScene extends MyScene {
     if (this.gameOver) {
       return;
     }
+    // Keep scoring and spawn timing in the pure rule module; this scene applies the result.
     const outcome = resolveAntEscape(this.score, this.zombieRate);
     this.score = outcome.score;
     this.scoreText.setText(this.score.toString());
@@ -104,21 +108,32 @@ export class GameScene extends MyScene {
     if (this.gameOver) {
       return;
     }
+    // Set this first so later collisions or updates cannot process the ending twice.
     this.gameOver = true;
     if (isNewHighScore(this.score, this.currentHighScore)) {
       this.currentHighScore = this.score;
       localStorage.setItem('highScore', this.score.toString());
     }
+    this.highScoreLabel.textContent = `HI ${this.currentHighScore}`;
+    this.finalScoreValue.textContent = this.score.toString();
+    this.finalHighScoreValue.textContent = this.currentHighScore.toString();
+    this.gameOverOverlay!.style.display = "flex";
+    this.gameOverOverlay!.setAttribute("aria-hidden", "false");
+    this.gameOverOverlay!.querySelector("button")?.focus();
     this.anims.pauseAll();
     this.physics.pause();
-
-    this.time.delayedCall(4000, () => {
-      this.restart();
-    });
   }
 
   restart() {
+    this.destroyVisualLayers();
+    this.removeMotionListeners();
     this.scene.restart();
+  }
+
+  private returnToTitle() {
+    this.destroyVisualLayers();
+    this.removeMotionListeners();
+    this.scene.start("TitleScene");
   }
 
   create(): void {
@@ -127,6 +142,7 @@ export class GameScene extends MyScene {
     this.gameOver = false;
     this.foodCount = this.initialFood;
     const canvas = this.game.canvas;
+    // These HTML layers stay fixed while only the Phaser canvas receives a tilt transform.
     this.createVisualLayers(canvas);
     this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.syncVisualLayerBoundsWhenNeeded, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroyVisualLayers, this);
@@ -138,16 +154,16 @@ export class GameScene extends MyScene {
       this.createSensorRecenterButton();
     }
 
-    let divider = 4
-    let antFrames = [...Array(Math.floor(62/divider)).keys()].map(e=>e*divider)//using just 20 frames
-    this.anims.create({
-      key: 'walk',
-      frames: this.anims.generateFrameNumbers('ant_sheet',{frames:antFrames}),
-      // frames: this.anims.generateFrameNumbers('ant_sheet',{start:0,end:61}),
-      duration: 150,
-      // frameRate: 800,
-      repeat: -1
-    });
+    if (!this.anims.exists("walk")) {
+      const divider = 4;
+      const antFrames = [...Array(Math.floor(62 / divider)).keys()].map((index) => index * divider);
+      this.anims.create({
+        key: "walk",
+        frames: this.anims.generateFrameNumbers("ant_sheet", { frames: antFrames }),
+        duration: 150,
+        repeat: -1
+      });
+    }
 
     //  Input Events
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -182,6 +198,7 @@ export class GameScene extends MyScene {
     this.physics.add.collider(this.ants, this.ants, null, null, this);
     // this.physics.add.overlap(this.ants, this.tray, this.antOut, null, this);
     // this.ants.children.iterate((z:Ant)=>z.init())
+    // Prefer orientation angles when available; raw acceleration is the fallback input.
     this.deviceMotionHandler = (event: DeviceMotionEvent) => {
       const acceleration = event.accelerationIncludingGravity;
       if (this.deviceTilt) {
@@ -202,6 +219,7 @@ export class GameScene extends MyScene {
       if (this.sensorRecenterButton) {
         this.sensorRecenterButton.style.display = "block";
       }
+      // Treat the first valid reading as level to avoid an initial jump in gravity.
       if (!this.sensorBaseline) {
         this.sensorBaseline = { beta: event.beta, gamma: event.gamma };
         this.deviceTilt = { x: 0, y: 0 };
@@ -267,6 +285,7 @@ export class GameScene extends MyScene {
     // let ant:Ant = <Ant>this.ants.getChildren()[0];
     // this.scoreText.setText(`angulo: ${ant.body.angle},${ant.body.facing},${ant.angle}`);
 
+    // Sensor gravity drives physics; the canvas tilt is a separate visual effect.
     if (this.sys.game.device.os.desktop && !this.deviceTilt) {
       this.checkCursors();
       this.applyBoardTilt(this.gravity.x, this.gravity.y);
@@ -290,6 +309,7 @@ export class GameScene extends MyScene {
   }
 
   private applyVisualTilt(tiltX: number, tiltY: number) {
+    // Transform the canvas alone so the stationary background and HUD do not shift.
     this.gameCanvas.style.transform = `perspective(900px) rotateX(${-tiltY}deg) rotateY(${tiltX}deg)`;
   }
 
@@ -298,6 +318,7 @@ export class GameScene extends MyScene {
       return;
     }
 
+    // The current device pose becomes the new neutral pose.
     this.sensorBaseline = { ...this.latestOrientation };
     this.deviceTilt = { x: 0, y: 0 };
     this.gravity.x = 0;
@@ -359,6 +380,7 @@ export class GameScene extends MyScene {
     this.visualLayerParent = gameCanvas.parentElement || document.body;
     this.setVisualLayerParent(this.visualLayerParent);
 
+    // Put the grass behind the canvas as a DOM layer so it never inherits the canvas tilt.
     this.stationaryBackground = document.createElement("div");
     this.stationaryBackground.id = "stationary-background";
     Object.assign(this.stationaryBackground.style, {
@@ -382,6 +404,7 @@ export class GameScene extends MyScene {
     this.highScoreLabel = this.createHudLabel("high-score-label", "#201");
     this.hudOverlay.append(this.scoreLabel, this.highScoreLabel);
     this.visualLayerParent.appendChild(this.hudOverlay);
+    this.createGameOverOverlay();
     this.syncVisualLayerBounds(gameCanvas);
 
     this.visualLayerResizeObserver = new ResizeObserver(this.invalidateVisualLayerBounds);
@@ -418,6 +441,95 @@ export class GameScene extends MyScene {
     this.gameCanvas.style.marginTop = `${offsetY}px`;
   };
 
+  private createGameOverOverlay() {
+    const overlay = document.createElement("div");
+    overlay.id = "game-over-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-labelledby", "game-over-title");
+    overlay.setAttribute("aria-hidden", "true");
+    Object.assign(overlay.style, {
+      position: "absolute",
+      display: "none",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: "12",
+      background: "rgba(15, 32, 12, 0.58)",
+      color: "#172312",
+      fontFamily: "system-ui, sans-serif",
+      textAlign: "center",
+      pointerEvents: "auto",
+      boxSizing: "border-box"
+    });
+
+    const panel = document.createElement("div");
+    Object.assign(panel.style, {
+      width: "min(90%, 22em)",
+      boxSizing: "border-box",
+      padding: "1.15em",
+      borderRadius: "0.8em",
+      background: "#fffdf4",
+      boxShadow: "0 0.5em 1.5em rgba(0, 0, 0, 0.3)"
+    });
+
+    const title = document.createElement("h2");
+    title.id = "game-over-title";
+    title.textContent = "¡Fin de la partida!";
+    Object.assign(title.style, { margin: "0 0 0.75em", fontSize: "1.45em" });
+
+    const score = document.createElement("p");
+    score.style.margin = "0.4em 0";
+    score.append("Puntaje: ");
+    this.finalScoreValue = document.createElement("span");
+    this.finalScoreValue.id = "game-over-score";
+    score.appendChild(this.finalScoreValue);
+
+    const highScore = document.createElement("p");
+    highScore.style.margin = "0.4em 0 1em";
+    highScore.append("Récord: ");
+    this.finalHighScoreValue = document.createElement("span");
+    this.finalHighScoreValue.id = "game-over-record";
+    highScore.appendChild(this.finalHighScoreValue);
+
+    const actions = document.createElement("div");
+    Object.assign(actions.style, {
+      display: "flex",
+      justifyContent: "center",
+      flexWrap: "wrap",
+      gap: "0.55em"
+    });
+
+    const createButton = (id: string, label: string, background: string, onClick: () => void) => {
+      const button = document.createElement("button");
+      button.id = id;
+      button.type = "button";
+      button.textContent = label;
+      Object.assign(button.style, {
+        flex: "1 1 9em",
+        minHeight: "2.7em",
+        padding: "0.6em 0.8em",
+        border: "0",
+        borderRadius: "0.45em",
+        background,
+        color: "white",
+        font: "inherit",
+        fontWeight: "700",
+        cursor: "pointer"
+      });
+      button.addEventListener("click", onClick);
+      return button;
+    };
+
+    actions.append(
+      createButton("game-over-restart", "Volver a jugar", "#26733a", () => this.restart()),
+      createButton("game-over-home", "Volver al inicio", "#4b5948", () => this.returnToTitle())
+    );
+    panel.append(title, score, highScore, actions);
+    overlay.appendChild(panel);
+    this.gameOverOverlay = overlay;
+    this.visualLayerParent.appendChild(overlay);
+  }
+
   private createHudLabel(id: string, color: string) {
     const label = document.createElement("div");
     label.id = id;
@@ -432,6 +544,7 @@ export class GameScene extends MyScene {
   }
 
   private syncVisualLayerBounds(gameCanvas: HTMLCanvasElement) {
+    // Phaser scales its canvas to fit the page; mirror that layout for fixed DOM overlays.
     this.setVisualLayerParent(gameCanvas.parentElement || document.body);
     const canvasStyle = getComputedStyle(gameCanvas);
     const layout = calculateVisualLayerLayout({
@@ -446,10 +559,15 @@ export class GameScene extends MyScene {
       width: `${layout.width}px`,
       height: `${layout.height}px`
     });
+    this.gameOverOverlay!.style.left = `${layout.left}px`;
+    this.gameOverOverlay!.style.top = `${layout.top}px`;
+    this.gameOverOverlay!.style.width = `${layout.width}px`;
+    this.gameOverOverlay!.style.height = `${layout.height}px`;
+    this.gameOverOverlay!.style.fontSize = `${16 * layout.scaleX}px`;
     const grass = this.textures.get("grass").getSourceImage() as HTMLImageElement;
     const overscanX = 60 * layout.scaleX;
     const overscanY = 60 * layout.scaleY;
-    Object.assign(this.stationaryBackground.style, {
+    Object.assign(this.stationaryBackground!.style, {
       left: `${layout.left - overscanX}px`,
       top: `${layout.top - overscanY}px`,
       width: `${layout.width + overscanX * 2}px`,
@@ -489,7 +607,7 @@ export class GameScene extends MyScene {
     }
     this.visualLayerParent = parent;
 
-    for (const layer of [this.hudOverlay, this.sensorRecenterButton]) {
+    for (const layer of [this.hudOverlay, this.sensorRecenterButton, this.gameOverOverlay]) {
       if (layer && layer.parentElement !== parent) {
         parent.appendChild(layer);
       }
@@ -501,6 +619,7 @@ export class GameScene extends MyScene {
   }
 
   private destroyVisualLayers() {
+    // A restarted scene reuses the canvas, so remove observers, transforms, and DOM layers first.
     this.events.off(Phaser.Scenes.Events.POST_UPDATE, this.syncVisualLayerBoundsWhenNeeded, this);
     this.visualLayerResizeObserver?.disconnect();
     this.visualLayerResizeObserver = null;
@@ -513,7 +632,11 @@ export class GameScene extends MyScene {
       this.originalScaleUpdateCenter = null;
     }
     this.hudOverlay?.remove();
+    this.gameOverOverlay?.remove();
     this.stationaryBackground?.remove();
+    this.hudOverlay = null;
+    this.gameOverOverlay = null;
+    this.stationaryBackground = null;
     this.gameCanvas.style.transform = "";
     this.sensorRecenterButton?.remove();
     this.sensorRecenterButton = null;
@@ -524,6 +647,7 @@ export class GameScene extends MyScene {
   }
 
   private removeMotionListeners() {
+    // Window listeners outlive a Phaser scene unless explicitly removed.
     if (this.deviceMotionHandler) {
       window.removeEventListener("devicemotion", this.deviceMotionHandler);
       this.deviceMotionHandler = null;

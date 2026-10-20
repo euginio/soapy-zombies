@@ -16,7 +16,7 @@ export let CONST = {
   ]
 };
 
-export const DEBUG_MODE = true;
+export const DEBUG_MODE = false;
 
 export const ANT_DEBUG_COLORS = [
   "#ff4136",

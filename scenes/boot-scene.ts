@@ -16,6 +16,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
+    // Assets loaded here are cached by Phaser and can be reused by later scenes.
     // set the background and create loading bar
     this.cameras.main.setBackgroundColor(0x98d687);
     this.createLoadingbar();
@@ -59,6 +60,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   update(): void {
+    // preload() has completed before update() runs, so the title can use these assets.
     this.scene.start("TitleScene");
   }
 

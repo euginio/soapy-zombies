@@ -35,6 +35,7 @@ export class Food extends MySprite {
     }
     
     placeInTray(){
+        // Keep food away from the tray's edges so ants have room to approach it.
         let tray = this.scene.tray
         let trayB=tray.getBounds()
         let margin= 40
@@ -52,6 +53,7 @@ export class Food extends MySprite {
             return;
         }
 
+        // Count food only when an active piece is eaten, not during scene cleanup.
         if (this.body && this.body.enable) {
             this.scene.destroyFood(this);
             this.disableBody(true, true);
@@ -72,6 +74,7 @@ export class Food extends MySprite {
     beingEat() {
         if (this.body.enable && !this.isBeingEaten) {
             this.isBeingEaten = true;
+            // Guard against multiple collision callbacks starting duplicate eat animations.
             this.scene.tweens.add({
                 targets: this, 
                 scale: { value: 0, duration: 1500, ease: 'Power1' },

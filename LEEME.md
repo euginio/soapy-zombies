@@ -2,6 +2,8 @@
 
 English: [README.md](README.md)
 
+Code tour (English): [GAME_GUIDE.md](GAME_GUIDE.md)
+
 ## ¿De qué se trata?
 
 ¡Defendé la comida de las hormigas! Las hormigas entran por los bordes de la bandeja y avanzan hacia la comida. Mové la bandeja para hacerlas caer: cada hormiga que cae suma un punto. Cada siete hormigas que caen aparece una más. La partida termina cuando se acaba la comida.

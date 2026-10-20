@@ -84,6 +84,7 @@ export class Ant extends MySprite {
             return
         }
 
+        // Re-select each frame so ants can react when food is eaten or moved.
         this.myFood = this.pickNearestFood();
         if (this.myFood) {
             this.faceMyFood();
@@ -97,6 +98,7 @@ export class Ant extends MySprite {
 
         // this.setAngle(Phaser.Math.RadToDeg(this.body.angle)+90)
 
+        // The inset bounds create a narrow edge where an ant counts as having fallen.
         const trayOverlapBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
         this.isTouchingTray = rectanglesOverlap(trayOverlapBounds, this.getBounds());
         if (this.isClimbing && this.isTouchingTray) {
@@ -129,6 +131,7 @@ export class Ant extends MySprite {
         this.isClimbing = false;
         this.setImmovable(true);
         this.disableBody(false, false);
+        // Report the escape once, then animate the ant before returning it to the tray.
         this.scene.antDied(this);
         
         this.scene.tweens.add({
@@ -169,6 +172,7 @@ export class Ant extends MySprite {
         // this.setAcceleration(
         // let xDistance = Math.abs(this.x-this.scene.food.x)
         // let yDistance = Math.abs(this.y-this.scene.food.y)
+        // Pursuit and tray gravity are combined here; gravity itself is managed by the scene.
         const velocity = calculateAntVelocity(
             xDistance,
             yDistance ?? 0,

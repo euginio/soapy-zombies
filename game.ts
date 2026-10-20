@@ -32,6 +32,7 @@ const config: Phaser.Types.Core.GameConfig = {
     }
   },
   parent: "game",
+  // Phaser starts with BootScene, then scenes transition to the title and gameplay.
   scene: [BootScene, TitleScene, GameScene],
   // backgroundColor: "#de3412",
   // render: { pixelArt: false, antialias: true }
@@ -44,5 +45,6 @@ export class Game extends Phaser.Game {
 }
 
 window.addEventListener("load", () => {
+  // Wait until the page is ready before Phaser attaches its canvas to #game.
   new Game(config);
 });
