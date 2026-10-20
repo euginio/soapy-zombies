@@ -29,6 +29,7 @@ export class GameScene extends MyScene {
   private readonly visualLayerParentPositions = new Map<HTMLElement, string>();
   private visualLayerResizeObserver: ResizeObserver | null = null;
   private visualLayerMutationObserver: MutationObserver | null = null;
+  private originalScaleUpdateCenter: (() => void) | null = null;
   private visualLayerBoundsDirty = false;
   private readonly invalidateVisualLayerBounds = () => {
     this.visualLayerBoundsDirty = true;
@@ -150,6 +151,7 @@ export class GameScene extends MyScene {
 
     //  Input Events
     this.cursors = this.input.keyboard.createCursorKeys();
+    this.input.keyboard.addCapture(["UP", "DOWN", "LEFT", "RIGHT"]);
 
     this.tray = this.add.image(this.width / 2, this.height / 2, 'tray');
     this.tray.setSize(this.tray.width-20,this.tray.height-3)
@@ -349,6 +351,8 @@ export class GameScene extends MyScene {
   private createVisualLayers(gameCanvas: HTMLCanvasElement) {
     this.gameCanvas = gameCanvas;
     this.gameCanvas.id = "tilting-board";
+    this.originalScaleUpdateCenter = this.scale.updateCenter;
+    this.scale.updateCenter = this.updateCanvasCenterWithoutTransform;
     Object.assign(this.gameCanvas.style, {
       transformOrigin: "center center",
       transition: "transform 120ms ease-out"
@@ -362,7 +366,7 @@ export class GameScene extends MyScene {
       position: "absolute",
       backgroundImage: 'url("./assets/images/grass.png")',
       backgroundPosition: "center",
-      backgroundRepeat: "no-repeat",
+      backgroundRepeat: "repeat",
       pointerEvents: "none"
     });
     this.visualLayerParent.insertBefore(this.stationaryBackground, gameCanvas);
@@ -394,6 +398,27 @@ export class GameScene extends MyScene {
     this.scale.on(Phaser.Scale.Events.RESIZE, this.invalidateVisualLayerBounds);
   }
 
+  private updateCanvasCenterWithoutTransform = () => {
+    if (this.scale.autoCenter === Phaser.Scale.NO_CENTER) {
+      return;
+    }
+
+    const canvasStyle = getComputedStyle(this.gameCanvas);
+    const width = Number.parseFloat(canvasStyle.width);
+    const height = Number.parseFloat(canvasStyle.height);
+    let offsetX = Math.floor((this.scale.parentSize.width - width) / 2);
+    let offsetY = Math.floor((this.scale.parentSize.height - height) / 2);
+
+    if (this.scale.autoCenter === Phaser.Scale.CENTER_HORIZONTALLY) {
+      offsetY = 0;
+    } else if (this.scale.autoCenter === Phaser.Scale.CENTER_VERTICALLY) {
+      offsetX = 0;
+    }
+
+    this.gameCanvas.style.marginLeft = `${offsetX}px`;
+    this.gameCanvas.style.marginTop = `${offsetY}px`;
+  };
+
   private createHudLabel(id: string, color: string) {
     const label = document.createElement("div");
     label.id = id;
@@ -423,11 +448,13 @@ export class GameScene extends MyScene {
       height: `${layout.height}px`
     });
     const grass = this.textures.get("grass").getSourceImage() as HTMLImageElement;
+    const overscanX = 60 * layout.scaleX;
+    const overscanY = 60 * layout.scaleY;
     Object.assign(this.stationaryBackground.style, {
-      left: `${layout.left}px`,
-      top: `${layout.top}px`,
-      width: `${layout.width}px`,
-      height: `${layout.height}px`,
+      left: `${layout.left - overscanX}px`,
+      top: `${layout.top - overscanY}px`,
+      width: `${layout.width + overscanX * 2}px`,
+      height: `${layout.height + overscanY * 2}px`,
       backgroundSize: `${grass.width * 2.3 * layout.scaleX}px ${grass.height * 2.3 * layout.scaleY}px`
     });
     Object.assign(this.scoreLabel.style, {
@@ -482,6 +509,10 @@ export class GameScene extends MyScene {
     this.visualLayerMutationObserver = null;
     window.removeEventListener("resize", this.invalidateVisualLayerBounds);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.invalidateVisualLayerBounds);
+    if (this.originalScaleUpdateCenter) {
+      this.scale.updateCenter = this.originalScaleUpdateCenter;
+      this.originalScaleUpdateCenter = null;
+    }
     this.hudOverlay?.remove();
     this.stationaryBackground?.remove();
     this.gameCanvas.style.transform = "";

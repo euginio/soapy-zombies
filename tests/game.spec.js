@@ -137,6 +137,17 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
     hudText: "0HI 0"
   });
 
+  const anchoredLayout = await page.evaluate(() => {
+    const canvas = document.querySelector("#tilting-board");
+    const hudBounds = document.querySelector("#stationary-hud").getBoundingClientRect();
+    return {
+      marginLeft: canvas.style.marginLeft,
+      marginTop: canvas.style.marginTop,
+      hudX: hudBounds.x,
+      hudY: hudBounds.y
+    };
+  });
+
   const alignedBounds = await Promise.all([
     canvas.boundingBox(),
     stationaryHud.boundingBox()
@@ -162,6 +173,16 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
         y: window.__gameSceneForTest.gravity.y
       }))).toEqual(expectedGravity);
       await expect(stationaryHud).toHaveCSS("transform", "none");
+      await expect.poll(() => page.evaluate(() => {
+        const canvas = document.querySelector("#tilting-board");
+        const hudBounds = document.querySelector("#stationary-hud").getBoundingClientRect();
+        return {
+          marginLeft: canvas.style.marginLeft,
+          marginTop: canvas.style.marginTop,
+          hudX: hudBounds.x,
+          hudY: hudBounds.y
+        };
+      })).toEqual(anchoredLayout);
     } finally {
       await page.keyboard.up(key);
     }
