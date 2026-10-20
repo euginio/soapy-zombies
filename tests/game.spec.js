@@ -111,60 +111,31 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
   const stationaryHud = page.locator("#stationary-hud");
   await expect(tiltedBoard).toBeVisible();
   await expect(stationaryHud).toBeVisible();
-  expect(await page.locator("#game").locator("#tilting-board-layer").count()).toBe(1);
+  expect(await tiltedBoard.evaluate((element) => element.tagName)).toBe("CANVAS");
   expect(await page.locator("#game").locator("#stationary-hud").count()).toBe(1);
   await waitForGameScene(page);
-  await expect
-    .poll(() => tiltedBoard.evaluate((element) => {
-      const pixels = element.getContext("2d").getImageData(0, 0, element.width, element.height).data;
-      return pixels.some((value, index) => index % 4 === 3 && value > 0);
-    }))
-    .toBe(true);
-  const renderedDebugColors = await tiltedBoard.evaluate((element) => {
-    const context = element.getContext("2d");
-    const pixels = context.getImageData(0, 0, element.width, element.height).data;
-    const palette = [
-      [255, 65, 54],
-      [0, 116, 217],
-      [46, 204, 64],
-      [255, 133, 27],
-      [177, 13, 201],
-      [57, 204, 204],
-      [240, 18, 190],
-      [255, 220, 0]
-    ];
-
-    return palette.map(([red, green, blue]) => {
-      let count = 0;
-      for (let index = 0; index < pixels.length; index += 4) {
-        if (pixels[index] === red && pixels[index + 1] === green && pixels[index + 2] === blue) {
-          count++;
-        }
-      }
-      return count;
-    }).filter((count) => count > 0).length;
-  });
-  expect(renderedDebugColors).toBeGreaterThanOrEqual(2);
-  await expect
-    .poll(() => stationaryHud.evaluate((element) => {
-      const pixels = element.getContext("2d").getImageData(0, 0, element.width, element.height).data;
-      return pixels.some((value, index) => index % 4 === 3 && value > 0);
-    }))
-    .toBe(true);
+  await expect.poll(() => page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    return {
+      renderer: scene.game.renderer.type,
+      trayVisible: scene.tray.visible,
+      visibleAnts: scene.ants.getChildren().filter((ant) => ant.visible).length,
+      visibleFoods: scene.foods.getChildren().filter((food) => food.visible && food.body.enable).length,
+      hudText: document.querySelector("#stationary-hud").textContent
+    };
+  })).toMatchObject({ renderer: 2, trayVisible: true, visibleAnts: 4, visibleFoods: 8, hudText: "0HI 0" });
 
   const alignedBounds = await Promise.all([
     canvas.boundingBox(),
-    page.locator("#tilting-board-layer").boundingBox(),
     stationaryHud.boundingBox()
   ]);
   expect(alignedBounds[1]).toEqual(alignedBounds[0]);
-  expect(alignedBounds[2]).toEqual(alignedBounds[0]);
 
   const directions = [
-    ["ArrowRight", "rotateX(0deg) rotateY(10deg)", { x: 30, y: 0 }],
-    ["ArrowLeft", "rotateX(0deg) rotateY(-10deg)", { x: -30, y: 0 }],
-    ["ArrowUp", "rotateX(10deg) rotateY(0deg)", { x: 0, y: -30 }],
-    ["ArrowDown", "rotateX(-10deg) rotateY(0deg)", { x: 0, y: 30 }]
+    ["ArrowRight", "perspective(900px) rotateX(0deg) rotateY(10deg)", { x: 30, y: 0 }],
+    ["ArrowLeft", "perspective(900px) rotateX(0deg) rotateY(-10deg)", { x: -30, y: 0 }],
+    ["ArrowUp", "perspective(900px) rotateX(10deg) rotateY(0deg)", { x: 0, y: -30 }],
+    ["ArrowDown", "perspective(900px) rotateX(-10deg) rotateY(0deg)", { x: 0, y: 30 }]
   ];
   for (const [key, expectedTransform, expectedGravity] of directions) {
     await page.keyboard.down(key);
@@ -176,14 +147,13 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
         x: window.__gameSceneForTest.gravity.x,
         y: window.__gameSceneForTest.gravity.y
       }))).toEqual(expectedGravity);
-      await expect(canvas).toHaveCSS("transform", "none");
       await expect(stationaryHud).toHaveCSS("transform", "none");
     } finally {
       await page.keyboard.up(key);
     }
     await expect
       .poll(() => tiltedBoard.evaluate((element) => element.style.transform))
-      .toBe("rotateX(0deg) rotateY(0deg)");
+      .toBe("perspective(900px) rotateX(0deg) rotateY(0deg)");
   }
 
   await page.keyboard.down("ArrowRight");
@@ -191,12 +161,11 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
   try {
     await expect
       .poll(() => tiltedBoard.evaluate((element) => element.style.transform))
-      .toBe("rotateX(10deg) rotateY(10deg)");
+      .toBe("perspective(900px) rotateX(10deg) rotateY(10deg)");
     await expect.poll(() => page.evaluate(() => ({
       x: window.__gameSceneForTest.gravity.x,
       y: window.__gameSceneForTest.gravity.y
     }))).toEqual({ x: 30, y: -30 });
-    await expect(canvas).toHaveCSS("transform", "none");
     await expect(stationaryHud).toHaveCSS("transform", "none");
   } finally {
     await page.keyboard.up("ArrowRight");
@@ -237,7 +206,7 @@ test("tablet orientation tilts the board and re-centers from the current angle",
 
     await expect
       .poll(() => tiltedBoard.evaluate((element) => element.style.transform))
-      .toBe("rotateX(0deg) rotateY(10deg)");
+      .toBe("perspective(900px) rotateX(0deg) rotateY(10deg)");
     await expect.poll(() => readGameState(page)).toMatchObject({ gravity: { x: 30, y: 0 } });
     const recenterButton = page.locator("#recenter-device-tilt");
     await expect(recenterButton).toBeVisible();
@@ -262,7 +231,7 @@ test("tablet orientation tilts the board and re-centers from the current angle",
     await expect.poll(() => page.evaluate(() => {
       const fullscreenTarget = document.querySelector("#simulated-fullscreen-target");
       return [
-        document.querySelector("#tilting-board-layer").parentElement === fullscreenTarget,
+        document.querySelector("#tilting-board").parentElement === fullscreenTarget,
         document.querySelector("#stationary-hud").parentElement === fullscreenTarget,
         document.querySelector("#recenter-device-tilt").parentElement === fullscreenTarget
       ];
@@ -276,7 +245,7 @@ test("tablet orientation tilts the board and re-centers from the current angle",
     await expect.poll(() => page.evaluate(() => {
       const canvasParent = document.querySelector("#game canvas").parentElement;
       return [
-        document.querySelector("#tilting-board-layer").parentElement === canvasParent,
+        document.querySelector("#tilting-board").parentElement === canvasParent,
         document.querySelector("#stationary-hud").parentElement === canvasParent,
         document.querySelector("#recenter-device-tilt").parentElement === canvasParent
       ];
@@ -304,7 +273,7 @@ test("game over saves a new high score, levels the tray, and restarts the round"
   await page.keyboard.down("ArrowRight");
   await expect
     .poll(() => page.locator("#tilting-board").evaluate((element) => element.style.transform))
-    .toBe("rotateX(0deg) rotateY(10deg)");
+    .toBe("perspective(900px) rotateX(0deg) rotateY(10deg)");
 
   await page.evaluate(() => {
     const gameScene = window.__gameSceneForTest;
@@ -320,7 +289,7 @@ test("game over saves a new high score, levels the tray, and restarts the round"
   });
   await expect
     .poll(() => page.locator("#tilting-board").evaluate((element) => element.style.transform))
-    .toBe("rotateX(0deg) rotateY(0deg)");
+    .toBe("perspective(900px) rotateX(0deg) rotateY(0deg)");
   await page.keyboard.up("ArrowRight");
 
   await expect.poll(() => readGameState(page), { timeout: 8_000 }).toMatchObject({

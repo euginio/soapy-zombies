@@ -19,16 +19,14 @@ import { MyScene } from "./my-scene";
 
 export class GameScene extends MyScene {
   private static readonly maxVisualTilt = 10;
-  private boardLayer: HTMLDivElement;
-  private boardCanvas: HTMLCanvasElement;
-  private boardContext: CanvasRenderingContext2D;
-  private antTintCanvas: HTMLCanvasElement;
-  private antTintContext: CanvasRenderingContext2D;
-  private hudCanvas: HTMLCanvasElement;
-  private hudContext: CanvasRenderingContext2D;
+  private gameCanvas: HTMLCanvasElement;
+  private hudOverlay: HTMLDivElement;
+  private scoreLabel: HTMLDivElement;
+  private highScoreLabel: HTMLDivElement;
   private visualLayerParent: HTMLElement;
   private readonly visualLayerParentPositions = new Map<HTMLElement, string>();
   private visualLayerResizeObserver: ResizeObserver | null = null;
+  private visualLayerMutationObserver: MutationObserver | null = null;
   private visualLayerBoundsDirty = false;
   private readonly invalidateVisualLayerBounds = () => {
     this.visualLayerBoundsDirty = true;
@@ -77,6 +75,7 @@ export class GameScene extends MyScene {
     const outcome = resolveAntEscape(this.score, this.zombieRate);
     this.score = outcome.score;
     this.scoreText.setText(this.score.toString());
+    this.scoreLabel.textContent = this.score.toString();
     if (outcome.spawnAnt) {
       this.addNewAnt();
     }
@@ -125,7 +124,7 @@ export class GameScene extends MyScene {
     this.foodCount = this.initialFood;
     const canvas = this.game.canvas;
     this.createVisualLayers(canvas);
-    this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.renderVisualLayers, this);
+    this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.syncVisualLayerBoundsWhenNeeded, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.destroyVisualLayers, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.removeMotionListeners, this);
     this.sensorBaseline = null;
@@ -154,13 +153,14 @@ export class GameScene extends MyScene {
     this.tray = this.add.image(this.width / 2, this.height / 2, 'tray');
     this.tray.setSize(this.tray.width-20,this.tray.height-3)
     this.tray.setScale(1.6)
-    this.tray.setVisible(false);
     
     this.scoreText = this.add.text(14, 13, '0', { fontSize: '22px', fontStyle: 'bold', color: '#313' });
     this.scoreText.setVisible(false);
     this.currentHighScore = parseInt(localStorage.getItem('highScore'))||0;
     this.highScoreText = this.add.text(14, 43, 'HI ' + this.currentHighScore, { fontSize: '15px', fontStyle: 'bold', color: '#201' });
     this.highScoreText.setVisible(false);
+    this.scoreLabel.textContent = this.scoreText.text;
+    this.highScoreLabel.textContent = this.highScoreText.text;
 
     this.foods = this.add.group();
     this.foods.runChildUpdate = true;
@@ -168,7 +168,6 @@ export class GameScene extends MyScene {
     for (let index = 0; index < this.foodCount; index++) {
       let newF= new Food(this)
       this.foods.add(newF, true)
-      newF.setVisible(false);
     }
 
     this.ants = this.add.group();
@@ -245,8 +244,10 @@ export class GameScene extends MyScene {
         availableColors.length > 0 ? availableColors : ANT_DEBUG_COLORS
       );
     }
-    ant.setVisible(false);
     this.ants.add(ant, true);
+    if (DEBUG_MODE && ant.debugColor) {
+      ant.setTint(Phaser.Display.Color.HexStringToColor(ant.debugColor).color);
+    }
   }
 
   eatFood(ant: Ant, food: Food) {
@@ -287,7 +288,7 @@ export class GameScene extends MyScene {
   }
 
   private applyVisualTilt(tiltX: number, tiltY: number) {
-    this.boardCanvas.style.transform = `rotateX(${-tiltY}deg) rotateY(${tiltX}deg)`;
+    this.gameCanvas.style.transform = `perspective(900px) rotateX(${-tiltY}deg) rotateY(${tiltX}deg)`;
   }
 
   private recenterDeviceTilt() {
@@ -345,79 +346,97 @@ export class GameScene extends MyScene {
   }
 
   private createVisualLayers(gameCanvas: HTMLCanvasElement) {
-    this.visualLayerParent = gameCanvas.parentElement || document.body;
-    this.setVisualLayerParent(this.visualLayerParent);
-
-    this.boardLayer = document.createElement("div");
-    this.boardLayer.id = "tilting-board-layer";
-    Object.assign(this.boardLayer.style, {
-      position: "absolute",
-      pointerEvents: "none",
-      zIndex: "10",
-      perspective: "900px",
-      perspectiveOrigin: "center center"
-    });
-
-    this.boardCanvas = document.createElement("canvas");
-    this.boardCanvas.id = "tilting-board";
-    this.boardCanvas.width = gameCanvas.width;
-    this.boardCanvas.height = gameCanvas.height;
-    Object.assign(this.boardCanvas.style, {
-      display: "block",
-      width: "100%",
-      height: "100%",
+    this.gameCanvas = gameCanvas;
+    this.gameCanvas.id = "tilting-board";
+    Object.assign(this.gameCanvas.style, {
       transformOrigin: "center center",
       transition: "transform 120ms ease-out"
     });
-    this.boardContext = this.boardCanvas.getContext("2d");
-    this.antTintCanvas = document.createElement("canvas");
-    this.antTintContext = this.antTintCanvas.getContext("2d");
-    this.boardLayer.appendChild(this.boardCanvas);
-    this.visualLayerParent.appendChild(this.boardLayer);
+    this.visualLayerParent = gameCanvas.parentElement || document.body;
+    this.setVisualLayerParent(this.visualLayerParent);
 
-    this.hudCanvas = document.createElement("canvas");
-    this.hudCanvas.id = "stationary-hud";
-    this.hudCanvas.width = gameCanvas.width;
-    this.hudCanvas.height = gameCanvas.height;
-    Object.assign(this.hudCanvas.style, {
+    this.hudOverlay = document.createElement("div");
+    this.hudOverlay.id = "stationary-hud";
+    Object.assign(this.hudOverlay.style, {
       position: "absolute",
       pointerEvents: "none",
-      zIndex: "11"
+      zIndex: "11",
+      overflow: "hidden"
     });
-    this.hudContext = this.hudCanvas.getContext("2d");
-    this.visualLayerParent.appendChild(this.hudCanvas);
+    this.scoreLabel = this.createHudLabel("score-label", "#313");
+    this.highScoreLabel = this.createHudLabel("high-score-label", "#201");
+    this.hudOverlay.append(this.scoreLabel, this.highScoreLabel);
+    this.visualLayerParent.appendChild(this.hudOverlay);
     this.syncVisualLayerBounds(gameCanvas);
 
     this.visualLayerResizeObserver = new ResizeObserver(this.invalidateVisualLayerBounds);
     this.visualLayerResizeObserver.observe(gameCanvas);
     this.visualLayerResizeObserver.observe(this.visualLayerParent);
+    this.visualLayerMutationObserver = new MutationObserver(() => {
+      this.invalidateVisualLayerBounds();
+      const parent = this.gameCanvas.parentElement || document.body;
+      this.visualLayerResizeObserver?.observe(parent);
+    });
+    this.visualLayerMutationObserver.observe(this.visualLayerParent, { childList: true });
     window.addEventListener("resize", this.invalidateVisualLayerBounds);
     this.scale.on(Phaser.Scale.Events.RESIZE, this.invalidateVisualLayerBounds);
   }
 
+  private createHudLabel(id: string, color: string) {
+    const label = document.createElement("div");
+    label.id = id;
+    Object.assign(label.style, {
+      position: "absolute",
+      color,
+      fontFamily: "Courier, monospace",
+      fontWeight: "bold",
+      whiteSpace: "pre"
+    });
+    return label;
+  }
+
   private syncVisualLayerBounds(gameCanvas: HTMLCanvasElement) {
     this.setVisualLayerParent(gameCanvas.parentElement || document.body);
+    const originalTransform = gameCanvas.style.transform;
+    const originalTransition = gameCanvas.style.transition;
+    gameCanvas.style.transition = "none";
+    gameCanvas.style.transform = "none";
     const bounds = gameCanvas.getBoundingClientRect();
     const parentBounds = this.visualLayerParent.getBoundingClientRect();
-    for (const layer of [this.boardLayer, this.hudCanvas]) {
-      Object.assign(layer.style, {
-        left: `${bounds.left - parentBounds.left + this.visualLayerParent.scrollLeft}px`,
-        top: `${bounds.top - parentBounds.top + this.visualLayerParent.scrollTop}px`,
-        width: `${bounds.width}px`,
-        height: `${bounds.height}px`
-      });
-    }
+    const left = bounds.left - parentBounds.left + this.visualLayerParent.scrollLeft;
+    const top = bounds.top - parentBounds.top + this.visualLayerParent.scrollTop;
+    Object.assign(this.hudOverlay.style, {
+      left: `${left}px`,
+      top: `${top}px`,
+      width: `${bounds.width}px`,
+      height: `${bounds.height}px`
+    });
+    const scaleX = bounds.width / this.width;
+    const scaleY = bounds.height / this.height;
+    Object.assign(this.scoreLabel.style, {
+      left: `${14 * scaleX}px`,
+      top: `${13 * scaleY}px`,
+      fontSize: `${22 * scaleX}px`
+    });
+    Object.assign(this.highScoreLabel.style, {
+      left: `${14 * scaleX}px`,
+      top: `${43 * scaleY}px`,
+      fontSize: `${15 * scaleX}px`
+    });
     if (this.sensorRecenterButton) {
-      this.sensorRecenterButton.style.left = `${
-        bounds.left - parentBounds.left + this.visualLayerParent.scrollLeft +
-        bounds.width - this.sensorRecenterButton.offsetWidth - 8
-      }px`;
-      this.sensorRecenterButton.style.top = `${
-        bounds.top - parentBounds.top + this.visualLayerParent.scrollTop + 8
-      }px`;
+      this.sensorRecenterButton.style.left = `${left + bounds.width - this.sensorRecenterButton.offsetWidth - 8}px`;
+      this.sensorRecenterButton.style.top = `${top + 8}px`;
       this.sensorRecenterButton.style.right = "auto";
     }
+    gameCanvas.style.transform = originalTransform;
+    gameCanvas.style.transition = originalTransition;
     this.visualLayerBoundsDirty = false;
+  }
+
+  private syncVisualLayerBoundsWhenNeeded() {
+    if (this.visualLayerBoundsDirty) {
+      this.syncVisualLayerBounds(this.gameCanvas);
+    }
   }
 
   private setVisualLayerParent(parent: HTMLElement) {
@@ -429,119 +448,23 @@ export class GameScene extends MyScene {
     }
     this.visualLayerParent = parent;
 
-    for (const layer of [this.boardLayer, this.hudCanvas, this.sensorRecenterButton]) {
+    for (const layer of [this.hudOverlay, this.sensorRecenterButton]) {
       if (layer && layer.parentElement !== parent) {
         parent.appendChild(layer);
       }
     }
   }
 
-  private renderVisualLayers() {
-    const gameCanvas = this.game.canvas;
-    if (this.visualLayerBoundsDirty) {
-      this.syncVisualLayerBounds(gameCanvas);
-    }
-
-    const scaleX = this.boardCanvas.width / this.width;
-    const scaleY = this.boardCanvas.height / this.height;
-    this.boardContext.setTransform(scaleX, 0, 0, scaleY, 0, 0);
-    this.boardContext.clearRect(0, 0, this.width, this.height);
-
-    this.drawBoardObject(this.tray);
-    this.foods.children.iterate((child) => {
-      if (child instanceof Food) {
-        this.drawBoardObject(child);
-      }
-      return true;
-    });
-    this.ants.children.iterate((child) => {
-      if (child instanceof Ant) {
-        this.drawBoardObject(child);
-      }
-      return true;
-    });
-
-    this.hudContext.setTransform(scaleX, 0, 0, scaleY, 0, 0);
-    this.hudContext.clearRect(0, 0, this.width, this.height);
-    this.drawHudText(this.scoreText);
-    this.drawHudText(this.highScoreText);
-  }
-
-  private drawBoardObject(object: Phaser.GameObjects.Image | Ant | Food) {
-    if (!object.active || object.alpha === 0) {
-      return;
-    }
-
-    const frame = object.frame;
-    const image = frame.source.image;
-    if (image instanceof Uint8Array) {
-      return;
-    }
-
-    const context = this.boardContext;
-    context.save();
-    context.globalAlpha = object.alpha;
-    context.translate(object.x, object.y);
-    context.rotate(object.rotation);
-    context.scale(object.scaleX, object.scaleY);
-    const drawX = -object.width * object.originX;
-    const drawY = -object.height * object.originY;
-    if (DEBUG_MODE && object instanceof Ant && object.debugColor) {
-      if (this.antTintCanvas.width !== frame.cutWidth || this.antTintCanvas.height !== frame.cutHeight) {
-        this.antTintCanvas.width = frame.cutWidth;
-        this.antTintCanvas.height = frame.cutHeight;
-      }
-      this.antTintContext.clearRect(0, 0, frame.cutWidth, frame.cutHeight);
-      this.antTintContext.drawImage(
-        image,
-        frame.cutX,
-        frame.cutY,
-        frame.cutWidth,
-        frame.cutHeight,
-        0,
-        0,
-        frame.cutWidth,
-        frame.cutHeight
-      );
-      this.antTintContext.globalCompositeOperation = "source-atop";
-      this.antTintContext.fillStyle = object.debugColor;
-      this.antTintContext.fillRect(0, 0, frame.cutWidth, frame.cutHeight);
-      this.antTintContext.globalCompositeOperation = "source-over";
-      context.drawImage(this.antTintCanvas, drawX, drawY, object.width, object.height);
-    } else {
-      context.drawImage(
-        image,
-        frame.cutX,
-        frame.cutY,
-        frame.cutWidth,
-        frame.cutHeight,
-        drawX,
-        drawY,
-        object.width,
-        object.height
-      );
-    }
-    context.restore();
-  }
-
-  private drawHudText(text: Phaser.GameObjects.Text) {
-    const style = text.style;
-    this.hudContext.save();
-    this.hudContext.font = `${style.fontStyle || "normal"} ${style.fontSize}px ${style.fontFamily}`;
-    this.hudContext.fillStyle = style.color;
-    this.hudContext.textBaseline = "top";
-    this.hudContext.fillText(text.text, text.x, text.y);
-    this.hudContext.restore();
-  }
-
   private destroyVisualLayers() {
-    this.events.off(Phaser.Scenes.Events.POST_UPDATE, this.renderVisualLayers, this);
+    this.events.off(Phaser.Scenes.Events.POST_UPDATE, this.syncVisualLayerBoundsWhenNeeded, this);
     this.visualLayerResizeObserver?.disconnect();
     this.visualLayerResizeObserver = null;
+    this.visualLayerMutationObserver?.disconnect();
+    this.visualLayerMutationObserver = null;
     window.removeEventListener("resize", this.invalidateVisualLayerBounds);
     this.scale.off(Phaser.Scale.Events.RESIZE, this.invalidateVisualLayerBounds);
-    this.boardLayer?.remove();
-    this.hudCanvas?.remove();
+    this.hudOverlay?.remove();
+    this.gameCanvas.style.transform = "";
     this.sensorRecenterButton?.remove();
     this.sensorRecenterButton = null;
     for (const [parent, originalPosition] of this.visualLayerParentPositions) {
