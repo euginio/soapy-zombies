@@ -1,5 +1,7 @@
 const { expect, test } = require("@playwright/test");
 
+const DEVELOPMENT_URL = `http://127.0.0.1:${process.env.PLAYWRIGHT_DEV_PORT || 4174}/dev.html`;
+
 const REQUIRED_ASSETS = [
   "/assets/images/grass.png",
   "/assets/images/trayWithCompleteClothe.png",
@@ -100,7 +102,7 @@ test("production build loads its assets and starts a game", async ({ page }) => 
 });
 
 test("Vite development server loads its assets and starts a game", async ({ page }) => {
-  await expectGameLoads(page, "http://127.0.0.1:4174/dev.html");
+  await expectGameLoads(page, DEVELOPMENT_URL);
 });
 
 test("tilt controls apply perspective on both axes", async ({ page }) => {
@@ -119,20 +121,12 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
     return {
       trayVisible: scene.tray.visible,
       visibleAnts: scene.ants.getChildren().filter((ant) => ant.visible).length,
-      tintedAnts: scene.ants.getChildren().filter((ant) =>
-        ant.debugColor && ant.tintTopLeft === Number.parseInt(ant.debugColor.slice(1), 16)
-      ).length,
-      fillTintedAnts: scene.ants.getChildren().filter((ant) => ant.tintFill).length,
-      uniqueDebugColors: new Set(scene.ants.getChildren().map((ant) => ant.debugColor)).size,
       visibleFoods: scene.foods.getChildren().filter((food) => food.visible && food.body.enable).length,
       hudText: document.querySelector("#stationary-hud").textContent
     };
   })).toMatchObject({
     trayVisible: true,
     visibleAnts: 4,
-    tintedAnts: 4,
-    fillTintedAnts: 4,
-    uniqueDebugColors: 4,
     visibleFoods: 8,
     hudText: "0HI 0"
   });

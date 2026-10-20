@@ -3,6 +3,7 @@ const http = require("node:http");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
+const port = Number(process.env.PLAYWRIGHT_PROD_PORT || 4173);
 const contentTypes = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -53,4 +54,4 @@ http
       }
     });
   })
-  .listen(4173, "127.0.0.1");
+  .listen(port, "127.0.0.1");
