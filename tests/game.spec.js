@@ -561,6 +561,47 @@ test("eating food lowers the remaining count without a new high score when tied"
   });
 });
 
+test("devicemotion fallback tilts the board according to screen orientation until deviceorientation takes over", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const tiltedBoard = page.locator("#tilting-board");
+  await page.evaluate(() => {
+    Object.defineProperty(screen, "orientation", {
+      configurable: true,
+      value: { angle: 90 }
+    });
+    window.dispatchEvent(new DeviceMotionEvent("devicemotion", {
+      accelerationIncludingGravity: { x: 2.5, y: 5, z: 8 }
+    }));
+  });
+
+  await expect.poll(() => readGameState(page)).toMatchObject({
+    gravity: {
+      x: expect.closeTo(30, 5),
+      y: expect.closeTo(15, 5)
+    }
+  });
+  await expect
+    .poll(() => tiltedBoard.evaluate((element) => element.style.transform))
+    .toBe("perspective(900px) rotateX(-5deg) rotateY(10deg)");
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", {
+      beta: 0,
+      gamma: 0
+    }));
+    window.dispatchEvent(new DeviceMotionEvent("devicemotion", {
+      accelerationIncludingGravity: { x: 5, y: 5, z: 0 }
+    }));
+  });
+  await expect.poll(() => readGameState(page)).toMatchObject({
+    gravity: { x: 0, y: 0 }
+  });
+});
+
 test("phones skip the tablet re-center control", async ({ browser }) => {
   const context = await browser.newContext({
     isMobile: true,

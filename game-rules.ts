@@ -113,6 +113,26 @@ export function calculateDeviceTilt(
   };
 }
 
+export function calculateDeviceMotionTilt(
+  accelerationX: number,
+  accelerationY: number,
+  screenAngle: number,
+  maxAcceleration = 5
+): DeviceTilt {
+  // accelerationIncludingGravity reports the upward support force: tilting right (+gamma)
+  // yields -x, while tilting toward the player (+beta) yields +y.
+  const angle = screenAngle * Math.PI / 180;
+  const portraitX = -accelerationX;
+  const portraitY = accelerationY;
+  const screenX = portraitX * Math.cos(angle) + portraitY * Math.sin(angle);
+  const screenY = portraitY * Math.cos(angle) - portraitX * Math.sin(angle);
+
+  return {
+    x: Math.max(-1, Math.min(1, screenX / maxAcceleration)),
+    y: Math.max(-1, Math.min(1, screenY / maxAcceleration))
+  };
+}
+
 export interface Point {
   x: number;
   y: number;

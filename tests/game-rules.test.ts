@@ -2,6 +2,7 @@ import assert = require("node:assert/strict");
 import { describe, it } from "node:test";
 import {
   calculateAntVelocity,
+  calculateDeviceMotionTilt,
   calculateDeviceTilt,
   calculateVisualLayerLayout,
   debugColorToTint,
@@ -97,6 +98,26 @@ describe("mobile device tilt", () => {
     const tilt = calculateDeviceTilt(30, 0, 0, 0, 180);
     assert.ok(Math.abs(tilt.x) < 1e-10);
     assert.ok(Math.abs(tilt.y + 1) < 1e-10);
+  });
+
+  it("maps fallback accelerometer readings into screen axes across orientations", () => {
+    assert.deepEqual(calculateDeviceMotionTilt(-2.5, 2.5, 0), {
+      x: 0.5,
+      y: 0.5
+    });
+
+    const landscapePrimary = calculateDeviceMotionTilt(2.5, 5, 90);
+    assert.ok(Math.abs(landscapePrimary.x - 1) < 1e-10);
+    assert.ok(Math.abs(landscapePrimary.y - 0.5) < 1e-10);
+
+    const landscapeSecondary = calculateDeviceMotionTilt(2.5, 5, -90);
+    assert.ok(Math.abs(landscapeSecondary.x + 1) < 1e-10);
+    assert.ok(Math.abs(landscapeSecondary.y + 0.5) < 1e-10);
+
+    assert.deepEqual(calculateDeviceMotionTilt(-20, 20, 0), {
+      x: 1,
+      y: 1
+    });
   });
 });
 

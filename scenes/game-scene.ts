@@ -7,6 +7,7 @@
 
 import { ANT_DEBUG_COLORS, DEBUG_MODE } from "../const/const";
 import {
+  calculateDeviceMotionTilt,
   calculateDeviceTilt,
   calculateVisualLayerLayout,
   debugColorToTint,
@@ -45,6 +46,7 @@ export class GameScene extends MyScene {
   private latestOrientation: { beta: number; gamma: number } | null = null;
   private sensorBaseline: { beta: number; gamma: number } | null = null;
   private deviceTilt: { x: number; y: number } | null = null;
+  private hasMotionInput = false;
   ants: Phaser.GameObjects.Group;
   foods: Phaser.GameObjects.Group;
   gameOver: any;
@@ -58,7 +60,6 @@ export class GameScene extends MyScene {
   initialAnts: number = 4
   initialFood: number = 8;
   zombieRate: number = 7;
-  accelerometerFactor: number = 2
 
   gravityNum = { x: 30, y: 30 };
   tray: Phaser.GameObjects.Image;
@@ -168,6 +169,7 @@ export class GameScene extends MyScene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.removeMotionListeners, this);
     this.sensorBaseline = null;
     this.deviceTilt = null;
+    this.hasMotionInput = false;
     this.latestOrientation = null;
     if (this.isTablet()) {
       this.createSensorRecenterButton();
@@ -219,16 +221,23 @@ export class GameScene extends MyScene {
     // this.ants.children.iterate((z:Ant)=>z.init())
     // Prefer orientation angles when available; raw acceleration is the fallback input.
     this.deviceMotionHandler = (event: DeviceMotionEvent) => {
-      const acceleration = event.accelerationIncludingGravity;
       if (this.deviceTilt) {
         return;
       }
-      if (!acceleration) {
+      const acceleration = event.accelerationIncludingGravity;
+      if (!acceleration || acceleration.x === null || acceleration.y === null) {
         return;
       }
-      this.gravity.y = acceleration.x * this.accelerometerFactor;
-      this.gravity.x = acceleration.y * this.accelerometerFactor;
-      this.gravity.z = acceleration.z;
+      const screenAngle = screen.orientation?.angle ?? 0;
+      const motionTilt = calculateDeviceMotionTilt(
+        acceleration.x,
+        acceleration.y,
+        screenAngle
+      );
+      this.hasMotionInput = true;
+      this.gravity.x = motionTilt.x * this.gravityNum.x;
+      this.gravity.y = motionTilt.y * this.gravityNum.y;
+      this.gravity.z = acceleration.z ?? 0;
     };
     this.deviceOrientationHandler = (event: DeviceOrientationEvent) => {
       if (event.beta === null || event.gamma === null) {
@@ -305,7 +314,7 @@ export class GameScene extends MyScene {
     // this.scoreText.setText(`angulo: ${ant.body.angle},${ant.body.facing},${ant.angle}`);
 
     // Sensor gravity drives physics; the canvas tilt is a separate visual effect.
-    if (this.sys.game.device.os.desktop && !this.deviceTilt) {
+    if (this.sys.game.device.os.desktop && !this.deviceTilt && !this.hasMotionInput) {
       this.checkCursors();
       this.applyBoardTilt(this.gravity.x, this.gravity.y);
     } else if (this.deviceTilt) {
