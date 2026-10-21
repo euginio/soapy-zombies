@@ -12,6 +12,7 @@ import {
   debugColorToTint,
   isNewHighScore,
   isTabletDevice,
+  parseStoredHighScore,
   resolveAntEscape,
   resolveFoodLoss
 } from "../game-rules";
@@ -112,7 +113,7 @@ export class GameScene extends MyScene {
     this.gameOver = true;
     if (isNewHighScore(this.score, this.currentHighScore)) {
       this.currentHighScore = this.score;
-      localStorage.setItem('highScore', this.score.toString());
+      this.saveHighScore(this.currentHighScore);
     }
     this.highScoreLabel.textContent = `HI ${this.currentHighScore}`;
     this.finalScoreValue.textContent = this.score.toString();
@@ -122,6 +123,24 @@ export class GameScene extends MyScene {
     this.gameOverOverlay!.querySelector("button")?.focus();
     this.anims.pauseAll();
     this.physics.pause();
+  }
+
+  private loadHighScore(): number {
+    // Storage can throw (private mode, blocked cookies), and the game must still be playable then.
+    try {
+      return parseStoredHighScore(localStorage.getItem('highScore'));
+    } catch (error) {
+      console.warn("Could not read the high score from localStorage", error);
+      return 0;
+    }
+  }
+
+  private saveHighScore(highScore: number) {
+    try {
+      localStorage.setItem('highScore', highScore.toString());
+    } catch (error) {
+      console.warn("Could not save the high score to localStorage", error);
+    }
   }
 
   restart() {
@@ -174,7 +193,7 @@ export class GameScene extends MyScene {
     
     this.scoreText = this.add.text(14, 13, '0', { fontSize: '22px', fontStyle: 'bold', color: '#313' });
     this.scoreText.setVisible(false);
-    this.currentHighScore = parseInt(localStorage.getItem('highScore'))||0;
+    this.currentHighScore = this.loadHighScore();
     this.highScoreText = this.add.text(14, 43, 'HI ' + this.currentHighScore, { fontSize: '15px', fontStyle: 'bold', color: '#201' });
     this.highScoreText.setVisible(false);
     this.scoreLabel.textContent = this.scoreText.text;

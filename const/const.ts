@@ -5,16 +5,6 @@
  * @license      
  */
 
-export let CONST = {
-  score: 0,
-  highscore: 0,
-  antTypes: [
-    "north",
-    "south",
-    "easth",
-    "west"
-  ]
-};
 
 export const DEBUG_MODE = false;
 

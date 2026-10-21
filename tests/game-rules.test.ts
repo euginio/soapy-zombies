@@ -8,6 +8,7 @@ import {
   insetHorizontalTrayBounds,
   isNewHighScore,
   isTabletDevice,
+  parseStoredHighScore,
   pickNearestTarget,
   rectanglesOverlap,
   resolveAntEscape,
@@ -202,5 +203,19 @@ describe("tray overlap", () => {
     assert.equal(rectanglesOverlap(tray, { x: 5, y: 10, width: 20, height: 20 }), false);
     assert.equal(rectanglesOverlap(tray, { x: 40, y: -20, width: 20, height: 20 }), false);
     assert.equal(rectanglesOverlap(tray, { x: 40, y: 100, width: 20, height: 20 }), false);
+  });
+});
+
+describe("stored high score", () => {
+  it("reads a valid stored score", () => {
+    assert.equal(parseStoredHighScore("12"), 12);
+  });
+
+  it("falls back to zero for missing, corrupted or negative values", () => {
+    assert.equal(parseStoredHighScore(null), 0);
+    assert.equal(parseStoredHighScore(undefined), 0);
+    assert.equal(parseStoredHighScore(""), 0);
+    assert.equal(parseStoredHighScore("abc"), 0);
+    assert.equal(parseStoredHighScore("-5"), 0);
   });
 });

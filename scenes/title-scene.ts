@@ -8,8 +8,7 @@
 import { MyScene } from "./my-scene";
 
 export class TitleScene extends MyScene {
-  private loadingBar: Phaser.GameObjects.Graphics;
-  private progressBar: Phaser.GameObjects.Graphics;
+  private isStarting = false;
   startTxt: Phaser.GameObjects.Text;
   // explanationDevice: string;
   explanation: Phaser.GameObjects.Text;
@@ -19,6 +18,8 @@ export class TitleScene extends MyScene {
   }
 
   create() {
+    // The scene instance is reused when returning from the game, so allow starting again.
+    this.isStarting = false;
     // this.explanationDevice = 'inclinando el celular en diferentes sentidos'
     // if (this.sys.game.device.os.desktop) {
     //   this.explanationDevice = 'con las flechas del teclado'
@@ -36,13 +37,18 @@ export class TitleScene extends MyScene {
     // this.explanation.setOrigin(.5,.5)
     // this.explanation.setVisible(false);
 
-    this.startTxt = this.add.text(this.width/2, this.height*0.75, '¡Touch screen to start', {fontSize: '29px', fontStyle: 'bold', color: '#32F'});
+    this.startTxt = this.add.text(this.width/2, this.height*0.75, 'Touch screen to start', {fontSize: '29px', fontStyle: 'bold', color: '#32F'});
     this.startTxt.setOrigin(.5,.5)
 
     this.input.on('pointerup', () => this.start());
   }
 
   async start() {
+    // Double taps (and any repeated pointerup) must not request fullscreen or start the game twice.
+    if (this.isStarting) {
+      return;
+    }
+    this.isStarting = true;
     if (!this.scale.isFullscreen) {
       this.scale.startFullscreen();
     }
@@ -54,13 +60,8 @@ export class TitleScene extends MyScene {
       await this.tryOrientation();
     }
     
-    if(navigator.userAgent.indexOf("Chrome") != -1){
-      this.startTxt.setVisible(false);
-      this.scene.start('GameScene');
-    }else{
-      this.startTxt.setText(`Browser not supported
-please use Chrome`); //do not change that indentation, it is on purpose
-    }
+    this.startTxt.setVisible(false);
+    this.scene.start('GameScene');
   }
 
   /**

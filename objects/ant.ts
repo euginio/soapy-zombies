@@ -1,4 +1,3 @@
-import { Scene, Physics, GameObjects } from "phaser";
 import {
   calculateAntVelocity,
   insetHorizontalTrayBounds,
@@ -106,10 +105,8 @@ export class Ant extends MySprite {
         // The inset bounds create a narrow edge where an ant counts as having fallen.
         const trayOverlapBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
         this.isTouchingTray = rectanglesOverlap(trayOverlapBounds, this.getBounds());
-        if (this.isClimbing && this.isTouchingTray) {
-            // the ant has reached the "tray"
-            this.isClimbing = false;
-        } else if (!this.isClimbing && !this.isTouchingTray) {
+        // Climbing ants returned early above, so reaching this point means the ant is on its own.
+        if (!this.isTouchingTray) {
             // ant has fallen
             this.kill()
         }
@@ -202,8 +199,4 @@ export class Ant extends MySprite {
 
     //     })
     // }
-
-    antOut() {
-        
-    }
 }

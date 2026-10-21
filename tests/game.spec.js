@@ -582,30 +582,77 @@ test("phones skip the tablet re-center control", async ({ browser }) => {
   }
 });
 
-test("non-Chrome browsers stay on the title screen with an unsupported message", async ({ browser }) => {
+test("non-Chrome browsers can start the game", async ({ browser }) => {
   const context = await browser.newContext({
     userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0"
   });
 
   try {
     const page = await context.newPage();
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
     await stubFullscreenAndExposeScenes(page);
     await page.goto("/");
     await clickStartOnCanvas(page);
+    await waitForGameScene(page);
 
-    await expect.poll(() => page.evaluate(() => ({
-      titleText: window.__titleSceneForTest.startTxt.text,
-      gameSceneStarted: Boolean(window.__gameSceneForTest)
-    }))).toEqual({
-      titleText: "Browser not supported\nplease use Chrome",
-      gameSceneStarted: false
-    });
-    await expect(page.locator("#tilting-board")).toHaveCount(0);
+    await expect(page.locator("#tilting-board")).toHaveCount(1);
+    expect(pageErrors).toEqual([]);
   } finally {
     await context.close();
   }
 });
 
+test("repeated taps on the title screen start the game only once", async ({ page }) => {
+  await stubFullscreen(page);
+  await exposeScenesForTest(page);
+  await page.addInitScript(() => {
+    window.__gameSceneStarts = 0;
+    window.addEventListener("load", () => {
+      const sceneManager = window.Phaser.Scenes.SceneManager.prototype;
+      const startScene = sceneManager.start;
+      sceneManager.start = function (key, ...args) {
+        if (key === "GameScene") {
+          window.__gameSceneStarts += 1;
+        }
+        return startScene.call(this, key, ...args);
+      };
+    }, { once: true });
+  });
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await clickStartOnCanvas(page);
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+  await page.waitForTimeout(300);
+
+  expect(await page.evaluate(() => window.__gameSceneStarts)).toBe(1);
+});
+
+test("the game still starts when localStorage is unavailable", async ({ page }) => {
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await stubFullscreenAndExposeScenes(page);
+  await page.addInitScript(() => {
+    const blocked = () => {
+      throw new DOMException("blocked", "SecurityError");
+    };
+    Storage.prototype.getItem = blocked;
+    Storage.prototype.setItem = blocked;
+  });
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  await expect(page.locator("#high-score-label")).toHaveText("HI 0");
+  await page.evaluate(() => {
+    const gameScene = window.__gameSceneForTest;
+    gameScene.score = 3;
+    gameScene.overGame();
+  });
+  await expect(page.locator("#game-over-overlay")).toBeVisible();
+  expect(pageErrors).toEqual([]);
+});
 test("the orientation is locked only once fullscreen is really active", async ({ page }) => {
   await stubOrientationLock(page);
   await stubFullscreenAndExposeScenes(page);

@@ -1,4 +1,4 @@
-import { Scene, Physics } from "phaser";
+import { Physics } from "phaser";
 import { GameScene } from "../scenes/game-scene";
 
 

@@ -30,6 +30,12 @@ export function isNewHighScore(score: number, currentHighScore: number): boolean
   return score > currentHighScore;
 }
 
+export function parseStoredHighScore(storedValue: string | null | undefined): number {
+  // Missing, corrupted or negative storage values must never break the game: treat them as no record.
+  const parsed = Number.parseInt(storedValue ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
 export interface AntVelocity {
   x: number;
   y: number;

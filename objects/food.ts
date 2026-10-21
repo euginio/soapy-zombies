@@ -1,4 +1,3 @@
-import { Scene, Physics } from "phaser";
 import { GameScene } from "../scenes/game-scene";
 import { MySprite } from "./mySprite";
 
@@ -83,9 +82,5 @@ export class Food extends MySprite {
                 onComplete: () => this.destroy()
             });
         }
-    }
-
-    foodOut() {
-    
     }
 }
