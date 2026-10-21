@@ -141,6 +141,17 @@ test("production build loads its assets and starts a game", async ({ page }) => 
   await expectGameLoads(page, "/");
 });
 
+test("both pages define a mobile viewport", async ({ page }) => {
+  await stubFullscreen(page);
+  await page.goto("/");
+  await expect(page.locator('meta[name="viewport"]')).toHaveCount(1);
+  const content = await page.locator('meta[name="viewport"]').getAttribute("content");
+  expect(content).toContain("width=device-width");
+  expect(content).toContain("initial-scale=1");
+  await page.goto(DEVELOPMENT_URL);
+  await expect(page.locator('head meta[name="viewport"]')).toHaveAttribute("content", content);
+});
+
 test("Vite development server loads its assets and starts a game", async ({ page }) => {
   await expectGameLoads(page, DEVELOPMENT_URL);
 });
@@ -493,16 +504,39 @@ test("eating food lowers the remaining count without a new high score when tied"
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
-  const tweenCount = await page.evaluate(() => {
+  // Freeze the living ants *and* undo any eat tween they managed to start
+  // between scene creation and this evaluate: ants now genuinely bite food
+  // within their first walk step (~1.5s after creation), and several such
+  // bites would otherwise race the exact transient count we assert on below.
+  const prepped = await page.evaluate(() => {
     const gameScene = window.__gameSceneForTest;
+    gameScene.ants.getChildren().forEach((ant) => {
+      ant.isAlive = false;
+      ant.setVelocityX(0);
+      ant.setVelocityY(0);
+      ant.disableBody(true, false);
+    });
+    gameScene.foods.getChildren().forEach((food) => {
+      gameScene.tweens.killTweensOf(food);
+      food.isBeingEaten = false;
+      if (food.body.enable) {
+        food.setScale(1.5);
+      }
+    });
     gameScene.score = 4;
     gameScene.scoreText.setText("4");
     const targetFood = gameScene.foods.getChildren()[0];
     gameScene.eatFood(gameScene.ants.getChildren()[0], targetFood);
     gameScene.eatFood(gameScene.ants.getChildren()[0], targetFood);
-    return gameScene.tweens.getTweensOf(targetFood).length;
+    return {
+      tweenCount: gameScene.tweens.getTweensOf(targetFood).length,
+      foodCount: gameScene.foodCount,
+      availableFood: gameScene.foods.getChildren().filter((food) => food.body.enable).length
+    };
   });
-  expect(tweenCount).toBe(1);
+  expect(prepped.foodCount).toBe(8);
+  expect(prepped.availableFood).toBe(8);
+  expect(prepped.tweenCount).toBe(1);
 
   await expect.poll(() => readGameState(page), { timeout: 8_000 }).toMatchObject({
     foodCount: 7,

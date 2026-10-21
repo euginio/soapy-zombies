@@ -58,22 +58,27 @@ export class Ant extends MySprite {
     }
 
     setRandomBorderPosition() {
-        let trayB= this.scene.tray.getBounds()
-        // this.setRandomPosition();
-        let randomX, x = Phaser.Math.Between(trayB.left, trayB.right)
-        let randomY, y = Phaser.Math.Between(trayB.top,trayB.bottom)
+        // Spawn along the tray border but inside the horizontally inset bounds:
+        // the outer 25px edge band lies outside the inset used to detect falls,
+        // so ants born there were instantly scored as escaped.
+        // NB: this is a plain Rect (x/y/width/height), not a Phaser Rectangle.
+        const band = insetHorizontalTrayBounds(this.scene.tray.getBounds());
+        // Half of the scaled ant width plus a margin keeps the body overlapping the band.
+        const edgeMargin = this.displayWidth / 2 + 4;
+        let x = Phaser.Math.Between(band.x, band.x + band.width)
+        let y = Phaser.Math.Between(band.y, band.y + band.height)
         switch (Phaser.Math.Between(0, 3)) {
             case 0: //top border
-                y = trayB.top
+                y = band.y
                 break;
             case 1: // right border
-                x = trayB.right-15
+                x = band.x + band.width - edgeMargin
                 break;
             case 2: // bottom border
-                y = trayB.bottom
+                y = band.y + band.height
                 break;
             case 3: // left border
-                x = trayB.left+15
+                x = band.x + edgeMargin
                 break;
         }
         this.setPosition(x, y);

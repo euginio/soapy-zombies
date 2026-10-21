@@ -17,14 +17,14 @@ module.exports = defineConfig({
       command: "node tests/serve.cjs",
       url: `http://127.0.0.1:${productionPort}`,
       reuseExistingServer: false,
-      timeout: 10_000
+      timeout: 30_000
     },
     {
       command:
         "npm exec -- vite --host 127.0.0.1 --strictPort",
       url: developmentUrl,
       reuseExistingServer: false,
-      timeout: 10_000
+      timeout: 30_000
     }
   ]
 });
