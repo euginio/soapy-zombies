@@ -9,8 +9,11 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
   browser game. The player tilts the tray (device sensors, or arrow keys on desktop) so ants fall
   off while the food is protected.
 - Stack: Phaser 3.90, TypeScript 5.9, Vite 8 (IIFE library build to `dist/bundle.js`).
-- Published on GitHub Pages (`https://euginio.github.io/soapy-zombies`) from the **committed
-  `dist/` folder**.
+- Published on GitHub Pages (`https://euginio.github.io/soapy-zombies`) by the GitHub Actions
+  workflow `.github/workflows/deploy-pages.yml`. On every push to `master` it runs
+  `npm run test:smoke`, and only if that passes it publishes `index.html`, `dist/` and the images
+  in `assets/images/` (not `assets/images/other/`). `dist/` is **not committed**: it is
+  gitignored and built in CI.
 - Layout:
   - `game.ts` - Phaser config and entry point.
   - `scenes/` - `boot-scene`, `title-scene`, `game-scene` (plus `my-scene` base class).
@@ -26,8 +29,8 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
 |---|---|
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run test:unit` | Node tests for `game-rules.ts` |
-| `npm run build` | Vite build into `dist/` |
-| `npm run test:browser` | Playwright (needs a built `dist/`) |
+| `npm run build` | Vite build into `dist/` (gitignored, generated) |
+| `npm run test:browser` | Playwright (needs a built `dist/`, so run `npm run build` first on a fresh clone) |
 | `npm run test:smoke` | Typecheck + unit + build + browser. Same as CI, run it after code changes |
 | `npm run dev` | Dev server on `/dev.html` |
 
@@ -41,15 +44,15 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
 2. **Verify your work.** Run `npm run test:smoke` after code changes. Behaviour changes need a
    test: put pure rules in `game-rules.ts` with a unit test, and UI/scene behaviour in
    `tests/game.spec.js`.
-3. **Never push, amend or rewrite history, and never run `npm run publish`** (it builds,
-   commits the bundle and pushes). The owner reviews and syncs manually.
+3. **Never push, amend or rewrite history.** The owner reviews and syncs manually, and a push to
+   `master` deploys the game to the public site. Exception: rewrite a local commit only when the
+   owner explicitly asks for it.
 4. **Commit after every finished change, but only if the working tree was clean before you
    started.** Pre-existing unrelated uncommitted work means: do not commit, tell the owner.
    - Stage explicit paths. Do not use `git add -A`.
    - Use a conventional message: `type(scope): short summary` (`fix`, `feat`, `refactor`, `test`,
      `docs`, `chore`) and a body explaining *why*, not a copy of your chat summary.
-   - Treat `dist/` as generated output: ignore it when judging whether the tree is clean and do
-     not stage it unless the owner asks. The owner publishes the bundle.
+   - `dist/` is gitignored generated output, so builds and test runs do not dirty the tree.
    - Finish by telling the owner what was committed (hash and message) so it can be checked.
 5. **Preserve existing comments and docstrings** that are unrelated to your change, including
    commented-out code. Remove dead *code*, not the owner's notes. Add short comments that explain
@@ -58,6 +61,8 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
    controls). The `backlog` file records deliberate choices, for example Firefox was gated on
    purpose until it is tested.
 7. Keep changes focused. Do not reformat files you are not changing.
+8. **Whenever the owner gives a general instruction, add it to this file** (as a new rule or in
+   the relevant section) in the same change, so future agents follow it too.
 
 ## Conventions and gotchas
 
@@ -83,8 +88,8 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
 
 Identified in the project analysis and not done yet:
 
-- Take `dist/` and the unused art in `assets/images/other/` (about 12 MB) out of the repo, and
-  deploy to GitHub Pages from a GitHub Actions workflow instead.
+- Take the unused art in `assets/images/other/` (about 12 MB) out of the repo. It is already not
+  published to the site.
 - Add ESLint and Prettier, and tighten `tsconfig.json` (`strict`, `module`/`target` for Vite).
 - Split `GameScene` (visual DOM layers and input handling should be separate classes), and stop
   calling `init()` from the `MySprite` constructor.

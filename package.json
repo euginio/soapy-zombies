@@ -24,9 +24,7 @@
     "test:smoke": "npm run typecheck && npm run test:unit && npm run build && npm run test:browser",
     "dev-ssl": "vite --config vite.ssl.config.js --host 0.0.0.0 --open /dev.html",
     "enable-debug-mobile": "sudo adb forward tcp:9222 localabstract:chrome_devtools_remote; google-chrome localhost:9222",
-    "debug-mobile": "npm run enable-debug-mobile && npm run dev-ssl",
-    "commit-production-bundle": "git add dist/bundle.js dist/bundle.js.LICENSE.txt && (git commit -m \"publishing production bundle\" || true)",
-    "publish": "npm run build && npm run commit-production-bundle && git push"
+    "debug-mobile": "npm run enable-debug-mobile && npm run dev-ssl"
   },
   "repository": {
     "type": "git",

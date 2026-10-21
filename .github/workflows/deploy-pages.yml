@@ -1,0 +1,75 @@
+name: Deploy to GitHub Pages
+
+# Tests gate the deploy: the site is only published when typecheck, unit and
+# browser tests pass. The bundle is built here, so dist/ is not committed.
+# One-time setup: Settings > Pages > Build and deployment > Source: "GitHub Actions".
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deployment finish and only keep the latest queued one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      # Includes the production build into dist/ that the browser tests exercise.
+      - name: Run type, unit, build, and browser tests
+        run: npm run test:smoke
+
+      # Publish only what the game loads. assets/images/other/ holds unused art sources.
+      - name: Assemble the site
+        run: |
+          mkdir -p _site/assets/images
+          cp index.html _site/
+          cp -r dist _site/dist
+          find assets/images -maxdepth 1 -type f -exec cp {} _site/assets/images/ \;
+          for file in index.html dist/bundle.js assets/images/ant_sheet.png assets/images/food.png assets/images/grass.png assets/images/trayWithCompleteClothe.png; do
+            test -f "_site/$file" || { echo "Missing $file in the site artifact"; exit 1; }
+          done
+
+      - name: Set up Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -82,7 +82,8 @@ typings/
 
 # Nuxt.js build / generate output
 .nuxt
-# dist # deploy dist for github pages
+# Built by CI and deployed to GitHub Pages by .github/workflows/deploy-pages.yml
+dist
 
 # Gatsby files
 .cache/

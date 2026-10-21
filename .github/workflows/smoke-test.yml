@@ -2,6 +2,8 @@ name: Browser smoke test
 
 on:
   push:
+    # master is tested by deploy-pages.yml right before it publishes.
+    branches-ignore: [master]
   pull_request:
 
 permissions:
