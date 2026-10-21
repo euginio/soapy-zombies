@@ -1,0 +1,91 @@
+# Agent instructions
+
+Rules and context for any AI agent (or new contributor) working in this repository.
+Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event flows.
+
+## Project snapshot
+
+- **Ants Feast** (repo `soapy-zombies`, package `picnic-ants`): a landscape, tilt-controlled
+  browser game. The player tilts the tray (device sensors, or arrow keys on desktop) so ants fall
+  off while the food is protected.
+- Stack: Phaser 3.90, TypeScript 5.9, Vite 8 (IIFE library build to `dist/bundle.js`).
+- Published on GitHub Pages (`https://euginio.github.io/soapy-zombies`) from the **committed
+  `dist/` folder**.
+- Layout:
+  - `game.ts` - Phaser config and entry point.
+  - `scenes/` - `boot-scene`, `title-scene`, `game-scene` (plus `my-scene` base class).
+  - `objects/` - `Ant`, `Food`, `MySprite` base class.
+  - `game-rules.ts` - **pure** game logic (no Phaser/DOM). Unit tested in `tests/game-rules.test.ts`.
+  - `tests/game.spec.js` - Playwright browser tests (production build and Vite dev server).
+  - `backlog` - the owner's ideas, problems and done list. It states intent; read it before
+    making product decisions.
+
+## Commands
+
+| Command | Purpose |
+|---|---|
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run test:unit` | Node tests for `game-rules.ts` |
+| `npm run build` | Vite build into `dist/` |
+| `npm run test:browser` | Playwright (needs a built `dist/`) |
+| `npm run test:smoke` | Typecheck + unit + build + browser. Same as CI, run it after code changes |
+| `npm run dev` | Dev server on `/dev.html` |
+
+> The browser step can fail with `Timed out waiting 30000ms from config.webServer` when the Vite
+> dev server is slow to start (cold start on Windows). Re-run `npm run test:browser` before
+> treating it as a real failure.
+
+## Working rules
+
+1. **Reply to the user in English.** Code comments are in English too.
+2. **Verify your work.** Run `npm run test:smoke` after code changes. Behaviour changes need a
+   test: put pure rules in `game-rules.ts` with a unit test, and UI/scene behaviour in
+   `tests/game.spec.js`.
+3. **Never push, amend or rewrite history, and never run `npm run publish`** (it builds,
+   commits the bundle and pushes). The owner reviews and syncs manually.
+4. **Commit after every finished change, but only if the working tree was clean before you
+   started.** Pre-existing unrelated uncommitted work means: do not commit, tell the owner.
+   - Stage explicit paths. Do not use `git add -A`.
+   - Use a conventional message: `type(scope): short summary` (`fix`, `feat`, `refactor`, `test`,
+     `docs`, `chore`) and a body explaining *why*, not a copy of your chat summary.
+   - Treat `dist/` as generated output: ignore it when judging whether the tree is clean and do
+     not stage it unless the owner asks. The owner publishes the bundle.
+   - Finish by telling the owner what was committed (hash and message) so it can be checked.
+5. **Preserve existing comments and docstrings** that are unrelated to your change, including
+   commented-out code. Remove dead *code*, not the owner's notes. Add short comments that explain
+   *why* when the logic is not obvious.
+6. **Ask before product decisions** (browser support gating, difficulty balance, UI text,
+   controls). The `backlog` file records deliberate choices, for example Firefox was gated on
+   purpose until it is tested.
+7. Keep changes focused. Do not reformat files you are not changing.
+
+## Conventions and gotchas
+
+- **Line endings are CRLF** (`core.autocrlf=true`, no `.gitattributes`). Edit tools that match
+  multi-line text often fail on CRLF. Match single lines, or use a script, and make sure the file
+  has no bare LF line endings afterwards.
+- Follow each file's existing indentation (`scenes/` and `game-rules.ts` use 2 spaces, `objects/`
+  uses 4). There is no linter or formatter yet.
+- `MySprite`'s constructor calls `init()` **before** subclass field initializers run, and
+  `Ant`/`Food` need `scene.tray` to exist. Create the tray before ants and food.
+- Scene instances are reused by Phaser. Reset state in `init()`/`create()` and release listeners
+  and DOM layers on `SHUTDOWN` (see `GameScene.destroyVisualLayers` and `removeMotionListeners`).
+- Browser tests rely on stable hooks, so do not rename them without updating the tests:
+  - `window.__gameSceneForTest` / `window.__titleSceneForTest` (exposed by patching
+    `SceneManager.start` inside the tests).
+  - DOM ids `#tilting-board`, `#stationary-hud`, `#high-score-label`, `#game-over-overlay`,
+    `#game-over-restart`, `#game-over-home`, `#recenter-device-tilt`.
+  - The `highScore` localStorage key.
+- UI text is currently mixed Spanish/English (the game-over overlay is Spanish). Keep it
+  consistent with the surrounding text until i18n is done.
+
+## Known open improvements
+
+Identified in the project analysis and not done yet:
+
+- Take `dist/` and the unused art in `assets/images/other/` (about 12 MB) out of the repo, and
+  deploy to GitHub Pages from a GitHub Actions workflow instead.
+- Add ESLint and Prettier, and tighten `tsconfig.json` (`strict`, `module`/`target` for Vite).
+- Split `GameScene` (visual DOM layers and input handling should be separate classes), and stop
+  calling `init()` from the `MySprite` constructor.
+- Virtual joystick and iOS sensor permission, difficulty balance, sound, tutorial.
