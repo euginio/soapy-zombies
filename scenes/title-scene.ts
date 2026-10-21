@@ -46,7 +46,13 @@ export class TitleScene extends MyScene {
     if (!this.scale.isFullscreen) {
       this.scale.startFullscreen();
     }
-    await this.tryOrientation();
+    // Browsers only allow screen.orientation.lock() once the document is
+    // really in fullscreen mode, and entering fullscreen is asynchronous.
+    // Waiting for the fullscreenchange event avoids asking for the lock while
+    // the request is still in flight, when it is guaranteed to be rejected.
+    if (await this.waitForFullscreen()) {
+      await this.tryOrientation();
+    }
     
     if(navigator.userAgent.indexOf("Chrome") != -1){
       this.startTxt.setVisible(false);
@@ -55,6 +61,53 @@ export class TitleScene extends MyScene {
       this.startTxt.setText(`Browser not supported
 please use Chrome`); //do not change that indentation, it is on purpose
     }
+  }
+
+  /**
+   * Waits until the browser really enters fullscreen mode.
+   *
+   * Resolves to `true` once a fullscreen element is active, and to `false`
+   * when the Fullscreen API is not available, the browser rejects the request
+   * or nothing happens before the timeout, so the game never gets stuck.
+   */
+  private waitForFullscreen(timeoutMs = 3000): Promise<boolean> {
+    if (this.scale.isFullscreen) {
+      return Promise.resolve(true);
+    }
+    if (!this.scale.fullscreen.available) {
+      return Promise.resolve(false);
+    }
+    return new Promise<boolean>((resolve) => {
+      const changeEvents = ["fullscreenchange", "webkitfullscreenchange", "mozfullscreenchange", "MSFullscreenChange"];
+      const errorEvents = ["fullscreenerror", "webkitfullscreenerror", "mozfullscreenerror", "MSFullscreenError"];
+      let timeoutId: number = undefined;
+
+      const finish = (entered: boolean) => {
+        window.clearTimeout(timeoutId);
+        changeEvents.forEach((name) => document.removeEventListener(name, onChange));
+        errorEvents.forEach((name) => document.removeEventListener(name, onError));
+        resolve(entered);
+      };
+      const onChange = () => {
+        // this.scale.isFullscreen follows the (possibly vendor prefixed)
+        // fullscreen element of the document.
+        if (this.scale.isFullscreen) {
+          finish(true);
+        }
+      };
+      const onError = () => finish(false);
+
+      changeEvents.forEach((name) => document.addEventListener(name, onChange, false));
+      errorEvents.forEach((name) => document.addEventListener(name, onError, false));
+      // Never block the start of the game on a browser that stays silent.
+      timeoutId = window.setTimeout(() => finish(this.scale.isFullscreen), timeoutMs);
+
+      // The change may have happened between requesting fullscreen and
+      // registering these listeners, so re-check instead of missing it.
+      if (this.scale.isFullscreen) {
+        finish(true);
+      }
+    });
   }
 
   /**
@@ -94,6 +147,10 @@ please use Chrome`); //do not change that indentation, it is on purpose
         await screen.orientationLock(desiredOrientation);
       }
     }catch(e){
+      // Locking is best effort: desktop browsers, iOS Safari and non fullscreen
+      // documents reject it. Now that fullscreen is confirmed, a rejection is
+      // worth knowing about instead of swallowing it.
+      console.warn("Could not lock the screen orientation to " + desiredOrientation, e);
     }
   }
 }

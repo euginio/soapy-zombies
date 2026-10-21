@@ -9,15 +9,50 @@ const REQUIRED_ASSETS = [
   "/assets/images/ant_sheet.png"
 ];
 
+// Simulates the asynchronous fullscreen transition of the real Fullscreen API:
+// the requesting element becomes the fullscreen element of the document and a
+// fullscreenchange event is dispatched afterwards.
 async function stubFullscreen(page) {
   await page.addInitScript(() => {
-    Element.prototype.requestFullscreen = () => Promise.resolve();
+    Element.prototype.requestFullscreen = function () {
+      const target = this;
+      setTimeout(() => {
+        Object.defineProperty(document, "fullscreenElement", {
+          configurable: true,
+          get: () => target
+        });
+        document.dispatchEvent(new Event("fullscreenchange"));
+      }, 0);
+      return Promise.resolve();
+    };
   });
 }
 
-async function stubFullscreenAndExposeScenes(page) {
+// Simulates a browser that refuses to enter fullscreen.
+async function stubRejectedFullscreen(page) {
   await page.addInitScript(() => {
-    Element.prototype.requestFullscreen = () => Promise.resolve();
+    Element.prototype.requestFullscreen = function () {
+      setTimeout(() => document.dispatchEvent(new Event("fullscreenerror")), 0);
+      return Promise.resolve();
+    };
+  });
+}
+
+async function stubOrientationLock(page) {
+  await page.addInitScript(() => {
+    window.__orientationLockCalls = [];
+    screen.orientation.lock = function (type) {
+      window.__orientationLockCalls.push({
+        type,
+        fullscreenActive: Boolean(document.fullscreenElement)
+      });
+      return Promise.resolve();
+    };
+  });
+}
+
+async function exposeScenesForTest(page) {
+  await page.addInitScript(() => {
     window.addEventListener("load", () => {
       const sceneManager = window.Phaser.Scenes.SceneManager.prototype;
       const startScene = sceneManager.start;
@@ -33,6 +68,11 @@ async function stubFullscreenAndExposeScenes(page) {
       };
     }, { once: true });
   });
+}
+
+async function stubFullscreenAndExposeScenes(page) {
+  await stubFullscreen(page);
+  await exposeScenesForTest(page);
 }
 
 async function clickStartOnCanvas(page, input = "mouse") {
@@ -530,4 +570,27 @@ test("non-Chrome browsers stay on the title screen with an unsupported message",
   } finally {
     await context.close();
   }
+});
+
+test("the orientation is locked only once fullscreen is really active", async ({ page }) => {
+  await stubOrientationLock(page);
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  await expect.poll(() => page.evaluate(() => window.__orientationLockCalls)).toEqual([
+    { type: "landscape-primary", fullscreenActive: true }
+  ]);
+});
+
+test("a rejected fullscreen request starts the game without an orientation lock", async ({ page }) => {
+  await stubOrientationLock(page);
+  await stubRejectedFullscreen(page);
+  await exposeScenesForTest(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  await expect.poll(() => page.evaluate(() => window.__orientationLockCalls)).toEqual([]);
 });
