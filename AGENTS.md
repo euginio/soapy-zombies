@@ -12,7 +12,7 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
 - Published on GitHub Pages (`https://euginio.github.io/soapy-zombies`) by the GitHub Actions
   workflow `.github/workflows/deploy-pages.yml`. On every push to `master` it runs
   `npm run test:smoke`, and only if that passes it publishes `index.html`, `dist/` and the images
-  in `assets/images/` (not `assets/images/other/`). `dist/` is **not committed**: it is
+  in `assets/images/`. `dist/` is **not committed**: it is
   gitignored and built in CI.
 - Layout:
   - `game.ts` - Phaser config and entry point.
@@ -88,8 +88,6 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
 
 Identified in the project analysis and not done yet:
 
-- Take the unused art in `assets/images/other/` (about 12 MB) out of the repo. It is already not
-  published to the site.
 - Add ESLint and Prettier, and tighten `tsconfig.json` (`strict`, `module`/`target` for Vite).
 - Split `GameScene` (visual DOM layers and input handling should be separate classes), and stop
   calling `init()` from the `MySprite` constructor.
