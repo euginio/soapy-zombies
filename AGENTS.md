@@ -71,8 +71,8 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
   has no bare LF line endings afterwards.
 - Follow each file's existing indentation (`scenes/` and `game-rules.ts` use 2 spaces, `objects/`
   uses 4). There is no linter or formatter yet.
-- `MySprite`'s constructor calls `init()` **before** subclass field initializers run, and
-  `Ant`/`Food` need `scene.tray` to exist. Create the tray before ants and food.
+- `Ant` and `Food` call `init()` at the end of their constructors, which reads `scene.tray`.
+  Always create the tray before creating ants and food.
 - Scene instances are reused by Phaser. Reset state in `init()`/`create()` and release listeners
   and DOM layers on `SHUTDOWN` (see `GameScene.destroyVisualLayers` and `removeMotionListeners`).
 - Browser tests rely on stable hooks, so do not rename them without updating the tests:
@@ -89,6 +89,5 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
 Identified in the project analysis and not done yet:
 
 - Add ESLint and Prettier, and tighten `tsconfig.json` (`strict`, `module`/`target` for Vite).
-- Split `GameScene` (visual DOM layers and input handling should be separate classes), and stop
-  calling `init()` from the `MySprite` constructor.
+- Split `GameScene` (visual DOM layers and input handling should be separate classes).
 - Virtual joystick and iOS sensor permission, difficulty balance, sound, tutorial.

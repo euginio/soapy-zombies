@@ -26,7 +26,6 @@ export abstract class MySprite extends Physics.Arcade.Sprite {
         // this.body.immovable = true;
         // this.setSize(this.width/3, this.height/3)
         // this.setOffset(17)
-        this.init()
     }
 
     abstract init();

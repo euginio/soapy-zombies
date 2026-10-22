@@ -47,9 +47,10 @@ export class GameScene extends MyScene {
   private sensorBaseline: { beta: number; gamma: number } | null = null;
   private deviceTilt: { x: number; y: number } | null = null;
   private hasMotionInput = false;
+  private currentCanvasTransform = "";
   ants: Phaser.GameObjects.Group;
   foods: Phaser.GameObjects.Group;
-  gameOver: any;
+  gameOver = false;
   cursors: Phaser.Types.Input.Keyboard.CursorKeys;
   scoreText: Phaser.GameObjects.Text;
   highScoreText: Phaser.GameObjects.Text;
@@ -89,10 +90,6 @@ export class GameScene extends MyScene {
     if (outcome.spawnAnt) {
       this.addNewAnt();
     }
-  }
-
-  foodOut(food: Food) {
-    food.destroy();
   }
 
   destroyFood(food: Food) {
@@ -338,7 +335,11 @@ export class GameScene extends MyScene {
 
   private applyVisualTilt(tiltX: number, tiltY: number) {
     // Transform the canvas alone so the stationary background and HUD do not shift.
-    this.gameCanvas.style.transform = `perspective(900px) rotateX(${-tiltY}deg) rotateY(${tiltX}deg)`;
+    const nextTransform = `perspective(900px) rotateX(${-tiltY}deg) rotateY(${tiltX}deg)`;
+    if (nextTransform !== this.currentCanvasTransform) {
+      this.currentCanvasTransform = nextTransform;
+      this.gameCanvas.style.transform = nextTransform;
+    }
   }
 
   private recenterDeviceTilt() {
@@ -398,6 +399,7 @@ export class GameScene extends MyScene {
 
   private createVisualLayers(gameCanvas: HTMLCanvasElement) {
     this.gameCanvas = gameCanvas;
+    this.currentCanvasTransform = "";
     this.gameCanvas.id = "tilting-board";
     this.originalScaleUpdateCenter = this.scale.updateCenter;
     this.scale.updateCenter = this.updateCanvasCenterWithoutTransform;
@@ -665,6 +667,7 @@ export class GameScene extends MyScene {
     this.hudOverlay = null;
     this.gameOverOverlay = null;
     this.stationaryBackground = null;
+    this.currentCanvasTransform = "";
     this.gameCanvas.style.transform = "";
     this.sensorRecenterButton?.remove();
     this.sensorRecenterButton = null;

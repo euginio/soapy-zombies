@@ -247,6 +247,7 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
       const observer = new MutationObserver((records) => mutations.push(...records));
       observer.observe(canvas, { attributes: true, attributeFilter: ["style"] });
       window.__gameSceneForTest.syncVisualLayerBounds(canvas);
+      window.__gameSceneForTest.update();
       await new Promise((resolve) => queueMicrotask(resolve));
       observer.disconnect();
       return mutations.length;

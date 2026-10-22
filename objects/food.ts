@@ -25,6 +25,7 @@ export class Food extends MySprite {
         this.setFrame(Phaser.Math.RND.pick([0,1,9,10,11,13,15,17,20,23,24]))
 
         // this.on('animationcomplete', this.destroy, this);
+        this.init();
     }
 
     init() {

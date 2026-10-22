@@ -29,6 +29,7 @@ export class Ant extends MySprite {
 
         this.setScale(0.2);
         // this.setCircle(9, this.width / 4, this.height / 3)
+        this.init();
     }
 
     init() {
