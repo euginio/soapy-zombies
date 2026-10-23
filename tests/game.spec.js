@@ -995,11 +995,15 @@ test("food can be dragged for up to 3 seconds, cannot be eaten while dragging, a
     const tweenCountWhileDragging = scene.tweens.getTweensOf(food).length;
     const isBeingEatenWhileDragging = food.isBeingEaten;
 
-    // Simulate drag movement to an interior tray position
-    const targetX = scene.tray.x + 25;
-    const targetY = scene.tray.y + 15;
+    // Simulate dragging directly over another food piece and stepping physics
+    const otherFood = scene.foods.getChildren()[1];
+    const otherFoodInitialPos = { x: otherFood.x, y: otherFood.y };
+    const targetX = otherFood.x;
+    const targetY = otherFood.y;
     food.emit("drag", scene.input.activePointer, targetX, targetY);
-    const movedPos = { x: food.x, y: food.y, targetX, targetY, bodyX: food.body.x, bodyY: food.body.y };
+    scene.physics.world.step(1 / 60);
+    const otherFoodStayedInPlace = otherFood.x === otherFoodInitialPos.x && otherFood.y === otherFoodInitialPos.y;
+    const movedPos = { x: food.x, y: food.y, targetX, targetY, bodyX: food.body.x, bodyY: food.body.y, otherFoodStayedInPlace };
 
     // Ants pick nearest food should ignore the dragged food
     const nearestToAnt = ant.pickNearestFood();
@@ -1086,6 +1090,7 @@ test("food can be dragged for up to 3 seconds, cannot be eaten while dragging, a
   // Position moved
   expect(dragResult.movedPos.x).toBe(dragResult.movedPos.targetX);
   expect(dragResult.movedPos.y).toBe(dragResult.movedPos.targetY);
+  expect(dragResult.movedPos.otherFoodStayedInPlace).toBe(true);
   // After drop, dragging state resets and cooldown starts
   expect(dragResult.afterDragState.isBeingDragged).toBe(false);
   expect(dragResult.afterDragState.isDragCooldown).toBe(true);

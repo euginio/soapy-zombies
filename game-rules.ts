@@ -66,6 +66,16 @@ export function clampFoodPosition(
   };
 }
 
+export function areFoodsOverlapping(
+  a: Point,
+  b: Point,
+  minDistance = 32
+): boolean {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return dx * dx + dy * dy < minDistance * minDistance;
+}
+
 export function isNewHighScore(score: number, currentHighScore: number): boolean {
   return score > currentHighScore;
 }

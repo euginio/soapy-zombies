@@ -1,6 +1,7 @@
 import assert = require("node:assert/strict");
 import { describe, it } from "node:test";
 import {
+  areFoodsOverlapping,
   calculateAntVelocity,
   calculateDeviceMotionTilt,
   calculateDeviceTilt,
@@ -214,6 +215,11 @@ describe("food drag and interaction", () => {
     assert.deepEqual(clampFoodPosition(100, 100, tray, 20), { x: 100, y: 100 });
     assert.deepEqual(clampFoodPosition(10, 10, tray, 20), { x: 70, y: 50 });
     assert.deepEqual(clampFoodPosition(500, 300, tray, 20), { x: 430, y: 250 });
+  });
+
+  it("detects when two food positions overlap within the minimum spacing", () => {
+    assert.equal(areFoodsOverlapping({ x: 100, y: 100 }, { x: 110, y: 110 }, 32), true);
+    assert.equal(areFoodsOverlapping({ x: 100, y: 100 }, { x: 140, y: 100 }, 32), false);
   });
 });
 

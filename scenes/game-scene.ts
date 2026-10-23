@@ -254,7 +254,6 @@ export class GameScene extends MyScene {
 
     this.foods = this.add.group();
     this.foods.runChildUpdate = true;
-    this.physics.add.collider(this.foods, this.foods, this.repositionFood, null, this);
     for (let index = 0; index < this.foodCount; index++) {
       let newF= new Food(this)
       this.foods.add(newF, true)
@@ -330,9 +329,6 @@ export class GameScene extends MyScene {
     this.audio.startMusic();
   }
 
-  repositionFood(food: Food, food2: Food) {
-    food.placeInTray()
-  }
 
   // antOut(ant: Ant, tray: Phaser.Physics.Arcade.Sprite) {
   //   ant.outOfTray()

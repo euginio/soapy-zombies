@@ -1,4 +1,5 @@
 import {
+    areFoodsOverlapping,
     canFoodBeDragged,
     canFoodBeEaten,
     clampFoodPosition,
@@ -51,11 +52,26 @@ export class Food extends MySprite {
     }
     
     placeInTray(){
-        // Keep food away from the tray's edges so ants have room to approach it.
+        // Keep food away from the tray's edges and avoid spawning on top of existing food.
         let tray = this.scene.tray
         let trayB=tray.getBounds()
         let margin= 40
-        this.setRandomPosition(trayB.left+margin, trayB.top+margin*2, trayB.right-trayB.left-margin*2, trayB.bottom-margin*4);
+        const existingFoods = (this.scene.foods?.getChildren() ?? []).filter(
+            (other): other is Food => other !== this && Boolean((other as Food).body?.enable)
+        );
+        const maxAttempts = 30;
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            this.setRandomPosition(trayB.left+margin, trayB.top+margin*2, trayB.right-trayB.left-margin*2, trayB.bottom-margin*4);
+            const overlapsExisting = existingFoods.some((other) =>
+                areFoodsOverlapping(this, other)
+            );
+            if (!overlapsExisting) {
+                break;
+            }
+        }
+        if (this.body) {
+            this.body.reset(this.x, this.y);
+        }
     }
 
     destroy(fromScene?: boolean) {
