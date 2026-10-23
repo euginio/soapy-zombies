@@ -97,6 +97,26 @@ export function isTabletDevice(
   return Math.min(screenWidth, screenHeight) >= 600;
 }
 
+export function getScreenOrientationAngle(
+  screenAngle?: number | null,
+  windowOrientation?: number | string | null
+): number {
+  // Screen Orientation API is standard; iOS Safari and older browsers use window.orientation.
+  if (typeof screenAngle === "number" && !Number.isNaN(screenAngle)) {
+    return screenAngle;
+  }
+  if (typeof windowOrientation === "number" && !Number.isNaN(windowOrientation)) {
+    return windowOrientation;
+  }
+  if (typeof windowOrientation === "string") {
+    const parsed = Number.parseInt(windowOrientation, 10);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return 0;
+}
+
 export function calculateDeviceTilt(
   beta: number,
   gamma: number,
@@ -109,8 +129,10 @@ export function calculateDeviceTilt(
   const angle = screenAngle * Math.PI / 180;
   const deltaBeta = beta - baselineBeta;
   const deltaGamma = gamma - baselineGamma;
-  const screenX = deltaGamma * Math.cos(angle) + deltaBeta * Math.sin(angle);
-  const screenY = deltaBeta * Math.cos(angle) - deltaGamma * Math.sin(angle);
+  let screenX = deltaGamma * Math.cos(angle) + deltaBeta * Math.sin(angle);
+  let screenY = deltaBeta * Math.cos(angle) - deltaGamma * Math.sin(angle);
+  if (Math.abs(screenX) < 1e-10) screenX = 0;
+  if (Math.abs(screenY) < 1e-10) screenY = 0;
 
   return {
     x: Math.max(-1, Math.min(1, screenX / maxSensorAngle)),
@@ -129,8 +151,10 @@ export function calculateDeviceMotionTilt(
   const angle = screenAngle * Math.PI / 180;
   const portraitX = -accelerationX;
   const portraitY = accelerationY;
-  const screenX = portraitX * Math.cos(angle) + portraitY * Math.sin(angle);
-  const screenY = portraitY * Math.cos(angle) - portraitX * Math.sin(angle);
+  let screenX = portraitX * Math.cos(angle) + portraitY * Math.sin(angle);
+  let screenY = portraitY * Math.cos(angle) - portraitX * Math.sin(angle);
+  if (Math.abs(screenX) < 1e-10) screenX = 0;
+  if (Math.abs(screenY) < 1e-10) screenY = 0;
 
   return {
     x: Math.max(-1, Math.min(1, screenX / maxAcceleration)),

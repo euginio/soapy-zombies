@@ -90,4 +90,4 @@ Identified in the project analysis and not done yet:
 
 - Add ESLint and Prettier, and tighten `tsconfig.json` (`strict`, `module`/`target` for Vite).
 - Split `GameScene` (visual DOM layers and input handling should be separate classes).
-- Virtual joystick and iOS sensor permission, difficulty balance, tutorial.
+- Difficulty balance, tutorial, virtual joystick customization.

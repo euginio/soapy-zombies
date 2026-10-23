@@ -12,6 +12,7 @@ import {
   calculateDeviceTilt,
   calculateVisualLayerLayout,
   debugColorToTint,
+  getScreenOrientationAngle,
   isNewHighScore,
   isTabletDevice,
   parseStoredHighScore,
@@ -68,6 +69,15 @@ export class GameScene extends MyScene {
   gravityNum = { x: 30, y: 30 };
   tray: Phaser.GameObjects.Image;
   currentHighScore: number = 0;
+  private wasdKeys: {
+    up: Phaser.Input.Keyboard.Key;
+    down: Phaser.Input.Keyboard.Key;
+    left: Phaser.Input.Keyboard.Key;
+    right: Phaser.Input.Keyboard.Key;
+  } | null = null;
+  private touchDragOrigin: { x: number; y: number } | null = null;
+  private touchTilt: { x: number; y: number } | null = null;
+  private rotateOverlay: HTMLDivElement | null = null;
 
   constructor() {
     super({
@@ -195,6 +205,48 @@ export class GameScene extends MyScene {
 
     //  Input Events
     this.cursors = this.input.keyboard.createCursorKeys();
+    this.wasdKeys = this.input.keyboard.addKeys({
+      up: Phaser.Input.Keyboard.KeyCodes.W,
+      down: Phaser.Input.Keyboard.KeyCodes.S,
+      left: Phaser.Input.Keyboard.KeyCodes.A,
+      right: Phaser.Input.Keyboard.KeyCodes.D
+    }) as any;
+
+    // Touch / pointer drag tilt fallback when device motion is unavailable or denied
+    this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      if (this.gameOver || this.deviceTilt || this.hasMotionInput) {
+        return;
+      }
+      this.touchDragOrigin = { x: pointer.x, y: pointer.y };
+    });
+    this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
+      if (!this.touchDragOrigin || this.gameOver || this.deviceTilt || this.hasMotionInput) {
+        return;
+      }
+      if (!pointer.isDown) {
+        this.touchDragOrigin = null;
+        return;
+      }
+      const maxDrag = 50;
+      const dx = pointer.x - this.touchDragOrigin.x;
+      const dy = pointer.y - this.touchDragOrigin.y;
+      this.touchTilt = {
+        x: Phaser.Math.Clamp(dx / maxDrag, -1, 1),
+        y: Phaser.Math.Clamp(dy / maxDrag, -1, 1)
+      };
+      this.gravity.x = this.touchTilt.x * this.gravityNum.x;
+      this.gravity.y = this.touchTilt.y * this.gravityNum.y;
+    });
+    const resetTouchTilt = () => {
+      this.touchDragOrigin = null;
+      if (!this.deviceTilt && !this.hasMotionInput && this.touchTilt) {
+        this.touchTilt = null;
+        this.gravity.x = 0;
+        this.gravity.y = 0;
+      }
+    };
+    this.input.on("pointerup", resetTouchTilt);
+    this.input.on("gameout", resetTouchTilt);
 
     this.tray = this.add.image(this.width / 2, this.height / 2, 'tray');
     this.tray.setSize(this.tray.width-20,this.tray.height-3)
@@ -235,7 +287,10 @@ export class GameScene extends MyScene {
       if (!acceleration || acceleration.x === null || acceleration.y === null) {
         return;
       }
-      const screenAngle = screen.orientation?.angle ?? 0;
+      const screenAngle = getScreenOrientationAngle(
+        screen.orientation?.angle,
+        (window as unknown as { orientation?: number }).orientation
+      );
       const motionTilt = calculateDeviceMotionTilt(
         acceleration.x,
         acceleration.y,
@@ -263,7 +318,10 @@ export class GameScene extends MyScene {
         return;
       }
 
-      const screenAngle = screen.orientation?.angle ?? 0;
+      const screenAngle = getScreenOrientationAngle(
+        screen.orientation?.angle,
+        (window as unknown as { orientation?: number }).orientation
+      );
       this.deviceTilt = calculateDeviceTilt(
         event.beta,
         event.gamma,
@@ -323,14 +381,19 @@ export class GameScene extends MyScene {
     // this.scoreText.setText(`angulo: ${ant.body.angle},${ant.body.facing},${ant.angle}`);
 
     // Sensor gravity drives physics; the canvas tilt is a separate visual effect.
-    if (this.sys.game.device.os.desktop && !this.deviceTilt && !this.hasMotionInput) {
-      this.checkCursors();
-      this.applyBoardTilt(this.gravity.x, this.gravity.y);
-    } else if (this.deviceTilt) {
+    if (this.deviceTilt) {
       this.applyVisualTilt(
         this.deviceTilt.x * GameScene.maxVisualTilt,
         this.deviceTilt.y * GameScene.maxVisualTilt
       );
+    } else if (this.touchTilt) {
+      this.applyVisualTilt(
+        this.touchTilt.x * GameScene.maxVisualTilt,
+        this.touchTilt.y * GameScene.maxVisualTilt
+      );
+    } else if (this.sys.game.device.os.desktop && !this.hasMotionInput) {
+      this.checkCursors();
+      this.applyBoardTilt(this.gravity.x, this.gravity.y);
     } else {
       this.applyBoardTilt(this.gravity.x, this.gravity.y);
     }
@@ -487,6 +550,7 @@ export class GameScene extends MyScene {
     this.visualLayerParent.appendChild(this.hudOverlay);
     this.createGameOverOverlay();
     this.createSoundToggleButton();
+    this.createRotatePromptOverlay();
     this.syncVisualLayerBounds(gameCanvas);
 
     this.visualLayerResizeObserver = new ResizeObserver(this.invalidateVisualLayerBounds);
@@ -676,6 +740,15 @@ export class GameScene extends MyScene {
       this.sensorRecenterButton.style.top = `${layout.top + 8}px`;
       this.sensorRecenterButton.style.right = "auto";
     }
+    if (this.rotateOverlay) {
+      this.rotateOverlay.style.left = `${layout.left}px`;
+      this.rotateOverlay.style.top = `${layout.top}px`;
+      this.rotateOverlay.style.width = `${layout.width}px`;
+      this.rotateOverlay.style.height = `${layout.height}px`;
+      const isMobile = navigator.maxTouchPoints > 0 || Boolean((navigator as any).userAgentData?.mobile);
+      const isPortrait = window.innerHeight > window.innerWidth;
+      this.rotateOverlay.style.display = isMobile && isPortrait ? "flex" : "none";
+    }
     this.visualLayerBoundsDirty = false;
   }
 
@@ -705,6 +778,46 @@ export class GameScene extends MyScene {
     }
   }
 
+  private createRotatePromptOverlay() {
+    const overlay = document.createElement("div");
+    overlay.id = "rotate-device-overlay";
+    overlay.setAttribute("role", "note");
+    overlay.setAttribute("aria-live", "polite");
+    Object.assign(overlay.style, {
+      position: "absolute",
+      display: "none",
+      alignItems: "center",
+      justifyContent: "center",
+      flexDirection: "column",
+      gap: "0.8em",
+      zIndex: "20",
+      background: "rgba(15, 32, 12, 0.88)",
+      color: "#fffdf4",
+      fontFamily: "system-ui, sans-serif",
+      textAlign: "center",
+      padding: "1.5em",
+      boxSizing: "border-box",
+      pointerEvents: "none"
+    });
+
+    const icon = document.createElement("div");
+    icon.textContent = "📱 🔄";
+    icon.style.fontSize = "2.5em";
+
+    const text = document.createElement("p");
+    text.textContent = "Gira tu dispositivo a horizontal\nPlease rotate your device to landscape";
+    Object.assign(text.style, {
+      margin: "0",
+      fontSize: "1.1em",
+      fontWeight: "600",
+      lineHeight: "1.4"
+    });
+
+    overlay.append(icon, text);
+    this.rotateOverlay = overlay;
+    this.visualLayerParent.appendChild(overlay);
+  }
+
   private destroyVisualLayers() {
     // A restarted scene reuses the canvas, so remove observers, transforms, and DOM layers first.
     this.events.off(Phaser.Scenes.Events.POST_UPDATE, this.syncVisualLayerBoundsWhenNeeded, this);
@@ -721,9 +834,11 @@ export class GameScene extends MyScene {
     this.hudOverlay?.remove();
     this.gameOverOverlay?.remove();
     this.stationaryBackground?.remove();
+    this.rotateOverlay?.remove();
     this.hudOverlay = null;
     this.gameOverOverlay = null;
     this.stationaryBackground = null;
+    this.rotateOverlay = null;
     this.currentCanvasTransform = "";
     this.gameCanvas.style.transform = "";
     this.sensorRecenterButton?.remove();
@@ -749,32 +864,26 @@ export class GameScene extends MyScene {
   }
 
   checkCursors() {
-    if (this.cursors.left.isDown) {
-      this.gravity.x = -this.gravityNum.x
-      // this.ants.children.iterate((zb:Ant)=> zb.setGravityX(-20));
-    }
-    else if (this.cursors.right.isDown) {
-      this.gravity.x = this.gravityNum.x
-      // this.ants.children.iterate((zb:Ant)=> zb.setGravityX(20));
-    }
-    else {
-      this.gravity.x = 0
-      // this.ants.children.iterate((zb:Ant)=> zb.setGravityX(0));
+    const left = this.cursors.left.isDown || Boolean(this.wasdKeys?.left.isDown);
+    const right = this.cursors.right.isDown || Boolean(this.wasdKeys?.right.isDown);
+    const up = this.cursors.up.isDown || Boolean(this.wasdKeys?.up.isDown);
+    const down = this.cursors.down.isDown || Boolean(this.wasdKeys?.down.isDown);
+
+    if (left) {
+      this.gravity.x = -this.gravityNum.x;
+    } else if (right) {
+      this.gravity.x = this.gravityNum.x;
+    } else {
+      this.gravity.x = 0;
     }
 
-    if (this.cursors.up.isDown) {
-      this.gravity.y = -this.gravityNum.y
-      // this.ants.children.iterate((zb:Ant)=> zb.setGravityY(-20));
+    if (up) {
+      this.gravity.y = -this.gravityNum.y;
+    } else if (down) {
+      this.gravity.y = this.gravityNum.y;
+    } else {
+      this.gravity.y = 0;
     }
-    else if (this.cursors.down.isDown) {
-      this.gravity.y = this.gravityNum.y
-      // this.ants.children.iterate((zb:Ant)=> zb.setGravityY(20));
-    }
-    else {
-      this.gravity.y = 0
-      // this.ants.children.iterate((zb:Ant)=> zb.setGravityY(0));
-    }
-
   }
 
 }

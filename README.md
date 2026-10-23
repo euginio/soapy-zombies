@@ -18,7 +18,7 @@ Defend the food from the ants! Ants come in from the edges of the tray and head 
    - To inspect mobile sensor readings, add `?sensorDebug=1` to the game URL. The readout follows the game into fullscreen.
 4. Keep the ants away from the food and make them fall off the tray. Your score and high score are displayed; the high score is saved in your browser.
 
-The game requires a Chrome-compatible browser. **It is not compatible with iPhone.**
+The game is compatible with all modern browsers (Chrome, Safari, Firefox, Edge) on desktop, Android, and iPhone/iPad (iOS 13+).
 
 ## Run locally
 

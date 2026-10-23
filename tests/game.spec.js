@@ -807,3 +807,160 @@ test("a rejected fullscreen request starts the game without an orientation lock"
 
   await expect.poll(() => page.evaluate(() => window.__orientationLockCalls)).toEqual([]);
 });
+
+test("iPhone Safari prompts for sensor permission and tilts with window.orientation fallback", async ({ browser }) => {
+  const context = await browser.newContext({
+    isMobile: true,
+    hasTouch: true,
+    viewport: { width: 844, height: 390 },
+    userAgent:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+  });
+
+  try {
+    const page = await context.newPage();
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+
+    await page.addInitScript(() => {
+      window.__permissionRequested = false;
+      window.DeviceOrientationEvent = window.DeviceOrientationEvent || function () {};
+      window.DeviceOrientationEvent.requestPermission = function () {
+        window.__permissionRequested = true;
+        return Promise.resolve("granted");
+      };
+      // Simulate iOS Safari without screen.orientation, using window.orientation instead
+      Object.defineProperty(window, "orientation", { configurable: true, value: 90 });
+      Object.defineProperty(screen, "orientation", { configurable: true, value: undefined });
+    });
+
+    await stubFullscreenAndExposeScenes(page);
+    await page.goto("/");
+    await clickStartOnCanvas(page, "touch");
+    await waitForGameScene(page);
+
+    expect(await page.evaluate(() => window.__permissionRequested)).toBe(true);
+    expect(pageErrors).toEqual([]);
+
+    const tiltedBoard = page.locator("#tilting-board");
+    await expect(tiltedBoard).toBeVisible();
+
+    await page.evaluate(() => {
+      window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", {
+        beta: 0,
+        gamma: 0
+      }));
+      window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", {
+        beta: 30,
+        gamma: 0
+      }));
+    });
+
+    await expect.poll(() => readGameState(page)).toMatchObject({
+      gravity: { x: 30, y: 0 }
+    });
+  } finally {
+    await context.close();
+  }
+});
+
+test("touch drag tilts the board when motion sensors are not delivering input", async ({ browser }) => {
+  const context = await browser.newContext({
+    isMobile: true,
+    hasTouch: true,
+    viewport: { width: 844, height: 390 }
+  });
+
+  try {
+    const page = await context.newPage();
+    await stubFullscreenAndExposeScenes(page);
+    await page.goto("/");
+    await clickStartOnCanvas(page, "touch");
+    await waitForGameScene(page);
+
+    const canvas = page.locator("#tilting-board");
+    const box = await canvas.boundingBox();
+    expect(box).toBeTruthy();
+
+    const startX = box.x + box.width / 2;
+    const startY = box.y + box.height / 2;
+
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX + 120, startY);
+
+    await expect.poll(() => readGameState(page)).toMatchObject({
+      gravity: { x: 30, y: 0 }
+    });
+
+    await page.mouse.up();
+    await expect.poll(() => readGameState(page)).toMatchObject({
+      gravity: { x: 0, y: 0 }
+    });
+  } finally {
+    await context.close();
+  }
+});
+
+test("WASD keys tilt the board alongside arrow keys", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const tiltedBoard = page.locator("#tilting-board");
+  await expect(tiltedBoard).toBeVisible();
+
+  await page.keyboard.down("d");
+  try {
+    await expect.poll(() => readGameState(page)).toMatchObject({ gravity: { x: 30, y: 0 } });
+  } finally {
+    await page.keyboard.up("d");
+  }
+
+  await page.keyboard.down("a");
+  try {
+    await expect.poll(() => readGameState(page)).toMatchObject({ gravity: { x: -30, y: 0 } });
+  } finally {
+    await page.keyboard.up("a");
+  }
+
+  await page.keyboard.down("s");
+  try {
+    await expect.poll(() => readGameState(page)).toMatchObject({ gravity: { x: 0, y: 30 } });
+  } finally {
+    await page.keyboard.up("s");
+  }
+
+  await page.keyboard.down("w");
+  try {
+    await expect.poll(() => readGameState(page)).toMatchObject({ gravity: { x: 0, y: -30 } });
+  } finally {
+    await page.keyboard.up("w");
+  }
+});
+
+test("mobile portrait mode displays the rotation prompt overlay", async ({ browser }) => {
+  const context = await browser.newContext({
+    isMobile: true,
+    hasTouch: true,
+    viewport: { width: 390, height: 844 }
+  });
+
+  try {
+    const page = await context.newPage();
+    await stubFullscreenAndExposeScenes(page);
+    await page.goto("/");
+    await clickStartOnCanvas(page, "touch");
+    await waitForGameScene(page);
+
+    const rotateOverlay = page.locator("#rotate-device-overlay");
+    await expect(rotateOverlay).toBeVisible();
+
+    // Rotate to landscape
+    await page.setViewportSize({ width: 844, height: 390 });
+    await expect(rotateOverlay).toBeHidden();
+  } finally {
+    await context.close();
+  }
+});

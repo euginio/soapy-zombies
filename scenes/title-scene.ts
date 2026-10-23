@@ -51,7 +51,10 @@ export class TitleScene extends MyScene {
     }
     this.isStarting = true;
     new GameAudio(this.sound).play(AUDIO_KEYS.uiTap);
-    if (!this.scale.isFullscreen) {
+    // Request iOS 13+ sensor permissions while still within the user gesture callback.
+    await this.requestMotionPermissions();
+
+    if (!this.scale.isFullscreen && this.scale.fullscreen.available) {
       this.scale.startFullscreen();
     }
     // Browsers only allow screen.orientation.lock() once the document is
@@ -133,27 +136,48 @@ export class TitleScene extends MyScene {
     // await window.screen.orientation.lock(desiredOrientation);
     // screen.orientation.lock(desiredOrientation)	
 
-    var orientKey = 'orientation';
-    if ('mozOrientation' in screen) {
-      orientKey = 'mozOrientation';
-    } else if ('msOrientation' in screen) {
-      orientKey = 'msOrientation';
-    }
-    // var promise = null;
+    const screenAny = screen as unknown as {
+      orientation?: { lock?: (orientation: string) => Promise<void> };
+      mozOrientation?: { lock?: (orientation: string) => Promise<void> };
+      msOrientation?: { lock?: (orientation: string) => Promise<void> };
+      orientationLock?: (orientation: string) => Promise<void>;
+    };
+    const orientObj = screenAny.orientation ?? screenAny.mozOrientation ?? screenAny.msOrientation;
     try {
-      if (screen[orientKey].lock) {
-        // promise = screen[orientKey].lock(screen[orientKey].type); // this lock in current orientation
-        await screen[orientKey].lock(desiredOrientation);
-      } else {
-        // @ts-ignore
-        // promise = screen.orientationLock(screen[orientKey]); // this lock in current orientation
-        await screen.orientationLock(desiredOrientation);
+      if (typeof orientObj?.lock === "function") {
+        await orientObj.lock(desiredOrientation);
+      } else if (typeof screenAny.orientationLock === "function") {
+        await screenAny.orientationLock(desiredOrientation);
       }
-    }catch(e){
+    } catch (e) {
       // Locking is best effort: desktop browsers, iOS Safari and non fullscreen
       // documents reject it. Now that fullscreen is confirmed, a rejection is
       // worth knowing about instead of swallowing it.
       console.warn("Could not lock the screen orientation to " + desiredOrientation, e);
+    }
+  }
+
+  /**
+   * Prompts for motion and orientation permissions on iOS 13+ devices.
+   */
+  private async requestMotionPermissions(): Promise<void> {
+    const win = window as unknown as {
+      DeviceOrientationEvent?: { requestPermission?: () => Promise<string> };
+      DeviceMotionEvent?: { requestPermission?: () => Promise<string> };
+    };
+    if (typeof win.DeviceOrientationEvent?.requestPermission === "function") {
+      try {
+        await win.DeviceOrientationEvent.requestPermission();
+      } catch (error) {
+        console.warn("Could not obtain DeviceOrientationEvent permission", error);
+      }
+    }
+    if (typeof win.DeviceMotionEvent?.requestPermission === "function") {
+      try {
+        await win.DeviceMotionEvent.requestPermission();
+      } catch (error) {
+        console.warn("Could not obtain DeviceMotionEvent permission", error);
+      }
     }
   }
 }

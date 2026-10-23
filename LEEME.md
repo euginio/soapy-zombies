@@ -17,7 +17,7 @@ Code tour (English): [GAME_GUIDE.md](GAME_GUIDE.md)
    - **Celular o tableta:** incliná el dispositivo. El navegador debe tener acceso a los sensores; serví el juego por HTTPS (localhost también está permitido). Tocá **Re-center** mientras sostenés el dispositivo en el ángulo que quieras usar como posición neutra.
 4. Evitá que las hormigas lleguen a la comida y hacelas caer de la bandeja. Tu puntaje y el récord se muestran en pantalla; el récord queda guardado en el navegador.
 
-El juego requiere un navegador compatible con Chrome. **No es compatible con iPhone.**
+El juego es compatible con todos los navegadores modernos (Chrome, Safari, Firefox, Edge) en computadora, Android y iPhone/iPad (iOS 13+).
 
 ## Ejecutar localmente
 

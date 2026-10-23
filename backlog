@@ -53,6 +53,7 @@ non-coding-logic
             how to monetize games
 
 Done
+    * iPhone and all modern browsers compatibility (iOS motion permissions, window.orientation fallback, touch drag tilt, WASD keys, portrait rotate prompt)
     * test in popular browsers (desktop and mobile)
     * add tablecloth to tray
     * discard food textures not appropiate for a picnic

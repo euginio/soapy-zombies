@@ -4,6 +4,7 @@ import {
   calculateAntVelocity,
   calculateDeviceMotionTilt,
   calculateDeviceTilt,
+  getScreenOrientationAngle,
   calculateVisualLayerLayout,
   debugColorToTint,
   insetHorizontalTrayBounds,
@@ -60,6 +61,15 @@ describe("tablet detection", () => {
 });
 
 describe("mobile device tilt", () => {
+  it("resolves orientation angle from ScreenOrientation API or iOS window.orientation", () => {
+    assert.equal(getScreenOrientationAngle(90, 0), 90);
+    assert.equal(getScreenOrientationAngle(undefined, 90), 90);
+    assert.equal(getScreenOrientationAngle(null, -90), -90);
+    assert.equal(getScreenOrientationAngle(undefined, "90"), 90);
+    assert.equal(getScreenOrientationAngle(undefined, undefined), 0);
+    assert.equal(getScreenOrientationAngle(Number.NaN, 90), 90);
+  });
+
   it("maps portrait orientation changes to horizontal and vertical tilt", () => {
     assert.deepEqual(calculateDeviceTilt(15, -15, 0, 0, 0), {
       x: -0.5,
