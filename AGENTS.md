@@ -63,6 +63,10 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
 7. Keep changes focused. Do not reformat files you are not changing.
 8. **Whenever the owner gives a general instruction, add it to this file** (as a new rule or in
    the relevant section) in the same change, so future agents follow it too.
+9. **Never wait indefinitely for tests or commands.** A full smoke test run takes about 1 to 1.5
+   minutes. If a command or test run takes longer than 2-3 minutes, it indicates an unconstrained
+   command, an orphaned process holding ports, or a hang: kill it immediately and investigate
+   rather than waiting passively.
 
 ## Conventions and gotchas
 
