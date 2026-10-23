@@ -1,3 +1,4 @@
+import { canFoodBeEaten, clampFoodPosition } from "../game-rules";
 import { GameScene } from "../scenes/game-scene";
 import { MySprite } from "./mySprite";
 
@@ -11,6 +12,7 @@ import { MySprite } from "./mySprite";
 export class Food extends MySprite {
     gravityFactor = .2;
     isBeingEaten: boolean = false;
+    isBeingDragged: boolean = false;
 
     constructor(scene: GameScene) {
         super(scene, 0, 0, 'food');
@@ -22,12 +24,15 @@ export class Food extends MySprite {
         this.setCircle(10,7,8)
 
         this.setFrame(Phaser.Math.Between(0, 24));
+        this.setupDragAndDrop();
 
         // this.on('animationcomplete', this.destroy, this);
         this.init();
     }
 
     init() {
+        this.isBeingDragged = false;
+        this.setDepth(0);
         this.isBeingEaten = false;
         this.setScale(1.5);
         this.placeInTray()
@@ -42,6 +47,7 @@ export class Food extends MySprite {
     }
 
     destroy(fromScene?: boolean) {
+        this.isBeingDragged = false;
         if (this.scene?.tweens) {
             this.scene.tweens.killTweensOf(this);
         }
@@ -71,7 +77,7 @@ export class Food extends MySprite {
     }
 
     beingEat() {
-        if (this.body.enable && !this.isBeingEaten) {
+        if (canFoodBeEaten(this.isBeingEaten, this.isBeingDragged, this.body?.enable ?? false)) {
             this.isBeingEaten = true;
             this.emitCrumbs();
             this.scene.time.delayedCall(400, () => {
@@ -90,6 +96,43 @@ export class Food extends MySprite {
                 onComplete: () => this.destroy()
             });
         }
+    }
+
+    private setupDragAndDrop() {
+        this.setInteractive({ draggable: true, useHandCursor: true });
+
+        this.on('dragstart', () => {
+            if (this.isBeingEaten || !this.body || !this.body.enable || this.scene.gameOver) {
+                return;
+            }
+            this.isBeingDragged = true;
+            this.setScale(1.85);
+            this.setDepth(10);
+        });
+
+        this.on('drag', (_pointer: Phaser.Input.Pointer, dragX: number, dragY: number) => {
+            if (!this.isBeingDragged || !this.scene.tray) {
+                return;
+            }
+            const bounds = this.scene.tray.getBounds();
+            const clamped = clampFoodPosition(dragX, dragY, bounds, 25);
+            this.setPosition(clamped.x, clamped.y);
+            if (this.body) {
+                this.body.reset(clamped.x, clamped.y);
+            }
+        });
+
+        this.on('dragend', () => {
+            if (!this.isBeingDragged) {
+                return;
+            }
+            this.isBeingDragged = false;
+            this.setScale(1.5);
+            this.setDepth(0);
+            if (this.body) {
+                this.body.reset(this.x, this.y);
+            }
+        });
     }
 
     private emitCrumbs() {

@@ -26,6 +26,33 @@ export function resolveFoodLoss(foodCount: number): FoodLossOutcome {
   };
 }
 
+export function canFoodBeEaten(
+  isBeingEaten: boolean,
+  isBeingDragged: boolean,
+  bodyEnabled = true
+): boolean {
+  // A food piece cannot be eaten if it is disabled, already being eaten, or currently being dragged by the player.
+  return bodyEnabled && !isBeingEaten && !isBeingDragged;
+}
+
+export function clampFoodPosition(
+  x: number,
+  y: number,
+  trayBounds: Rect,
+  margin = 20
+): Point {
+  // Keep dragged food safely inside the tray surface so it remains reachable by ants.
+  const minX = trayBounds.x + margin;
+  const maxX = trayBounds.x + trayBounds.width - margin;
+  const minY = trayBounds.y + margin;
+  const maxY = trayBounds.y + trayBounds.height - margin;
+
+  return {
+    x: Math.max(minX, Math.min(maxX, x)),
+    y: Math.max(minY, Math.min(maxY, y))
+  };
+}
+
 export function isNewHighScore(score: number, currentHighScore: number): boolean {
   return score > currentHighScore;
 }

@@ -4,6 +4,8 @@ import {
   calculateAntVelocity,
   calculateDeviceMotionTilt,
   calculateDeviceTilt,
+  canFoodBeEaten,
+  clampFoodPosition,
   getScreenOrientationAngle,
   calculateVisualLayerLayout,
   debugColorToTint,
@@ -180,6 +182,22 @@ describe("food loss", () => {
 
   it("ends the game when the final food is eaten", () => {
     assert.deepEqual(resolveFoodLoss(1), { foodCount: 0, gameOver: true });
+  });
+});
+
+describe("food drag and interaction", () => {
+  it("determines whether food can be eaten based on dragged and eaten states", () => {
+    assert.equal(canFoodBeEaten(false, false, true), true);
+    assert.equal(canFoodBeEaten(false, true, true), false);
+    assert.equal(canFoodBeEaten(true, false, true), false);
+    assert.equal(canFoodBeEaten(false, false, false), false);
+  });
+
+  it("clamps food position within the tray bounds", () => {
+    const tray = { x: 50, y: 30, width: 400, height: 240 };
+    assert.deepEqual(clampFoodPosition(100, 100, tray, 20), { x: 100, y: 100 });
+    assert.deepEqual(clampFoodPosition(10, 10, tray, 20), { x: 70, y: 50 });
+    assert.deepEqual(clampFoodPosition(500, 300, tray, 20), { x: 430, y: 250 });
   });
 });
 

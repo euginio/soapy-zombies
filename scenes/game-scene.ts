@@ -237,16 +237,8 @@ export class GameScene extends MyScene {
       this.gravity.x = this.touchTilt.x * this.gravityNum.x;
       this.gravity.y = this.touchTilt.y * this.gravityNum.y;
     });
-    const resetTouchTilt = () => {
-      this.touchDragOrigin = null;
-      if (!this.deviceTilt && !this.hasMotionInput && this.touchTilt) {
-        this.touchTilt = null;
-        this.gravity.x = 0;
-        this.gravity.y = 0;
-      }
-    };
-    this.input.on("pointerup", resetTouchTilt);
-    this.input.on("gameout", resetTouchTilt);
+    this.input.on("pointerup", this.resetTouchTilt);
+    this.input.on("gameout", this.resetTouchTilt);
 
     this.tray = this.add.image(this.width / 2, this.height / 2, 'tray');
     this.tray.setSize(this.tray.width-20,this.tray.height-3)
@@ -274,7 +266,7 @@ export class GameScene extends MyScene {
       this.addNewAnt()
     }
 
-    this.physics.add.collider(this.ants, this.foods, this.eatFood, null, this);
+    this.physics.add.collider(this.ants, this.foods, this.eatFood, (_ant, food) => !(food as Food).isBeingDragged, this);
     this.physics.add.collider(this.ants, this.ants, null, null, this);
     // this.physics.add.overlap(this.ants, this.tray, this.antOut, null, this);
     // this.ants.children.iterate((z:Ant)=>z.init())
@@ -366,6 +358,9 @@ export class GameScene extends MyScene {
   }
 
   eatFood(ant: Ant, food: Food) {
+    if (food.isBeingDragged) {
+      return;
+    }
     food.beingEat();
     // ant.eating()
   }
@@ -564,6 +559,19 @@ export class GameScene extends MyScene {
     this.visualLayerMutationObserver.observe(this.visualLayerParent, { childList: true });
     window.addEventListener("resize", this.invalidateVisualLayerBounds);
     this.scale.on(Phaser.Scale.Events.RESIZE, this.invalidateVisualLayerBounds);
+  }
+
+  resetTouchTilt = () => {
+    this.touchDragOrigin = null;
+    if (!this.deviceTilt && !this.hasMotionInput && this.touchTilt) {
+      this.touchTilt = null;
+      this.gravity.x = 0;
+      this.gravity.y = 0;
+    }
+  };
+
+  isAnyFoodDragging(): boolean {
+    return this.foods?.getChildren().some((child) => (child as Food).isBeingDragged) ?? false;
   }
 
   private updateCanvasCenterWithoutTransform = () => {

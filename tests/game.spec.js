@@ -964,3 +964,88 @@ test("mobile portrait mode displays the rotation prompt overlay", async ({ brows
     await context.close();
   }
 });
+
+test("food can be dragged and cannot be eaten while dragging", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  // Verify food is interactive, draggable, and protected from being eaten while dragging
+  const dragResult = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    const initialPos = { x: food.x, y: food.y };
+    const isInteractive = Boolean(food.input && food.input.enabled);
+    const isDraggable = Boolean(food.input && food.input.draggable);
+
+    // Emit dragstart
+    food.emit("dragstart", scene.input.activePointer);
+    const duringDragState = {
+      isBeingDragged: food.isBeingDragged,
+      isAnyFoodDragging: scene.isAnyFoodDragging(),
+      depth: food.depth,
+      scale: food.scaleX
+    };
+
+    // Attempt to eat the food while dragging via eatFood and beingEat
+    const ant = scene.ants.getChildren()[0];
+    scene.eatFood(ant, food);
+    food.beingEat();
+    const tweenCountWhileDragging = scene.tweens.getTweensOf(food).length;
+    const isBeingEatenWhileDragging = food.isBeingEaten;
+
+    // Simulate drag movement
+    const targetX = initialPos.x + 30;
+    const targetY = initialPos.y + 20;
+    food.emit("drag", scene.input.activePointer, targetX, targetY);
+    const movedPos = { x: food.x, y: food.y, bodyX: food.body.x, bodyY: food.body.y };
+
+    // Ants pick nearest food should ignore the dragged food
+    const nearestToAnt = ant.pickNearestFood();
+    const targetIsNotDraggedFood = nearestToAnt !== food;
+
+    // Emit dragend
+    food.emit("dragend", scene.input.activePointer);
+    const afterDragState = {
+      isBeingDragged: food.isBeingDragged,
+      isAnyFoodDragging: scene.isAnyFoodDragging(),
+      depth: food.depth,
+      scale: food.scaleX,
+      finalPos: { x: food.x, y: food.y }
+    };
+
+    return {
+      isInteractive,
+      isDraggable,
+      initialPos,
+      duringDragState,
+      tweenCountWhileDragging,
+      isBeingEatenWhileDragging,
+      movedPos,
+      targetIsNotDraggedFood,
+      afterDragState,
+      foodCount: scene.foodCount
+    };
+  });
+
+  expect(dragResult.isInteractive).toBe(true);
+  expect(dragResult.isDraggable).toBe(true);
+  expect(dragResult.duringDragState.isBeingDragged).toBe(true);
+  expect(dragResult.duringDragState.isAnyFoodDragging).toBe(true);
+  expect(dragResult.duringDragState.depth).toBe(10);
+  expect(dragResult.duringDragState.scale).toBeGreaterThan(1.5);
+  // Protected from being eaten while dragged
+  expect(dragResult.tweenCountWhileDragging).toBe(0);
+  expect(dragResult.isBeingEatenWhileDragging).toBe(false);
+  expect(dragResult.foodCount).toBe(8);
+  expect(dragResult.targetIsNotDraggedFood).toBe(true);
+  // Position moved
+  expect(dragResult.movedPos.x).toBe(dragResult.initialPos.x + 30);
+  expect(dragResult.movedPos.y).toBe(dragResult.initialPos.y + 20);
+  // After drop, dragging state resets
+  expect(dragResult.afterDragState.isBeingDragged).toBe(false);
+  expect(dragResult.afterDragState.isAnyFoodDragging).toBe(false);
+  expect(dragResult.afterDragState.depth).toBe(0);
+  expect(dragResult.afterDragState.scale).toBe(1.5);
+});
