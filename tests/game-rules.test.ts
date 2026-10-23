@@ -10,6 +10,7 @@ import {
   isNewHighScore,
   isTabletDevice,
   parseStoredHighScore,
+  parseStoredMuted,
   pickNearestTarget,
   rectanglesOverlap,
   resolveAntEscape,
@@ -238,5 +239,15 @@ describe("stored high score", () => {
     assert.equal(parseStoredHighScore(""), 0);
     assert.equal(parseStoredHighScore("abc"), 0);
     assert.equal(parseStoredHighScore("-5"), 0);
+  });
+});
+
+describe("stored mute preference", () => {
+  it("is muted only for an explicit saved flag", () => {
+    assert.equal(parseStoredMuted("1"), true);
+    assert.equal(parseStoredMuted("0"), false);
+    assert.equal(parseStoredMuted(null), false);
+    assert.equal(parseStoredMuted(undefined), false);
+    assert.equal(parseStoredMuted("yes"), false);
   });
 });

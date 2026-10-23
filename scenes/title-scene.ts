@@ -5,6 +5,7 @@
  * @license      
  */
 
+import { AUDIO_KEYS, GameAudio } from "../audio/game-audio";
 import { MyScene } from "./my-scene";
 
 export class TitleScene extends MyScene {
@@ -49,6 +50,7 @@ export class TitleScene extends MyScene {
       return;
     }
     this.isStarting = true;
+    new GameAudio(this.sound).play(AUDIO_KEYS.uiTap);
     if (!this.scale.isFullscreen) {
       this.scale.startFullscreen();
     }

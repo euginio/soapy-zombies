@@ -79,7 +79,7 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
   - `window.__gameSceneForTest` / `window.__titleSceneForTest` (exposed by patching
     `SceneManager.start` inside the tests).
   - DOM ids `#tilting-board`, `#stationary-hud`, `#high-score-label`, `#game-over-overlay`,
-    `#game-over-restart`, `#game-over-home`, `#recenter-device-tilt`.
+    `#game-over-restart`, `#game-over-home`, `#recenter-device-tilt`, `#sound-toggle`.
   - The `highScore` localStorage key.
 - UI text is currently mixed Spanish/English (the game-over overlay is Spanish). Keep it
   consistent with the surrounding text until i18n is done.
@@ -90,4 +90,4 @@ Identified in the project analysis and not done yet:
 
 - Add ESLint and Prettier, and tighten `tsconfig.json` (`strict`, `module`/`target` for Vite).
 - Split `GameScene` (visual DOM layers and input handling should be separate classes).
-- Virtual joystick and iOS sensor permission, difficulty balance, sound, tutorial.
+- Virtual joystick and iOS sensor permission, difficulty balance, tutorial.

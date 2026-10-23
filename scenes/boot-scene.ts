@@ -1,3 +1,5 @@
+import { AUDIO_FILES } from "../audio/game-audio";
+
 /**
  * @author       Eugenio Arosteguy <eugenio.arosteguy@gmail.com>
  * @copyright    2020 eugenio arosteguy
@@ -57,6 +59,7 @@ export class BootScene extends Phaser.Scene {
       frameWidth: 101,
       frameHeight: 124
     });
+    Object.entries(AUDIO_FILES).forEach(([key, url]) => this.load.audio(key, url));
   }
 
   update(): void {

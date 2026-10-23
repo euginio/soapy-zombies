@@ -36,6 +36,11 @@ export function parseStoredHighScore(storedValue: string | null | undefined): nu
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
+export function parseStoredMuted(storedValue: string | null | undefined): boolean {
+  // Audio is on by default: only an explicit "1" written by the mute button means muted.
+  return storedValue === "1";
+}
+
 export interface AntVelocity {
   x: number;
   y: number;

@@ -6,7 +6,13 @@ const REQUIRED_ASSETS = [
   "/assets/images/grass.png",
   "/assets/images/trayWithCompleteClothe.png",
   "/assets/images/food.png",
-  "/assets/images/ant_sheet.png"
+  "/assets/images/ant_sheet.png",
+  "/assets/audio/music.ogg",
+  "/assets/audio/ant-fall.ogg",
+  "/assets/audio/food-eaten.ogg",
+  "/assets/audio/game-over.ogg",
+  "/assets/audio/ui-tap.ogg",
+  "/assets/audio/ui-toggle.ogg"
 ];
 
 // Simulates the asynchronous fullscreen transition of the real Fullscreen API:
@@ -78,6 +84,8 @@ async function stubFullscreenAndExposeScenes(page) {
 async function clickStartOnCanvas(page, input = "mouse") {
   const canvas = page.locator("#game canvas").first();
   await expect(canvas).toBeVisible();
+  // Boot loads and decodes the images and audio first; a tap before the title scene is created would be lost.
+  await page.waitForFunction(() => Boolean(window.__titleSceneForTest?.startTxt));
   const bounds = await canvas.boundingBox();
   const x = bounds.x + bounds.width / 2;
   const y = bounds.y + bounds.height * 0.75;
@@ -116,7 +124,7 @@ async function expectGameLoads(page, url) {
   const failedResponses = [];
   const loadedAssets = new Set();
 
-  await stubFullscreen(page);
+  await stubFullscreenAndExposeScenes(page);
   page.on("pageerror", (error) => pageErrors.push(error.message));
   page.on("response", (response) => {
     const pathname = new URL(response.url()).pathname;
@@ -694,6 +702,88 @@ test("the game still starts when localStorage is unavailable", async ({ page }) 
   });
   await expect(page.locator("#game-over-overlay")).toBeVisible();
   expect(pageErrors).toEqual([]);
+});
+test("background music plays during a round, pauses at game over, and resumes on restart", async ({ page }) => {
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const musicState = () => page.evaluate(() => {
+    const music = window.__gameSceneForTest.sound.get("music");
+    return { exists: Boolean(music), playing: Boolean(music?.isPlaying), loop: Boolean(music?.loop) };
+  });
+  await expect.poll(musicState).toEqual({ exists: true, playing: true, loop: true });
+
+  await page.evaluate(() => window.__gameSceneForTest.overGame());
+  await expect.poll(musicState).toMatchObject({ exists: true, playing: false });
+
+  await page.locator("#game-over-restart").click();
+  await expect.poll(musicState).toEqual({ exists: true, playing: true, loop: true });
+  expect(await page.evaluate(() => window.__gameSceneForTest.sound.getAll("music").length)).toBe(1);
+  expect(pageErrors).toEqual([]);
+});
+
+test("the sound button mutes and unmutes the game and remembers the choice", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const toggle = page.locator("#sound-toggle");
+  await expect(toggle).toBeVisible();
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  // The button is its own layer, so the HUD keeps containing only the score text.
+  await expect(page.locator("#stationary-hud")).toHaveText("0HI 0");
+  const soundState = () => page.evaluate(() => ({
+    muted: window.__gameSceneForTest.sound.mute,
+    stored: localStorage.getItem("soundMuted")
+  }));
+
+  await toggle.click();
+  await expect.poll(soundState).toEqual({ muted: true, stored: "1" });
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await toggle.click();
+  await expect.poll(soundState).toEqual({ muted: false, stored: "0" });
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+
+  await toggle.click();
+  await page.reload();
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+  await expect.poll(soundState).toEqual({ muted: true, stored: "1" });
+  await expect(page.locator("#sound-toggle")).toHaveAttribute("aria-pressed", "true");
+});
+
+test("game events play their sound effects", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.addInitScript(() => {
+    window.__playedSounds = [];
+    window.addEventListener("load", () => {
+      const proto = window.Phaser.Sound.BaseSoundManager.prototype;
+      const play = proto.play;
+      proto.play = function (key, ...args) {
+        window.__playedSounds.push(key);
+        return play.call(this, key, ...args);
+      };
+    }, { once: true });
+  });
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    window.__playedSounds.length = 0;
+    // Headless browsers may keep audio locked; the effects must still be requested.
+    Object.defineProperty(scene.sound, "locked", { configurable: true, value: false });
+    scene.antDied(scene.ants.getChildren()[0]);
+    scene.destroyFood(scene.foods.getChildren()[0]);
+    scene.overGame();
+  });
+
+  expect(await page.evaluate(() => window.__playedSounds)).toEqual(["ant-fall", "food-eaten", "game-over"]);
 });
 test("the orientation is locked only once fullscreen is really active", async ({ page }) => {
   await stubOrientationLock(page);

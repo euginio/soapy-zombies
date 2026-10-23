@@ -5,6 +5,7 @@
  * @license      
  */
 
+import { AUDIO_KEYS, GameAudio } from "../audio/game-audio";
 import { ANT_DEBUG_COLORS, DEBUG_MODE } from "../const/const";
 import {
   calculateDeviceMotionTilt,
@@ -39,6 +40,8 @@ export class GameScene extends MyScene {
   private deviceOrientationHandler: (event: DeviceOrientationEvent) => void;
   private deviceMotionHandler: (event: DeviceMotionEvent) => void;
   private sensorRecenterButton: HTMLButtonElement | null = null;
+  private soundToggleButton: HTMLButtonElement | null = null;
+  private audio: GameAudio;
   private stationaryBackground: HTMLDivElement | null = null;
   private gameOverOverlay: HTMLDivElement | null = null;
   private finalScoreValue: HTMLSpanElement;
@@ -87,6 +90,7 @@ export class GameScene extends MyScene {
     this.score = outcome.score;
     this.scoreText.setText(this.score.toString());
     this.scoreLabel.textContent = this.score.toString();
+    this.audio.play(AUDIO_KEYS.antFall);
     if (outcome.spawnAnt) {
       this.addNewAnt();
     }
@@ -100,6 +104,8 @@ export class GameScene extends MyScene {
     this.foodCount = outcome.foodCount;
     if (outcome.gameOver) {
       this.overGame();
+    } else {
+      this.audio.play(AUDIO_KEYS.foodEaten);
     }
   }
 
@@ -121,6 +127,8 @@ export class GameScene extends MyScene {
     this.gameOverOverlay!.querySelector("button")?.focus();
     this.anims.pauseAll();
     this.physics.pause();
+    this.audio.pauseMusic();
+    this.audio.play(AUDIO_KEYS.gameOver);
   }
 
   private loadHighScore(): number {
@@ -158,6 +166,8 @@ export class GameScene extends MyScene {
     this.anims.resumeAll();
     this.gameOver = false;
     this.foodCount = this.initialFood;
+    this.audio = new GameAudio(this.sound);
+    this.audio.restoreMute();
     const canvas = this.game.canvas;
     // These HTML layers stay fixed while only the Phaser canvas receives a tilt transform.
     this.createVisualLayers(canvas);
@@ -266,6 +276,8 @@ export class GameScene extends MyScene {
     };
     window.addEventListener("devicemotion", this.deviceMotionHandler);
     window.addEventListener("deviceorientation", this.deviceOrientationHandler);
+    // The title tap already unlocked audio; the music survives restarts, so this only resumes it.
+    this.audio.startMusic();
   }
 
   repositionFood(food: Food, food2: Food) {
@@ -397,6 +409,45 @@ export class GameScene extends MyScene {
     this.visualLayerParent.appendChild(this.sensorRecenterButton);
   }
 
+  private createSoundToggleButton() {
+    // A sibling layer (not inside the HUD) so the HUD keeps containing only the score text.
+    const button = document.createElement("button");
+    button.id = "sound-toggle";
+    button.type = "button";
+    Object.assign(button.style, {
+      position: "absolute",
+      zIndex: "10001",
+      padding: "0.25em 0.45em",
+      border: "0",
+      borderRadius: "0.4em",
+      color: "#201",
+      background: "rgba(255, 255, 255, 0.9)",
+      font: "bold 18px sans-serif",
+      lineHeight: "1.2",
+      cursor: "pointer",
+      pointerEvents: "auto"
+    });
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.audio.toggleMute();
+      this.refreshSoundToggleButton();
+    });
+    this.soundToggleButton = button;
+    this.refreshSoundToggleButton();
+    this.visualLayerParent.appendChild(button);
+  }
+
+  private refreshSoundToggleButton() {
+    if (!this.soundToggleButton) {
+      return;
+    }
+    const muted = this.audio.muted;
+    this.soundToggleButton.textContent = muted ? "🔇" : "🔊";
+    this.soundToggleButton.setAttribute("aria-label", muted ? "Unmute sound" : "Mute sound");
+    this.soundToggleButton.setAttribute("aria-pressed", muted ? "true" : "false");
+  }
+
   private createVisualLayers(gameCanvas: HTMLCanvasElement) {
     this.gameCanvas = gameCanvas;
     this.currentCanvasTransform = "";
@@ -435,6 +486,7 @@ export class GameScene extends MyScene {
     this.hudOverlay.append(this.scoreLabel, this.highScoreLabel);
     this.visualLayerParent.appendChild(this.hudOverlay);
     this.createGameOverOverlay();
+    this.createSoundToggleButton();
     this.syncVisualLayerBounds(gameCanvas);
 
     this.visualLayerResizeObserver = new ResizeObserver(this.invalidateVisualLayerBounds);
@@ -614,6 +666,11 @@ export class GameScene extends MyScene {
       top: `${43 * layout.scaleY}px`,
       fontSize: `${15 * layout.scaleX}px`
     });
+    if (this.soundToggleButton) {
+      this.soundToggleButton.style.fontSize = `${18 * layout.scaleX}px`;
+      this.soundToggleButton.style.left = `${layout.left + 8}px`;
+      this.soundToggleButton.style.top = `${layout.top + layout.height - this.soundToggleButton.offsetHeight - 8}px`;
+    }
     if (this.sensorRecenterButton) {
       this.sensorRecenterButton.style.left = `${layout.left + layout.width - this.sensorRecenterButton.offsetWidth - 8}px`;
       this.sensorRecenterButton.style.top = `${layout.top + 8}px`;
@@ -637,7 +694,7 @@ export class GameScene extends MyScene {
     }
     this.visualLayerParent = parent;
 
-    for (const layer of [this.hudOverlay, this.sensorRecenterButton, this.gameOverOverlay]) {
+    for (const layer of [this.hudOverlay, this.sensorRecenterButton, this.soundToggleButton, this.gameOverOverlay]) {
       if (layer && layer.parentElement !== parent) {
         parent.appendChild(layer);
       }
@@ -671,6 +728,8 @@ export class GameScene extends MyScene {
     this.gameCanvas.style.transform = "";
     this.sensorRecenterButton?.remove();
     this.sensorRecenterButton = null;
+    this.soundToggleButton?.remove();
+    this.soundToggleButton = null;
     for (const [parent, originalPosition] of this.visualLayerParentPositions) {
       parent.style.position = originalPosition;
     }
