@@ -137,9 +137,11 @@ export class Ant extends MySprite {
         // Report the escape once, then animate the ant before returning it to the tray.
         this.scene.antDied(this);
         
+        const spinDirection = Phaser.Math.Between(0, 1) === 0 ? -1 : 1;
         this.scene.tweens.add({
             targets: this, 
-            scale: { value: 0.01, duration: 750 },
+            scale: { value: 0.01, duration: 750, ease: 'Power2' },
+            angle: { value: this.angle + spinDirection * 540, duration: 750, ease: 'Power2' },
             yoyo: true,
             loop: 0,
             onYoyo: () => {

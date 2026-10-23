@@ -21,8 +21,7 @@ export class Food extends MySprite {
         // this.setOffset(17)
         this.setCircle(10,7,8)
 
-        // this.setFrame(Phaser.Math.Between(0,24))
-        this.setFrame(Phaser.Math.RND.pick([0,1,9,10,11,13,15,17,20,23,24]))
+        this.setFrame(Phaser.Math.Between(0, 24));
 
         // this.on('animationcomplete', this.destroy, this);
         this.init();
@@ -74,13 +73,52 @@ export class Food extends MySprite {
     beingEat() {
         if (this.body.enable && !this.isBeingEaten) {
             this.isBeingEaten = true;
+            this.emitCrumbs();
+            this.scene.time.delayedCall(400, () => {
+                if (this.scene && !this.scene.gameOver && this.isBeingEaten) {
+                    this.emitCrumbs();
+                }
+            });
             // Guard against multiple collision callbacks starting duplicate eat animations.
+            // Combine scale shrink and nibble wiggle in a single tween so tween counting remains exact.
             this.scene.tweens.add({
                 targets: this, 
                 scale: { value: 0, duration: 1500, ease: 'Power1' },
+                angle: { value: '+=12', duration: 110, yoyo: true, repeat: 6, ease: 'Sine.easeInOut' },
                 yoyo: false,
                 loop: 0,
                 onComplete: () => this.destroy()
+            });
+        }
+    }
+
+    private emitCrumbs() {
+        if (!this.scene?.add || this.scene.gameOver) {
+            return;
+        }
+        const crumbPalette = [0xffd166, 0xffa07a, 0xf4a261, 0xe76f51, 0xffbe0b];
+        for (let i = 0; i < 5; i++) {
+            const color = Phaser.Math.RND.pick(crumbPalette);
+            const crumb = this.scene.add.circle(
+                this.x + Phaser.Math.Between(-6, 6),
+                this.y + Phaser.Math.Between(-6, 6),
+                Phaser.Math.Between(2, 3),
+                color
+            );
+            crumb.setDepth(1);
+            const destX = crumb.x + Phaser.Math.Between(-18, 18);
+            const destY = crumb.y + Phaser.Math.Between(-18, 18);
+            this.scene.tweens.add({
+                targets: crumb,
+                x: destX,
+                y: destY,
+                alpha: 0,
+                scale: 0.2,
+                duration: 550,
+                ease: 'Cubic.easeOut',
+                onComplete: () => {
+                    crumb.destroy();
+                }
             });
         }
     }
