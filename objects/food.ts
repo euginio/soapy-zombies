@@ -1,4 +1,10 @@
-import { canFoodBeEaten, clampFoodPosition } from "../game-rules";
+import {
+    canFoodBeDragged,
+    canFoodBeEaten,
+    clampFoodPosition,
+    FOOD_DRAG_COOLDOWN_MS,
+    FOOD_MAX_DRAG_MS
+} from "../game-rules";
 import { GameScene } from "../scenes/game-scene";
 import { MySprite } from "./mySprite";
 
@@ -13,6 +19,9 @@ export class Food extends MySprite {
     gravityFactor = .2;
     isBeingEaten: boolean = false;
     isBeingDragged: boolean = false;
+    isDragCooldown: boolean = false;
+    private dragHoldTimer: Phaser.Time.TimerEvent | null = null;
+    private dragCooldownTimer: Phaser.Time.TimerEvent | null = null;
 
     constructor(scene: GameScene) {
         super(scene, 0, 0, 'food');
@@ -31,7 +40,10 @@ export class Food extends MySprite {
     }
 
     init() {
+        this.clearDragTimers();
         this.isBeingDragged = false;
+        this.isDragCooldown = false;
+        this.setAlpha(1);
         this.setDepth(0);
         this.isBeingEaten = false;
         this.setScale(1.5);
@@ -47,7 +59,9 @@ export class Food extends MySprite {
     }
 
     destroy(fromScene?: boolean) {
+        this.clearDragTimers();
         this.isBeingDragged = false;
+        this.isDragCooldown = false;
         if (this.scene?.tweens) {
             this.scene.tweens.killTweensOf(this);
         }
@@ -78,6 +92,9 @@ export class Food extends MySprite {
 
     beingEat() {
         if (canFoodBeEaten(this.isBeingEaten, this.isBeingDragged, this.body?.enable ?? false)) {
+            this.clearDragTimers();
+            this.isDragCooldown = false;
+            this.setAlpha(1);
             this.isBeingEaten = true;
             this.emitCrumbs();
             this.scene.time.delayedCall(400, () => {
@@ -102,12 +119,25 @@ export class Food extends MySprite {
         this.setInteractive({ draggable: true, useHandCursor: true });
 
         this.on('dragstart', () => {
-            if (this.isBeingEaten || !this.body || !this.body.enable || this.scene.gameOver) {
+            if (
+                !canFoodBeDragged(
+                    this.isBeingEaten,
+                    this.isDragCooldown,
+                    this.body?.enable ?? false,
+                    Boolean(this.scene?.gameOver)
+                )
+            ) {
                 return;
             }
             this.isBeingDragged = true;
             this.setScale(1.85);
             this.setDepth(10);
+            this.clearDragHoldTimer();
+            // Automatically drop the food back onto the tray if held for the maximum duration.
+            this.dragHoldTimer = this.scene.time.delayedCall(FOOD_MAX_DRAG_MS, () => {
+                this.dragHoldTimer = null;
+                this.finishDrag();
+            });
         });
 
         this.on('drag', (_pointer: Phaser.Input.Pointer, dragX: number, dragY: number) => {
@@ -123,16 +153,58 @@ export class Food extends MySprite {
         });
 
         this.on('dragend', () => {
-            if (!this.isBeingDragged) {
-                return;
-            }
-            this.isBeingDragged = false;
-            this.setScale(1.5);
-            this.setDepth(0);
-            if (this.body) {
-                this.body.reset(this.x, this.y);
+            this.finishDrag();
+        });
+    }
+
+    private finishDrag() {
+        this.clearDragHoldTimer();
+        if (!this.isBeingDragged) {
+            return;
+        }
+        this.isBeingDragged = false;
+        this.setScale(1.5);
+        this.setDepth(0);
+        if (this.body) {
+            this.body.reset(this.x, this.y);
+        }
+        this.startDragCooldown();
+    }
+
+    private startDragCooldown() {
+        this.clearDragCooldownTimer();
+        if (!this.scene?.time || this.scene.gameOver || !this.body?.enable || this.isBeingEaten) {
+            this.isDragCooldown = false;
+            return;
+        }
+        this.isDragCooldown = true;
+        this.setAlpha(0.7);
+        this.dragCooldownTimer = this.scene.time.delayedCall(FOOD_DRAG_COOLDOWN_MS, () => {
+            this.dragCooldownTimer = null;
+            this.isDragCooldown = false;
+            if (this.active && !this.isBeingEaten) {
+                this.setAlpha(1);
             }
         });
+    }
+
+    private clearDragHoldTimer() {
+        if (this.dragHoldTimer) {
+            this.dragHoldTimer.remove(false);
+            this.dragHoldTimer = null;
+        }
+    }
+
+    private clearDragCooldownTimer() {
+        if (this.dragCooldownTimer) {
+            this.dragCooldownTimer.remove(false);
+            this.dragCooldownTimer = null;
+        }
+    }
+
+    private clearDragTimers() {
+        this.clearDragHoldTimer();
+        this.clearDragCooldownTimer();
     }
 
     private emitCrumbs() {

@@ -26,6 +26,19 @@ export function resolveFoodLoss(foodCount: number): FoodLossOutcome {
   };
 }
 
+export const FOOD_MAX_DRAG_MS = 3000;
+export const FOOD_DRAG_COOLDOWN_MS = 1500;
+
+export function canFoodBeDragged(
+  isBeingEaten: boolean,
+  isDragCooldown: boolean,
+  bodyEnabled = true,
+  gameOver = false
+): boolean {
+  // Food can only be picked up when active, not being eaten, not on drag cooldown, and while the round is live.
+  return bodyEnabled && !isBeingEaten && !isDragCooldown && !gameOver;
+}
+
 export function canFoodBeEaten(
   isBeingEaten: boolean,
   isBeingDragged: boolean,

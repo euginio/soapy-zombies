@@ -965,13 +965,13 @@ test("mobile portrait mode displays the rotation prompt overlay", async ({ brows
   }
 });
 
-test("food can be dragged and cannot be eaten while dragging", async ({ page }) => {
+test("food can be dragged for up to 3 seconds, cannot be eaten while dragging, and has a drag cooldown", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
   await page.goto("/");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
-  // Verify food is interactive, draggable, and protected from being eaten while dragging
+  // 1. Verify manual drag, protection from being eaten, and cooldown after release
   const dragResult = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     const food = scene.foods.getChildren()[0];
@@ -995,24 +995,62 @@ test("food can be dragged and cannot be eaten while dragging", async ({ page }) 
     const tweenCountWhileDragging = scene.tweens.getTweensOf(food).length;
     const isBeingEatenWhileDragging = food.isBeingEaten;
 
-    // Simulate drag movement
-    const targetX = initialPos.x + 30;
-    const targetY = initialPos.y + 20;
+    // Simulate drag movement to an interior tray position
+    const targetX = scene.tray.x + 25;
+    const targetY = scene.tray.y + 15;
     food.emit("drag", scene.input.activePointer, targetX, targetY);
-    const movedPos = { x: food.x, y: food.y, bodyX: food.body.x, bodyY: food.body.y };
+    const movedPos = { x: food.x, y: food.y, targetX, targetY, bodyX: food.body.x, bodyY: food.body.y };
 
     // Ants pick nearest food should ignore the dragged food
     const nearestToAnt = ant.pickNearestFood();
     const targetIsNotDraggedFood = nearestToAnt !== food;
 
-    // Emit dragend
+    // Emit dragend: drops the food and starts cooldown
     food.emit("dragend", scene.input.activePointer);
     const afterDragState = {
       isBeingDragged: food.isBeingDragged,
+      isDragCooldown: food.isDragCooldown,
       isAnyFoodDragging: scene.isAnyFoodDragging(),
       depth: food.depth,
       scale: food.scaleX,
+      alpha: food.alpha,
       finalPos: { x: food.x, y: food.y }
+    };
+
+    // Attempting to drag immediately during cooldown must be blocked
+    food.emit("dragstart", scene.input.activePointer);
+    const blockedDuringCooldown = !food.isBeingDragged;
+
+    // Advance scene clock past the 1.5s cooldown
+    scene.time.preUpdate(0, 1600);
+    scene.time.update(0, 1600);
+    const afterCooldown = {
+      isDragCooldown: food.isDragCooldown,
+      alpha: food.alpha
+    };
+
+    // 2. Verify 3-second maximum hold duration auto-drops the food
+    const secondFood = scene.foods.getChildren()[1];
+    secondFood.emit("dragstart", scene.input.activePointer);
+    const secondStartedDragging = secondFood.isBeingDragged;
+
+    // At 2.5 seconds it is still being dragged
+    scene.time.preUpdate(0, 2500);
+    scene.time.update(0, 2500);
+    const stillDraggingAt2500ms = secondFood.isBeingDragged;
+
+    // Crossing 3 seconds automatically drops it onto the tray and enters cooldown
+    scene.time.preUpdate(0, 600);
+    scene.time.update(0, 600);
+    const posAfterAutoDrop = { x: secondFood.x, y: secondFood.y };
+    // Moving the pointer while still held down after auto-drop does not move the food
+    secondFood.emit("drag", scene.input.activePointer, posAfterAutoDrop.x + 50, posAfterAutoDrop.y + 50);
+    const autoDropState = {
+      isBeingDragged: secondFood.isBeingDragged,
+      isDragCooldown: secondFood.isDragCooldown,
+      depth: secondFood.depth,
+      scale: secondFood.scaleX,
+       stayedInPlace: secondFood.x === posAfterAutoDrop.x && secondFood.y === posAfterAutoDrop.y
     };
 
     return {
@@ -1025,6 +1063,11 @@ test("food can be dragged and cannot be eaten while dragging", async ({ page }) 
       movedPos,
       targetIsNotDraggedFood,
       afterDragState,
+      blockedDuringCooldown,
+      afterCooldown,
+      secondStartedDragging,
+      stillDraggingAt2500ms,
+      autoDropState,
       foodCount: scene.foodCount
     };
   });
@@ -1041,11 +1084,23 @@ test("food can be dragged and cannot be eaten while dragging", async ({ page }) 
   expect(dragResult.foodCount).toBe(8);
   expect(dragResult.targetIsNotDraggedFood).toBe(true);
   // Position moved
-  expect(dragResult.movedPos.x).toBe(dragResult.initialPos.x + 30);
-  expect(dragResult.movedPos.y).toBe(dragResult.initialPos.y + 20);
-  // After drop, dragging state resets
+  expect(dragResult.movedPos.x).toBe(dragResult.movedPos.targetX);
+  expect(dragResult.movedPos.y).toBe(dragResult.movedPos.targetY);
+  // After drop, dragging state resets and cooldown starts
   expect(dragResult.afterDragState.isBeingDragged).toBe(false);
+  expect(dragResult.afterDragState.isDragCooldown).toBe(true);
   expect(dragResult.afterDragState.isAnyFoodDragging).toBe(false);
   expect(dragResult.afterDragState.depth).toBe(0);
   expect(dragResult.afterDragState.scale).toBe(1.5);
+  expect(dragResult.blockedDuringCooldown).toBe(true);
+  expect(dragResult.afterCooldown.isDragCooldown).toBe(false);
+  expect(dragResult.afterCooldown.alpha).toBe(1);
+  // 3-second max drag hold limit auto-drops and enters cooldown
+  expect(dragResult.secondStartedDragging).toBe(true);
+  expect(dragResult.stillDraggingAt2500ms).toBe(true);
+  expect(dragResult.autoDropState.isBeingDragged).toBe(false);
+  expect(dragResult.autoDropState.isDragCooldown).toBe(true);
+  expect(dragResult.autoDropState.depth).toBe(0);
+  expect(dragResult.autoDropState.scale).toBe(1.5);
+  expect(dragResult.autoDropState.stayedInPlace).toBe(true);
 });

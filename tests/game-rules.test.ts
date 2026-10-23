@@ -4,8 +4,11 @@ import {
   calculateAntVelocity,
   calculateDeviceMotionTilt,
   calculateDeviceTilt,
+  canFoodBeDragged,
   canFoodBeEaten,
   clampFoodPosition,
+  FOOD_DRAG_COOLDOWN_MS,
+  FOOD_MAX_DRAG_MS,
   getScreenOrientationAngle,
   calculateVisualLayerLayout,
   debugColorToTint,
@@ -186,6 +189,19 @@ describe("food loss", () => {
 });
 
 describe("food drag and interaction", () => {
+  it("defines a 3-second max drag duration and a 1-2 second cooldown", () => {
+    assert.equal(FOOD_MAX_DRAG_MS, 3000);
+    assert.equal(FOOD_DRAG_COOLDOWN_MS >= 1000 && FOOD_DRAG_COOLDOWN_MS <= 2000, true);
+  });
+
+  it("determines whether food can be dragged based on cooldown, eaten, and game state", () => {
+    assert.equal(canFoodBeDragged(false, false, true, false), true);
+    assert.equal(canFoodBeDragged(true, false, true, false), false);
+    assert.equal(canFoodBeDragged(false, true, true, false), false);
+    assert.equal(canFoodBeDragged(false, false, false, false), false);
+    assert.equal(canFoodBeDragged(false, false, true, true), false);
+  });
+
   it("determines whether food can be eaten based on dragged and eaten states", () => {
     assert.equal(canFoodBeEaten(false, false, true), true);
     assert.equal(canFoodBeEaten(false, true, true), false);
