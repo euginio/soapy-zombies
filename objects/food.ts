@@ -21,6 +21,8 @@ export class Food extends MySprite {
     isBeingEaten: boolean = false;
     isBeingDragged: boolean = false;
     isDragCooldown: boolean = false;
+    dragOffsetX: number = 0;
+    dragOffsetY: number = 0;
     private dragHoldTimer: Phaser.Time.TimerEvent | null = null;
     private dragCooldownTimer: Phaser.Time.TimerEvent | null = null;
 
@@ -42,8 +44,11 @@ export class Food extends MySprite {
 
     init() {
         this.clearDragTimers();
+        this.resetInputDragState();
         this.isBeingDragged = false;
         this.isDragCooldown = false;
+        this.dragOffsetX = 0;
+        this.dragOffsetY = 0;
         this.setAlpha(1);
         this.setDepth(0);
         this.isBeingEaten = false;
@@ -59,13 +64,15 @@ export class Food extends MySprite {
         const existingFoods = (this.scene.foods?.getChildren() ?? []).filter(
             (other): other is Food => other !== this && Boolean((other as Food).body?.enable)
         );
+        const trayCenter = { x: this.scene.width / 2, y: this.scene.height / 2 };
         const maxAttempts = 30;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             this.setRandomPosition(trayB.left+margin, trayB.top+margin*2, trayB.right-trayB.left-margin*2, trayB.bottom-margin*4);
             const overlapsExisting = existingFoods.some((other) =>
                 areFoodsOverlapping(this, other)
             );
-            if (!overlapsExisting) {
+            const overlapsCenter = areFoodsOverlapping(this, trayCenter, 36);
+            if (!overlapsExisting && !overlapsCenter) {
                 break;
             }
         }
@@ -76,8 +83,11 @@ export class Food extends MySprite {
 
     destroy(fromScene?: boolean) {
         this.clearDragTimers();
+        this.resetInputDragState();
         this.isBeingDragged = false;
         this.isDragCooldown = false;
+        this.dragOffsetX = 0;
+        this.dragOffsetY = 0;
         if (this.scene?.tweens) {
             this.scene.tweens.killTweensOf(this);
         }
@@ -109,6 +119,7 @@ export class Food extends MySprite {
     beingEat() {
         if (canFoodBeEaten(this.isBeingEaten, this.isBeingDragged, this.body?.enable ?? false)) {
             this.clearDragTimers();
+            this.resetInputDragState();
             this.isDragCooldown = false;
             this.setAlpha(1);
             this.isBeingEaten = true;
@@ -134,57 +145,111 @@ export class Food extends MySprite {
     private setupDragAndDrop() {
         this.setInteractive({ draggable: true, useHandCursor: true });
 
-        this.on('dragstart', () => {
-            if (
-                !canFoodBeDragged(
-                    this.isBeingEaten,
-                    this.isDragCooldown,
-                    this.body?.enable ?? false,
-                    Boolean(this.scene?.gameOver)
-                )
-            ) {
-                return;
-            }
-            this.isBeingDragged = true;
-            this.setScale(1.85);
-            this.setDepth(10);
-            this.clearDragHoldTimer();
-            // Automatically drop the food back onto the tray if held for the maximum duration.
-            this.dragHoldTimer = this.scene.time.delayedCall(FOOD_MAX_DRAG_MS, () => {
-                this.dragHoldTimer = null;
-                this.finishDrag();
-            });
+        this.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+            this.startDrag(pointer);
+        });
+
+        this.on('dragstart', (pointer: Phaser.Input.Pointer) => {
+            this.startDrag(pointer);
         });
 
         this.on('drag', (_pointer: Phaser.Input.Pointer, dragX: number, dragY: number) => {
-            if (!this.isBeingDragged || !this.scene.tray) {
-                return;
-            }
-            const bounds = this.scene.tray.getBounds();
-            const clamped = clampFoodPosition(dragX, dragY, bounds, 25);
-            this.setPosition(clamped.x, clamped.y);
-            if (this.body) {
-                this.body.reset(clamped.x, clamped.y);
-            }
+            this.moveDrag(dragX, dragY);
         });
 
-        this.on('dragend', () => {
-            this.finishDrag();
+        this.on('dragend', (pointer: Phaser.Input.Pointer) => {
+            this.finishDrag(pointer);
+        });
+
+        this.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+            this.finishDrag(pointer);
         });
     }
 
-    private finishDrag() {
+    startDrag(pointer?: Phaser.Input.Pointer): boolean {
+        if (this.isBeingDragged) {
+            return true;
+        }
+        if (
+            !canFoodBeDragged(
+                this.isBeingEaten,
+                this.isDragCooldown,
+                this.body?.enable ?? false,
+                Boolean(this.scene?.gameOver)
+            )
+        ) {
+            this.resetInputDragState(pointer);
+            return false;
+        }
+        if (this.scene?.isAnyFoodDragging()) {
+            this.resetInputDragState(pointer);
+            return false;
+        }
+        this.isBeingDragged = true;
+        const pointerX = pointer ? (pointer.worldX || pointer.x) : this.x;
+        const pointerY = pointer ? (pointer.worldY || pointer.y) : this.y;
+        const offsetX = Number.isFinite(pointerX) ? pointerX - this.x : 0;
+        const offsetY = Number.isFinite(pointerY) ? pointerY - this.y : 0;
+        if (Math.hypot(offsetX, offsetY) <= 40) {
+            this.dragOffsetX = offsetX;
+            this.dragOffsetY = offsetY;
+        } else {
+            this.dragOffsetX = 0;
+            this.dragOffsetY = 0;
+        }
+        this.setScale(1.85);
+        this.setDepth(10);
+        this.scene?.resetTouchTilt?.();
         this.clearDragHoldTimer();
+        // Automatically drop the food back onto the tray if held for the maximum duration.
+        this.dragHoldTimer = this.scene.time.delayedCall(FOOD_MAX_DRAG_MS, () => {
+            this.dragHoldTimer = null;
+            this.finishDrag();
+        });
+        return true;
+    }
+
+    moveDrag(dragX: number, dragY: number) {
+        if (!this.isBeingDragged || !this.scene?.tray) {
+            return;
+        }
+        const bounds = this.scene.tray.getBounds();
+        const clamped = clampFoodPosition(dragX, dragY, bounds, 25);
+        this.setPosition(clamped.x, clamped.y);
+        if (this.body) {
+            this.body.reset(clamped.x, clamped.y);
+        }
+    }
+
+    finishDrag(pointer?: Phaser.Input.Pointer) {
+        this.clearDragHoldTimer();
+        this.resetInputDragState(pointer);
         if (!this.isBeingDragged) {
             return;
         }
         this.isBeingDragged = false;
+        this.dragOffsetX = 0;
+        this.dragOffsetY = 0;
         this.setScale(1.5);
         this.setDepth(0);
         if (this.body) {
             this.body.reset(this.x, this.y);
         }
         this.startDragCooldown();
+    }
+
+    private resetInputDragState(pointer?: Phaser.Input.Pointer) {
+        if (this.input) {
+            this.input.dragState = 0;
+        }
+        const sceneInput = this.scene?.input;
+        if (!sceneInput) {
+            return;
+        }
+        const targetPointer = pointer ?? sceneInput.activePointer;
+        if (targetPointer && typeof sceneInput.setDragState === 'function') {
+            sceneInput.setDragState(targetPointer, 0);
+        }
     }
 
     private startDragCooldown() {

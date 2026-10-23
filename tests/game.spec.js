@@ -1108,4 +1108,60 @@ test("food can be dragged for up to 3 seconds, cannot be eaten while dragging, a
   expect(dragResult.autoDropState.depth).toBe(0);
   expect(dragResult.autoDropState.scale).toBe(1.5);
   expect(dragResult.autoDropState.stayedInPlace).toBe(true);
+
+  // 3. Verify real PC mouse drag-and-drop moves food without tilting the board,
+  // even when another food on cooldown is overlapping the same spot
+  const canvasBox = await page.locator("#tilting-board").boundingBox();
+  expect(canvasBox).toBeTruthy();
+
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const cooldownFood = scene.foods.getChildren()[1];
+    const draggableFood = scene.foods.getChildren()[2];
+    cooldownFood.setPosition(220, 140);
+    cooldownFood.body.reset(220, 140);
+    draggableFood.setPosition(220, 140);
+    draggableFood.body.reset(220, 140);
+    draggableFood.isBeingEaten = false;
+    draggableFood.isDragCooldown = false;
+  });
+
+  const startScreenX = canvasBox.x + (220 / 580) * canvasBox.width;
+  const startScreenY = canvasBox.y + (140 / 300) * canvasBox.height;
+  const endScreenX = canvasBox.x + (340 / 580) * canvasBox.width;
+  const endScreenY = canvasBox.y + (190 / 300) * canvasBox.height;
+
+  await page.mouse.move(startScreenX, startScreenY);
+  await page.mouse.down();
+  await page.mouse.move(endScreenX, endScreenY, { steps: 5 });
+
+  const mouseDragMidState = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const draggableFood = scene.foods.getChildren()[2];
+    return {
+      isBeingDragged: draggableFood.isBeingDragged,
+      x: draggableFood.x,
+      y: draggableFood.y,
+      gravity: { x: scene.gravity.x, y: scene.gravity.y }
+    };
+  });
+
+  expect(mouseDragMidState.isBeingDragged).toBe(true);
+  expect(mouseDragMidState.x).toBeGreaterThan(300);
+  expect(mouseDragMidState.y).toBeGreaterThan(170);
+  expect(mouseDragMidState.gravity).toEqual({ x: 0, y: 0 });
+
+  await page.mouse.up();
+
+  const mouseDragEndState = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const draggableFood = scene.foods.getChildren()[2];
+    return {
+      isBeingDragged: draggableFood.isBeingDragged,
+      isDragCooldown: draggableFood.isDragCooldown
+    };
+  });
+
+  expect(mouseDragEndState.isBeingDragged).toBe(false);
+  expect(mouseDragEndState.isDragCooldown).toBe(true);
 });

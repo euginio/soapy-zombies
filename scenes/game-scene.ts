@@ -8,6 +8,7 @@
 import { AUDIO_KEYS, GameAudio } from "../audio/game-audio";
 import { ANT_DEBUG_COLORS, DEBUG_MODE } from "../const/const";
 import {
+  areFoodsOverlapping,
   calculateDeviceMotionTilt,
   calculateDeviceTilt,
   calculateVisualLayerLayout,
@@ -214,12 +215,31 @@ export class GameScene extends MyScene {
 
     // Touch / pointer drag tilt fallback when device motion is unavailable or denied
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (this.gameOver || this.deviceTilt || this.hasMotionInput) {
+      if (this.gameOver) {
+        return;
+      }
+      if (this.isAnyFoodDragging() || this.tryStartFoodDragAtPointer(pointer)) {
+        this.resetTouchTilt();
+        return;
+      }
+      if (this.deviceTilt || this.hasMotionInput) {
         return;
       }
       this.touchDragOrigin = { x: pointer.x, y: pointer.y };
     });
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
+      const draggedFood = this.getDraggedFood();
+      if (draggedFood) {
+        this.resetTouchTilt();
+        if (!pointer.isDown) {
+          draggedFood.finishDrag(pointer);
+          return;
+        }
+        const px = pointer.worldX || pointer.x;
+        const py = pointer.worldY || pointer.y;
+        draggedFood.moveDrag(px - draggedFood.dragOffsetX, py - draggedFood.dragOffsetY);
+        return;
+      }
       if (!this.touchDragOrigin || this.gameOver || this.deviceTilt || this.hasMotionInput) {
         return;
       }
@@ -237,8 +257,18 @@ export class GameScene extends MyScene {
       this.gravity.x = this.touchTilt.x * this.gravityNum.x;
       this.gravity.y = this.touchTilt.y * this.gravityNum.y;
     });
-    this.input.on("pointerup", this.resetTouchTilt);
-    this.input.on("gameout", this.resetTouchTilt);
+    this.input.on("pointerup", (pointer: Phaser.Input.Pointer) => {
+      this.stopAllFoodDragging(pointer);
+      this.resetTouchTilt();
+    });
+    this.input.on("pointerupoutside", (pointer: Phaser.Input.Pointer) => {
+      this.stopAllFoodDragging(pointer);
+      this.resetTouchTilt();
+    });
+    this.input.on("gameout", () => {
+      this.stopAllFoodDragging();
+      this.resetTouchTilt();
+    });
 
     this.tray = this.add.image(this.width / 2, this.height / 2, 'tray');
     this.tray.setSize(this.tray.width-20,this.tray.height-3)
@@ -570,6 +600,40 @@ export class GameScene extends MyScene {
     return this.foods?.getChildren().some((child) => (child as Food).isBeingDragged) ?? false;
   }
 
+  getDraggedFood(): Food | null {
+    return (this.foods?.getChildren().find((child) => (child as Food).isBeingDragged) as Food) ?? null;
+  }
+
+  private stopAllFoodDragging(pointer?: Phaser.Input.Pointer) {
+    this.foods?.getChildren().forEach((child) => {
+      const food = child as Food;
+      if (food.isBeingDragged) {
+        food.finishDrag(pointer);
+      }
+    });
+  }
+
+  private tryStartFoodDragAtPointer(pointer: Phaser.Input.Pointer): boolean {
+    if (!this.foods) {
+      return false;
+    }
+    const px = pointer.worldX || pointer.x;
+    const py = pointer.worldY || pointer.y;
+    const foods = this.foods.getChildren() as Food[];
+    for (let i = foods.length - 1; i >= 0; i--) {
+      const food = foods[i];
+      if (!food.active || !food.body?.enable) {
+        continue;
+      }
+      if (food.getBounds().contains(px, py) || areFoodsOverlapping({ x: px, y: py }, food, 24)) {
+        if (food.startDrag(pointer)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   private updateCanvasCenterWithoutTransform = () => {
     if (this.scale.autoCenter === Phaser.Scale.NO_CENTER) {
       return;
@@ -752,6 +816,13 @@ export class GameScene extends MyScene {
       const isMobile = navigator.maxTouchPoints > 0 || Boolean((navigator as any).userAgentData?.mobile);
       const isPortrait = window.innerHeight > window.innerWidth;
       this.rotateOverlay.style.display = isMobile && isPortrait ? "flex" : "none";
+    }
+    this.scale.updateBounds();
+    if (this.scale.canvasBounds.width > 0 && this.scale.canvasBounds.height > 0) {
+      this.scale.displayScale.set(
+        this.scale.baseSize.width / this.scale.canvasBounds.width,
+        this.scale.baseSize.height / this.scale.canvasBounds.height
+      );
     }
     this.visualLayerBoundsDirty = false;
   }
