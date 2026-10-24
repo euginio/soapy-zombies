@@ -169,10 +169,32 @@ export class Food extends MySprite {
             this.disableBody(true, true);
         }
     }
+    updateCarrierPositions() {
+        if (!this.scene?.tray || this.carrierAnts.length === 0) {
+            return;
+        }
+        const trayBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
+        const edgePoint = findNearestTrayEdgePoint(this.x, this.y, trayBounds);
+        const escapeAngle = Phaser.Math.Angle.Between(this.x, this.y, edgePoint.x, edgePoint.y);
+
+        this.carrierAnts.forEach((ant, idx) => {
+            const offset = calculateCarrierAntOffset(idx, this.carrierAnts.length, escapeAngle, 18);
+            ant.setPosition(this.x + offset.x, this.y + offset.y);
+            ant.setAngle(Phaser.Math.RadToDeg(escapeAngle) + 90);
+            if (ant.body) {
+                ant.body.reset(ant.x, ant.y);
+            }
+        });
+    }
+
     update(_time?: number, delta: number = 16) {
         if (this.isBeingCarried && this.carrierAnts.length > 0 && this.scene?.tray) {
-            if (this.isBeingDragged || this.isBeingEaten) {
+            if (this.isBeingEaten) {
                 this.releaseAllCarriers(false);
+                return;
+            }
+            if (this.isBeingDragged) {
+                this.updateCarrierPositions();
                 return;
             }
             const trayBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
@@ -193,17 +215,7 @@ export class Food extends MySprite {
                 this.body.reset(this.x, this.y);
             }
 
-            const edgePoint = findNearestTrayEdgePoint(this.x, this.y, trayBounds);
-            const escapeAngle = Phaser.Math.Angle.Between(this.x, this.y, edgePoint.x, edgePoint.y);
-
-            this.carrierAnts.forEach((ant, idx) => {
-                const offset = calculateCarrierAntOffset(idx, this.carrierAnts.length, escapeAngle, 18);
-                ant.setPosition(this.x + offset.x, this.y + offset.y);
-                ant.setAngle(Phaser.Math.RadToDeg(escapeAngle) + 90);
-                if (ant.body) {
-                    ant.body.reset(ant.x, ant.y);
-                }
-            });
+            this.updateCarrierPositions();
 
             const trayOverlapBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
             if (!rectanglesOverlap(trayOverlapBounds, this.getBounds())) {
@@ -383,9 +395,6 @@ export class Food extends MySprite {
             this.resetInputDragState(pointer);
             return false;
         }
-        if (this.isBeingCarried) {
-            this.releaseAllCarriers(false);
-        }
         this.isBeingDragged = true;
         this.dragOriginX = this.x;
         this.dragOriginY = this.y;
@@ -402,6 +411,10 @@ export class Food extends MySprite {
         }
         this.setScale(1.85);
         this.setDepth(10);
+        if (this.isBeingCarried) {
+            this.carrierAnts.forEach((ant) => ant.setDepth(11));
+            this.updateCarrierPositions();
+        }
         this.scene?.resetTouchTilt?.();
         this.clearDragHoldTimer();
         // Automatically drop the food back onto the tray if held for the maximum duration.
@@ -422,6 +435,9 @@ export class Food extends MySprite {
         if (this.body) {
             this.body.reset(clamped.x, clamped.y);
         }
+        if (this.isBeingCarried) {
+            this.updateCarrierPositions();
+        }
     }
 
     finishDrag(pointer?: Phaser.Input.Pointer) {
@@ -434,7 +450,12 @@ export class Food extends MySprite {
         this.dragOffsetX = 0;
         this.dragOffsetY = 0;
         this.setScale(1.5);
-        this.setDepth(0);
+        if (this.isBeingCarried) {
+            this.setDepth(2);
+            this.carrierAnts.forEach((ant) => ant.setDepth(0));
+        } else {
+            this.setDepth(0);
+        }
 
         let targetX = this.x;
         let targetY = this.y;
@@ -460,6 +481,9 @@ export class Food extends MySprite {
         this.setPosition(targetX, targetY);
         if (this.body) {
             this.body.reset(targetX, targetY);
+        }
+        if (this.isBeingCarried) {
+            this.updateCarrierPositions();
         }
 
         this.startDragCooldown();

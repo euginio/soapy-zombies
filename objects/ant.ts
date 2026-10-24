@@ -123,8 +123,8 @@ export class Ant extends MySprite {
         }
 
         if (this.carriedFood) {
-            if (!this.carriedFood.active || this.carriedFood.isBeingDragged || this.carriedFood.isBeingEaten) {
-                this.carriedFood = null;
+            if (!this.carriedFood.active || this.carriedFood.isBeingEaten) {
+                this.dropFood(false);
                 return;
             }
             // Food.update() handles collective movement and positioning of all carrier ants

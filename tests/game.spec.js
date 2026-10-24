@@ -1380,28 +1380,74 @@ test("ants steal food cooperatively and carry it faster towards edges", async ({
   expect(secondStealResult.ant2CarryingFood).toBe(true);
   expect(secondStealResult.carrierCountAfterTwo).toBe(2);
 
-  // 3. Snatching food via drag releases all carrier ants
-  const rescueResult = await page.evaluate(() => {
+  // 3. Dragging food with ants maintains carrier ants attached without dropping the food
+  const dragWithCarriersResult = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     const ant1 = scene.ants.getChildren()[0];
     const ant2 = scene.ants.getChildren()[1];
     const food = scene.foods.getChildren()[0];
 
-    // Player drags the food away
+    // Player drags the food
     food.startDrag();
 
     return {
-      ant1CarryingFood: ant1.carriedFood !== null,
-      ant2CarryingFood: ant2.carriedFood !== null,
+      ant1CarryingFood: ant1.carriedFood === food,
+      ant2CarryingFood: ant2.carriedFood === food,
       carrierCountAfterDrag: food.carrierCount,
       isBeingCarried: food.isBeingCarried,
       isBeingDragged: food.isBeingDragged
     };
   });
 
-  expect(rescueResult.ant1CarryingFood).toBe(false);
-  expect(rescueResult.ant2CarryingFood).toBe(false);
-  expect(rescueResult.carrierCountAfterDrag).toBe(0);
-  expect(rescueResult.isBeingCarried).toBe(false);
-  expect(rescueResult.isBeingDragged).toBe(true);
+  expect(dragWithCarriersResult.ant1CarryingFood).toBe(true);
+  expect(dragWithCarriersResult.ant2CarryingFood).toBe(true);
+  expect(dragWithCarriersResult.carrierCountAfterDrag).toBe(2);
+  expect(dragWithCarriersResult.isBeingCarried).toBe(true);
+  expect(dragWithCarriersResult.isBeingDragged).toBe(true);
+
+  // 4. Moving the food moves the attached ants along with it
+  const moveResult = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const ant1 = scene.ants.getChildren()[0];
+    const ant2 = scene.ants.getChildren()[1];
+    const food = scene.foods.getChildren()[0];
+
+    food.moveDrag(220, 160);
+
+    return {
+      foodX: food.x,
+      foodY: food.y,
+      dist1: Math.hypot(ant1.x - food.x, ant1.y - food.y),
+      dist2: Math.hypot(ant2.x - food.x, ant2.y - food.y)
+    };
+  });
+
+  expect(moveResult.foodX).toBe(220);
+  expect(moveResult.foodY).toBe(160);
+  expect(moveResult.dist1).toBeLessThan(40);
+  expect(moveResult.dist2).toBeLessThan(40);
+
+  // 5. Dropping the food keeps the ants attached so they continue stealing from the new spot
+  const dropResult = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const ant1 = scene.ants.getChildren()[0];
+    const ant2 = scene.ants.getChildren()[1];
+    const food = scene.foods.getChildren()[0];
+
+    food.finishDrag();
+
+    return {
+      ant1CarryingFood: ant1.carriedFood === food,
+      ant2CarryingFood: ant2.carriedFood === food,
+      carrierCountAfterDrop: food.carrierCount,
+      isBeingCarried: food.isBeingCarried,
+      isBeingDragged: food.isBeingDragged
+    };
+  });
+
+  expect(dropResult.ant1CarryingFood).toBe(true);
+  expect(dropResult.ant2CarryingFood).toBe(true);
+  expect(dropResult.carrierCountAfterDrop).toBe(2);
+  expect(dropResult.isBeingCarried).toBe(true);
+  expect(dropResult.isBeingDragged).toBe(false);
 });
