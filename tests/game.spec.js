@@ -1450,4 +1450,48 @@ test("ants steal food cooperatively and carry it faster towards edges", async ({
   expect(dropResult.carrierCountAfterDrop).toBe(2);
   expect(dropResult.isBeingCarried).toBe(true);
   expect(dropResult.isBeingDragged).toBe(false);
+
+  // 6. Picking up the food and shaking it causes the ants to fall in random positions
+  const shakeResult = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const ant1 = scene.ants.getChildren()[0];
+    const ant2 = scene.ants.getChildren()[1];
+    const food = scene.foods.getChildren()[0];
+
+    // Clear cooldown for test purposes
+    food.isDragCooldown = false;
+    food.startDrag();
+
+    const ant1PosBefore = { x: ant1.x, y: ant1.y };
+    const ant2PosBefore = { x: ant2.x, y: ant2.y };
+
+    // Rapid shaking back and forth
+    food.moveDrag(250, 160, 1000);
+    food.moveDrag(190, 160, 1060);
+    food.moveDrag(260, 160, 1120);
+
+    const bounds = scene.tray.getBounds();
+    const ant1InsideTray = ant1.x >= bounds.x && ant1.x <= bounds.x + bounds.width &&
+                          ant1.y >= bounds.y && ant1.y <= bounds.y + bounds.height;
+    const ant2InsideTray = ant2.x >= bounds.x && ant2.x <= bounds.x + bounds.width &&
+                          ant2.y >= bounds.y && ant2.y <= bounds.y + bounds.height;
+
+    return {
+      carrierCountAfterShake: food.carrierCount,
+      isBeingCarriedAfterShake: food.isBeingCarried,
+      ant1CarryingFood: ant1.carriedFood !== null,
+      ant2CarryingFood: ant2.carriedFood !== null,
+      ant1InsideTray,
+      ant2InsideTray,
+      ant1Moved: ant1.x !== ant1PosBefore.x || ant1.y !== ant1PosBefore.y,
+      ant2Moved: ant2.x !== ant2PosBefore.x || ant2.y !== ant2PosBefore.y
+    };
+  });
+
+  expect(shakeResult.carrierCountAfterShake).toBe(0);
+  expect(shakeResult.isBeingCarriedAfterShake).toBe(false);
+  expect(shakeResult.ant1CarryingFood).toBe(false);
+  expect(shakeResult.ant2CarryingFood).toBe(false);
+  expect(shakeResult.ant1InsideTray).toBe(true);
+  expect(shakeResult.ant2InsideTray).toBe(true);
 });

@@ -253,6 +253,89 @@ export function canAntStealFood(
   );
 }
 
+export interface DragSample {
+  x: number;
+  y: number;
+  time: number;
+}
+
+export interface FoodShakeOptions {
+  windowMs?: number;
+  minSegmentDistance?: number;
+  minReversals?: number;
+  minTotalDistance?: number;
+}
+
+export function detectFoodShake(
+  samples: DragSample[],
+  options: FoodShakeOptions = {}
+): boolean {
+  const windowMs = options.windowMs ?? 500;
+  const minSegmentDistance = options.minSegmentDistance ?? 10;
+  const minReversals = options.minReversals ?? 2;
+  const minTotalDistance = options.minTotalDistance ?? 40;
+
+  if (samples.length < 3) {
+    return false;
+  }
+
+  const latestTime = samples[samples.length - 1].time;
+  const recent = samples.filter((sample) => sample.time >= latestTime - windowMs);
+  if (recent.length < 3) {
+    return false;
+  }
+
+  const segments: Point[] = [];
+  let anchor = recent[0];
+  let totalDistance = 0;
+
+  for (let i = 1; i < recent.length; i++) {
+    const current = recent[i];
+    const dx = current.x - anchor.x;
+    const dy = current.y - anchor.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist >= minSegmentDistance) {
+      segments.push({ x: dx, y: dy });
+      totalDistance += dist;
+      anchor = current;
+    }
+  }
+
+  if (segments.length < 2 || totalDistance < minTotalDistance) {
+    return false;
+  }
+
+  let reversals = 0;
+  for (let i = 1; i < segments.length; i++) {
+    const prev = segments[i - 1];
+    const curr = segments[i];
+    const dot = prev.x * curr.x + prev.y * curr.y;
+    if (dot < 0) {
+      reversals++;
+    }
+  }
+
+  return reversals >= minReversals;
+}
+
+export function calculateRandomTrayPosition(
+  trayBounds: Rect,
+  margin = 25,
+  randomXRatio = Math.random(),
+  randomYRatio = Math.random()
+): Point {
+  const minX = trayBounds.x + margin;
+  const maxX = trayBounds.x + trayBounds.width - margin;
+  const minY = trayBounds.y + margin;
+  const maxY = trayBounds.y + trayBounds.height - margin;
+
+  return {
+    x: minX + randomXRatio * Math.max(0, maxX - minX),
+    y: minY + randomYRatio * Math.max(0, maxY - minY)
+  };
+}
+
 export function clampFoodPosition(
   x: number,
   y: number,

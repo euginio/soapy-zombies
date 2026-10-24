@@ -6,6 +6,9 @@ import {
   calculateAntStealVelocity,
   calculateCarrierAntOffset,
   calculateCooperativeStealSpeed,
+  calculateRandomTrayPosition,
+  detectFoodShake,
+  DragSample,
   canAntStealFood,
   findNearestTrayEdgePoint,
   isFoodInsideTray,
@@ -493,5 +496,70 @@ describe("stored mute preference", () => {
     assert.equal(parseStoredMuted(null), false);
     assert.equal(parseStoredMuted(undefined), false);
     assert.equal(parseStoredMuted("yes"), false);
+  });
+});
+
+describe("food shake and ant scatter rules", () => {
+  it("calculates random tray positions strictly within the inset tray bounds", () => {
+    const bounds = { x: 100, y: 50, width: 400, height: 200 };
+    const pos1 = calculateRandomTrayPosition(bounds, 20, 0, 0);
+    assert.deepEqual(pos1, { x: 120, y: 70 });
+
+    const pos2 = calculateRandomTrayPosition(bounds, 20, 1, 1);
+    assert.deepEqual(pos2, { x: 480, y: 230 });
+
+    const pos3 = calculateRandomTrayPosition(bounds, 20, 0.5, 0.5);
+    assert.deepEqual(pos3, { x: 300, y: 150 });
+  });
+
+  it("detects food shaking from rapid direction reversals while dragging", () => {
+    // Insufficient samples
+    assert.equal(detectFoodShake([]), false);
+    assert.equal(detectFoodShake([{ x: 100, y: 100, time: 100 }]), false);
+
+    // Smooth linear drag (no reversals)
+    const linearDrag: DragSample[] = [
+      { x: 100, y: 100, time: 100 },
+      { x: 130, y: 100, time: 150 },
+      { x: 165, y: 100, time: 200 },
+      { x: 200, y: 100, time: 250 }
+    ];
+    assert.equal(detectFoodShake(linearDrag), false);
+
+    // Micro-jitter (< minSegmentDistance)
+    const jitter: DragSample[] = [
+      { x: 100, y: 100, time: 100 },
+      { x: 103, y: 100, time: 150 },
+      { x: 98, y: 100, time: 200 },
+      { x: 102, y: 100, time: 250 }
+    ];
+    assert.equal(detectFoodShake(jitter), false);
+
+    // Horizontal shake (left -> right -> left)
+    const horizontalShake: DragSample[] = [
+      { x: 100, y: 100, time: 100 },
+      { x: 75, y: 100, time: 150 },
+      { x: 115, y: 100, time: 200 },
+      { x: 80, y: 100, time: 250 }
+    ];
+    assert.equal(detectFoodShake(horizontalShake), true);
+
+    // Vertical shake (up -> down -> up)
+    const verticalShake: DragSample[] = [
+      { x: 100, y: 100, time: 100 },
+      { x: 100, y: 70, time: 140 },
+      { x: 100, y: 110, time: 180 },
+      { x: 100, y: 75, time: 220 }
+    ];
+    assert.equal(detectFoodShake(verticalShake), true);
+
+    // Expired samples outside windowMs
+    const expiredShake: DragSample[] = [
+      { x: 100, y: 100, time: 100 },
+      { x: 70, y: 100, time: 150 },
+      { x: 110, y: 100, time: 200 },
+      { x: 80, y: 100, time: 1000 }
+    ];
+    assert.equal(detectFoodShake(expiredShake), false);
   });
 });

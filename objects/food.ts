@@ -5,6 +5,9 @@ import {
     calculateAntStealVelocity,
     calculateCarrierAntOffset,
     calculateCooperativeStealSpeed,
+    calculateRandomTrayPosition,
+    detectFoodShake,
+    DragSample,
     clampFoodPosition,
     findNearestTrayEdgePoint,
     insetHorizontalTrayBounds,
@@ -43,6 +46,7 @@ export class Food extends MySprite {
     eatProgress: number = 0;
     private eatCanvasKey: string | null = null;
     private dragHoldTimer: Phaser.Time.TimerEvent | null = null;
+    private dragSamples: DragSample[] = [];
     private dragCooldownTimer: Phaser.Time.TimerEvent | null = null;
 
     constructor(scene: GameScene) {
@@ -169,6 +173,26 @@ export class Food extends MySprite {
             this.disableBody(true, true);
         }
     }
+    shakeOffCarriers() {
+        if (!this.isBeingCarried || this.carrierAnts.length === 0) {
+            return;
+        }
+        const ants = [...this.carrierAnts];
+        this.carrierAnts = [];
+        this.setDepth(10);
+        this.dragSamples = [];
+
+        if (this.scene?.tray) {
+            const trayBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
+            ants.forEach((ant) => {
+                const target = calculateRandomTrayPosition(trayBounds);
+                ant.fallFromFood(target.x, target.y);
+            });
+        } else {
+            ants.forEach((ant) => ant.dropFood(false));
+        }
+    }
+
     updateCarrierPositions() {
         if (!this.scene?.tray || this.carrierAnts.length === 0) {
             return;
@@ -396,6 +420,7 @@ export class Food extends MySprite {
             return false;
         }
         this.isBeingDragged = true;
+        this.dragSamples = [{ x: this.x, y: this.y, time: pointer?.downTime ?? this.scene?.time?.now ?? Date.now() }];
         this.dragOriginX = this.x;
         this.dragOriginY = this.y;
         const pointerX = pointer ? pointer.x : this.x;
@@ -425,7 +450,7 @@ export class Food extends MySprite {
         return true;
     }
 
-    moveDrag(dragX: number, dragY: number) {
+    moveDrag(dragX: number, dragY: number, timeMs?: number) {
         if (!this.isBeingDragged || !this.scene?.tray) {
             return;
         }
@@ -435,7 +460,18 @@ export class Food extends MySprite {
         if (this.body) {
             this.body.reset(clamped.x, clamped.y);
         }
+
+        const now = timeMs ?? (this.scene?.time?.now ?? Date.now());
+        this.dragSamples.push({ x: clamped.x, y: clamped.y, time: now });
+        if (this.dragSamples.length > 25) {
+            this.dragSamples.shift();
+        }
+
         if (this.isBeingCarried) {
+            if (detectFoodShake(this.dragSamples)) {
+                this.shakeOffCarriers();
+                return;
+            }
             this.updateCarrierPositions();
         }
     }
@@ -443,6 +479,7 @@ export class Food extends MySprite {
     finishDrag(pointer?: Phaser.Input.Pointer) {
         this.clearDragHoldTimer();
         this.resetInputDragState(pointer);
+        this.dragSamples = [];
         if (!this.isBeingDragged) {
             return;
         }

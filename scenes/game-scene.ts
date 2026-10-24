@@ -406,6 +406,10 @@ export class GameScene extends MyScene {
     this.audio.play(AUDIO_KEYS.antFall);
   }
 
+  playAntFallAudio() {
+    this.audio?.play(AUDIO_KEYS.antFall);
+  }
+
   addNewAnt() {
     const ant = new Ant(this);
     if (DEBUG_MODE) {

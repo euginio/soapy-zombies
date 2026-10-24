@@ -81,6 +81,46 @@ export class Ant extends MySprite {
         }
     }
 
+    fallFromFood(targetX: number, targetY: number) {
+        if (!this.isAlive || this.scene.gameOver) {
+            return;
+        }
+        this.dropFood(false);
+        this.isClimbing = true;
+        this.setDepth(1);
+        this.scene.playAntFallAudio?.();
+        const spin = Phaser.Math.Between(0, 1) === 0 ? -360 : 360;
+
+        if (this.scene?.tweens) {
+            this.scene.tweens.add({
+                targets: this,
+                x: targetX,
+                y: targetY,
+                angle: this.angle + spin,
+                duration: 400,
+                ease: 'Quad.easeOut',
+                onComplete: () => {
+                    if (this.active && this.isAlive && !this.scene?.gameOver) {
+                        this.setPosition(targetX, targetY);
+                        if (this.body) {
+                            this.body.reset(targetX, targetY);
+                        }
+                        this.setDepth(0);
+                        this.isClimbing = false;
+                        this.play('walk');
+                    }
+                }
+            });
+        } else {
+            this.setPosition(targetX, targetY);
+            if (this.body) {
+                this.body.reset(targetX, targetY);
+            }
+            this.setDepth(0);
+            this.isClimbing = false;
+        }
+    }
+
     private climb() {
         this.isClimbing = true;
         this.scene.time.delayedCall(1500, () => {
