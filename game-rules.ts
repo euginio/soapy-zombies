@@ -76,6 +76,24 @@ export function areFoodsOverlapping(
   return dx * dx + dy * dy < minDistance * minDistance;
 }
 
+export function resolveFoodDropPosition(
+  candidate: Point,
+  existingFoods: Point[],
+  trayBounds: Rect,
+  origin: Point,
+  minDistance = 32,
+  margin = 25
+): Point {
+  const clamped = clampFoodPosition(candidate.x, candidate.y, trayBounds, margin);
+  const overlapsAny = existingFoods.some((other) =>
+    areFoodsOverlapping(clamped, other, minDistance)
+  );
+  if (!overlapsAny) {
+    return clamped;
+  }
+  return clampFoodPosition(origin.x, origin.y, trayBounds, margin);
+}
+
 export function isNewHighScore(score: number, currentHighScore: number): boolean {
   return score > currentHighScore;
 }

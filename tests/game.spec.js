@@ -1164,6 +1164,39 @@ test("food can be dragged for up to 3 seconds, cannot be eaten while dragging, a
 
   expect(mouseDragEndState.isBeingDragged).toBe(false);
   expect(mouseDragEndState.isDragCooldown).toBe(true);
+
+  // 4. Verify food cannot be placed on top of other food
+  const overlapDropResult = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const foodA = scene.foods.getChildren()[0];
+    const foodB = scene.foods.getChildren()[1];
+    foodA.setPosition(150, 150);
+    foodA.body.reset(150, 150);
+    foodA.dragOriginX = 150;
+    foodA.dragOriginY = 150;
+    foodA.isBeingEaten = false;
+    foodA.isDragCooldown = false;
+    foodB.setPosition(250, 150);
+    foodB.body.reset(250, 150);
+    foodB.dragOriginX = 250;
+    foodB.dragOriginY = 250;
+    foodB.isBeingEaten = false;
+    foodB.isDragCooldown = false;
+
+    // Drag foodA right onto foodB
+    foodA.emit("dragstart", scene.input.activePointer);
+    foodA.emit("drag", scene.input.activePointer, 250, 150);
+    const duringPos = { x: foodA.x, y: foodA.y };
+
+    // Drop foodA on foodB: rejected and reverted to origin
+    foodA.emit("dragend", scene.input.activePointer);
+
+    const afterPos = { x: foodA.x, y: foodA.y };
+    return { duringPos, afterPos };
+  });
+
+  expect(overlapDropResult.duringPos).toEqual({ x: 250, y: 150 });
+  expect(overlapDropResult.afterPos).toEqual({ x: 150, y: 150 });
 });
 
 test("Vite dev server supports PC mouse food dragging and window release", async ({ page }) => {

@@ -21,6 +21,7 @@ import {
   pickNearestTarget,
   rectanglesOverlap,
   resolveAntEscape,
+  resolveFoodDropPosition,
   resolveFoodLoss
 } from "../game-rules";
 
@@ -220,6 +221,28 @@ describe("food drag and interaction", () => {
   it("detects when two food positions overlap within the minimum spacing", () => {
     assert.equal(areFoodsOverlapping({ x: 100, y: 100 }, { x: 110, y: 110 }, 32), true);
     assert.equal(areFoodsOverlapping({ x: 100, y: 100 }, { x: 140, y: 100 }, 32), false);
+  });
+
+  it("resolves food drop position by accepting free spots and rejecting placements on existing food", () => {
+    const tray = { x: 50, y: 30, width: 400, height: 240 };
+    const existing = [{ x: 100, y: 100 }, { x: 200, y: 150 }];
+    const origin = { x: 300, y: 180 };
+
+    // Placing in an open area succeeds
+    const freeCandidate = { x: 280, y: 80 };
+    assert.deepEqual(resolveFoodDropPosition(freeCandidate, existing, tray, origin, 32), freeCandidate);
+
+    // Placing at the exact position of another food is rejected and returns origin
+    assert.deepEqual(resolveFoodDropPosition({ x: 100, y: 100 }, existing, tray, origin, 32), origin);
+
+    // Placing overlapping another food (distance 20 < 32) is rejected and returns origin
+    assert.deepEqual(resolveFoodDropPosition({ x: 110, y: 110 }, existing, tray, origin, 32), origin);
+
+    // Placing with clearance (distance 40 >= 32) succeeds
+    assert.deepEqual(resolveFoodDropPosition({ x: 140, y: 100 }, existing, tray, origin, 32), { x: 140, y: 100 });
+
+    // Placing outside tray bounds clamps to tray
+    assert.deepEqual(resolveFoodDropPosition({ x: 10, y: 10 }, [], tray, origin, 32, 20), { x: 70, y: 50 });
   });
 });
 

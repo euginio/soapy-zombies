@@ -4,7 +4,8 @@ import {
     canFoodBeEaten,
     clampFoodPosition,
     FOOD_DRAG_COOLDOWN_MS,
-    FOOD_MAX_DRAG_MS
+    FOOD_MAX_DRAG_MS,
+    resolveFoodDropPosition
 } from "../game-rules";
 import { GameScene } from "../scenes/game-scene";
 import { MySprite } from "./mySprite";
@@ -23,6 +24,8 @@ export class Food extends MySprite {
     isDragCooldown: boolean = false;
     dragOffsetX: number = 0;
     dragOffsetY: number = 0;
+    dragOriginX: number = 0;
+    dragOriginY: number = 0;
     private dragHoldTimer: Phaser.Time.TimerEvent | null = null;
     private dragCooldownTimer: Phaser.Time.TimerEvent | null = null;
 
@@ -49,6 +52,8 @@ export class Food extends MySprite {
         this.isDragCooldown = false;
         this.dragOffsetX = 0;
         this.dragOffsetY = 0;
+        this.dragOriginX = this.x;
+        this.dragOriginY = this.y;
         this.setAlpha(1);
         this.setDepth(0);
         this.isBeingEaten = false;
@@ -79,6 +84,8 @@ export class Food extends MySprite {
         if (this.body) {
             this.body.reset(this.x, this.y);
         }
+        this.dragOriginX = this.x;
+        this.dragOriginY = this.y;
     }
 
     destroy(fromScene?: boolean) {
@@ -189,6 +196,8 @@ export class Food extends MySprite {
             return false;
         }
         this.isBeingDragged = true;
+        this.dragOriginX = this.x;
+        this.dragOriginY = this.y;
         const pointerX = pointer ? pointer.x : this.x;
         const pointerY = pointer ? pointer.y : this.y;
         const offsetX = Number.isFinite(pointerX) ? pointerX - this.x : 0;
@@ -235,9 +244,33 @@ export class Food extends MySprite {
         this.dragOffsetY = 0;
         this.setScale(1.5);
         this.setDepth(0);
-        if (this.body) {
-            this.body.reset(this.x, this.y);
+
+        let targetX = this.x;
+        let targetY = this.y;
+        if (this.scene?.tray && this.scene?.foods) {
+            const bounds = this.scene.tray.getBounds();
+            const existingFoods = (this.scene.foods.getChildren() as Food[])
+                .filter((other) => other !== this && other.active && Boolean(other.body?.enable) && !other.isBeingEaten)
+                .map((other) => ({ x: other.x, y: other.y }));
+            const resolved = resolveFoodDropPosition(
+                { x: this.x, y: this.y },
+                existingFoods,
+                bounds,
+                { x: this.dragOriginX, y: this.dragOriginY },
+                32
+            );
+            targetX = resolved.x;
+            targetY = resolved.y;
         }
+
+        this.dragOriginX = targetX;
+        this.dragOriginY = targetY;
+
+        this.setPosition(targetX, targetY);
+        if (this.body) {
+            this.body.reset(targetX, targetY);
+        }
+
         this.startDragCooldown();
     }
 

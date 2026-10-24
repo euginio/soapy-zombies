@@ -6,6 +6,13 @@ coding logic
             levels
             Different bugs types (with its own properties)
             attacks (insecticide, mata moscas, etc)
+            tutorial levels to learn how to play:
+                level 1: only move tray (tilting controls)
+                level 2: only drag and drop food
+            bug behaviors: ants steal food and carry it away, worms or other bugs eat food in place
+            game modes:
+                mode 1 (defend food): avoid ants stealing food and bugs eating it
+                mode 2 (ant ally): help ants steal food while avoiding worms/bugs eating it in place
         problems
             game difficult
                 Choose the correct difficult: (ant velocity, quantity, rate, gravity, etc)
@@ -97,6 +104,11 @@ Done
 Ideas:
     Gameplay
         probar concepto de robarse comida !!!!
+            Ants steal food: ants grab and carry food towards tray edges to steal it
+            Worms/other bugs eat food in place: crawling/stationary pests stay on the food eating it on the spot
+        Two game modes:
+            Mode 1 (Defend the Picnic): prevent ants from stealing food and worms from eating it
+            Mode 2 (Help the Ants): assist ants in carrying away/stealing food while stopping/avoiding worms eating it in place
         different ants types 
         ants falling
         powers to defend food:
@@ -105,6 +117,10 @@ Ideas:
             temporal frogger that eats ants with its tongue!!!!
             ant traps (or mines that explode when ants pass)
     levels
+        tutorial levels to learn how to play:
+            Level 1 (Tray movement only): learn to tilt the tray and use physics to make ants fall off (food drag disabled)
+            Level 2 (Drag & Drop only): tray is fixed/stationary, defend food purely by dragging and repositioning food pieces away from approaching bugs
+            Level 3+ (Combined): full game with both tray tilt and food drag & drop
         difficulty: maybe last some time with some food quantity killing some ants quantity
         themes: picnic, picada, sushi, macdonals, birthday, candies, junk food, snacks, vegetables/fruits, 
         
