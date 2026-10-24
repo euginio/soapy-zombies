@@ -4,7 +4,10 @@ const { defineConfig } = require("vite");
 module.exports = defineConfig({
   base: "./",
   server: {
-    port: Number(process.env.PLAYWRIGHT_DEV_PORT || 5173)
+    port: Number(process.env.PLAYWRIGHT_DEV_PORT || 5173),
+    watch: {
+      ignored: ["!**/dist/**"]
+    }
   },
   build: {
     emptyOutDir: true,

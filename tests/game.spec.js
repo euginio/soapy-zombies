@@ -1165,3 +1165,57 @@ test("food can be dragged for up to 3 seconds, cannot be eaten while dragging, a
   expect(mouseDragEndState.isBeingDragged).toBe(false);
   expect(mouseDragEndState.isDragCooldown).toBe(true);
 });
+
+test("Vite dev server supports PC mouse food dragging and window release", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto(DEVELOPMENT_URL);
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const canvasBox = await page.locator("#tilting-board").boundingBox();
+  expect(canvasBox).toBeTruthy();
+
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    food.setPosition(250, 150);
+    food.body.reset(250, 150);
+    food.isBeingEaten = false;
+    food.isDragCooldown = false;
+  });
+
+  const startScreenX = canvasBox.x + (250 / 580) * canvasBox.width;
+  const startScreenY = canvasBox.y + (150 / 300) * canvasBox.height;
+  const moveScreenX = canvasBox.x + (350 / 580) * canvasBox.width;
+  const moveScreenY = canvasBox.y + (180 / 300) * canvasBox.height;
+
+  await page.mouse.move(startScreenX, startScreenY);
+  await page.mouse.down();
+  await page.mouse.move(moveScreenX, moveScreenY, { steps: 5 });
+
+  const midState = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    return {
+      isBeingDragged: food.isBeingDragged,
+      x: food.x,
+      y: food.y
+    };
+  });
+  expect(midState.isBeingDragged).toBe(true);
+  expect(midState.x).toBeGreaterThan(300);
+
+  await page.mouse.move(10, 10);
+  await page.mouse.up();
+
+  const endState = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    return {
+      isBeingDragged: food.isBeingDragged,
+      isDragCooldown: food.isDragCooldown
+    };
+  });
+  expect(endState.isBeingDragged).toBe(false);
+  expect(endState.isDragCooldown).toBe(true);
+});

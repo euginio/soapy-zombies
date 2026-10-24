@@ -79,6 +79,7 @@ export class GameScene extends MyScene {
   private touchDragOrigin: { x: number; y: number } | null = null;
   private touchTilt: { x: number; y: number } | null = null;
   private rotateOverlay: HTMLDivElement | null = null;
+  private onWindowPointerUp: (() => void) | null = null;
 
   constructor() {
     super({
@@ -231,12 +232,12 @@ export class GameScene extends MyScene {
       const draggedFood = this.getDraggedFood();
       if (draggedFood) {
         this.resetTouchTilt();
-        if (!pointer.isDown) {
+        if (!pointer.isDown && pointer.buttons === 0) {
           draggedFood.finishDrag(pointer);
           return;
         }
-        const px = pointer.worldX || pointer.x;
-        const py = pointer.worldY || pointer.y;
+        const px = pointer.x;
+        const py = pointer.y;
         draggedFood.moveDrag(px - draggedFood.dragOffsetX, py - draggedFood.dragOffsetY);
         return;
       }
@@ -265,10 +266,20 @@ export class GameScene extends MyScene {
       this.stopAllFoodDragging(pointer);
       this.resetTouchTilt();
     });
-    this.input.on("gameout", () => {
-      this.stopAllFoodDragging();
-      this.resetTouchTilt();
+    this.input.on("gameout", (pointer: Phaser.Input.Pointer) => {
+      if (!pointer?.isDown && pointer?.buttons === 0) {
+        this.stopAllFoodDragging(pointer);
+        this.resetTouchTilt();
+      }
     });
+    this.onWindowPointerUp = () => {
+      if (this.isAnyFoodDragging()) {
+        this.stopAllFoodDragging();
+        this.resetTouchTilt();
+      }
+    };
+    window.addEventListener("pointerup", this.onWindowPointerUp);
+    window.addEventListener("mouseup", this.onWindowPointerUp);
 
     this.tray = this.add.image(this.width / 2, this.height / 2, 'tray');
     this.tray.setSize(this.tray.width-20,this.tray.height-3)
@@ -540,7 +551,10 @@ export class GameScene extends MyScene {
     this.scale.updateCenter = this.updateCanvasCenterWithoutTransform;
     Object.assign(this.gameCanvas.style, {
       transformOrigin: "center center",
-      transition: "transform 120ms ease-out"
+      transition: "transform 120ms ease-out",
+      userSelect: "none",
+      webkitUserSelect: "none",
+      touchAction: "none"
     });
     this.visualLayerParent = gameCanvas.parentElement || document.body;
     this.setVisualLayerParent(this.visualLayerParent);
@@ -617,15 +631,15 @@ export class GameScene extends MyScene {
     if (!this.foods) {
       return false;
     }
-    const px = pointer.worldX || pointer.x;
-    const py = pointer.worldY || pointer.y;
+    const px = pointer.x;
+    const py = pointer.y;
     const foods = this.foods.getChildren() as Food[];
     for (let i = foods.length - 1; i >= 0; i--) {
       const food = foods[i];
       if (!food.active || !food.body?.enable) {
         continue;
       }
-      if (food.getBounds().contains(px, py) || areFoodsOverlapping({ x: px, y: py }, food, 24)) {
+      if (food.getBounds().contains(px, py) || areFoodsOverlapping({ x: px, y: py }, food, 36)) {
         if (food.startDrag(pointer)) {
           return true;
         }
@@ -920,6 +934,11 @@ export class GameScene extends MyScene {
     this.sensorRecenterButton = null;
     this.soundToggleButton?.remove();
     this.soundToggleButton = null;
+    if (this.onWindowPointerUp) {
+      window.removeEventListener("pointerup", this.onWindowPointerUp);
+      window.removeEventListener("mouseup", this.onWindowPointerUp);
+      this.onWindowPointerUp = null;
+    }
     for (const [parent, originalPosition] of this.visualLayerParentPositions) {
       parent.style.position = originalPosition;
     }

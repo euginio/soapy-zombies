@@ -146,6 +146,9 @@ export class Food extends MySprite {
         this.setInteractive({ draggable: true, useHandCursor: true });
 
         this.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+            if (pointer && pointer.button !== 0 && pointer.button !== undefined) {
+                return;
+            }
             this.startDrag(pointer);
         });
 
@@ -186,8 +189,8 @@ export class Food extends MySprite {
             return false;
         }
         this.isBeingDragged = true;
-        const pointerX = pointer ? (pointer.worldX || pointer.x) : this.x;
-        const pointerY = pointer ? (pointer.worldY || pointer.y) : this.y;
+        const pointerX = pointer ? pointer.x : this.x;
+        const pointerY = pointer ? pointer.y : this.y;
         const offsetX = Number.isFinite(pointerX) ? pointerX - this.x : 0;
         const offsetY = Number.isFinite(pointerY) ? pointerY - this.y : 0;
         if (Math.hypot(offsetX, offsetY) <= 40) {

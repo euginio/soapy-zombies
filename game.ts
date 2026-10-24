@@ -45,6 +45,7 @@ const config: Phaser.Types.Core.GameConfig = {
 export class Game extends Phaser.Game {
   constructor(config: Phaser.Types.Core.GameConfig) {
     super(config);
+    (window as any).game = this;
   }
 }
 
