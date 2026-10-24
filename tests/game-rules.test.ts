@@ -22,7 +22,10 @@ import {
   rectanglesOverlap,
   resolveAntEscape,
   resolveFoodDropPosition,
-  resolveFoodLoss
+  resolveFoodLoss,
+  FOOD_EAT_DURATION_MS,
+  getFoodBiteSequence,
+  getActiveFoodBites
 } from "../game-rules";
 
 describe("visual rendering helpers", () => {
@@ -243,6 +246,31 @@ describe("food drag and interaction", () => {
 
     // Placing outside tray bounds clamps to tray
     assert.deepEqual(resolveFoodDropPosition({ x: 10, y: 10 }, [], tray, origin, 32, 20), { x: 70, y: 50 });
+  });
+
+  it("generates bite steps that progressively consume the food from the incoming angle", () => {
+    assert.equal(FOOD_EAT_DURATION_MS, 1500);
+    const sequence = getFoodBiteSequence(0);
+    assert.equal(sequence.length, 6);
+    // Progress must strictly increase
+    for (let i = 1; i < sequence.length; i++) {
+      assert.ok(sequence[i].progress > sequence[i - 1].progress);
+    }
+    // First bite is near incoming angle (x > 16)
+    assert.ok(sequence[0].x > 16);
+    // Final bite covers the entire 32x32 sprite
+    assert.equal(sequence[5].x, 16);
+    assert.equal(sequence[5].y, 16);
+    assert.ok(sequence[5].radius >= 16);
+  });
+
+  it("filters active bites based on animation progress", () => {
+    const sequence = getFoodBiteSequence(Math.PI);
+    assert.deepEqual(getActiveFoodBites(0.01, sequence), []);
+    assert.equal(getActiveFoodBites(0.1, sequence).length, 1);
+    assert.equal(getActiveFoodBites(0.5, sequence).length, 3);
+    assert.equal(getActiveFoodBites(0.9, sequence).length, 5);
+    assert.equal(getActiveFoodBites(1.0, sequence).length, 6);
   });
 });
 

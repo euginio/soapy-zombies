@@ -28,6 +28,64 @@ export function resolveFoodLoss(foodCount: number): FoodLossOutcome {
 
 export const FOOD_MAX_DRAG_MS = 3000;
 export const FOOD_DRAG_COOLDOWN_MS = 1500;
+export const FOOD_EAT_DURATION_MS = 1500;
+
+export interface FoodBiteStep {
+  progress: number;
+  x: number;
+  y: number;
+  radius: number;
+}
+
+export function getFoodBiteSequence(incomingAngle: number): FoodBiteStep[] {
+  // Food sprite frame is 32x32 with center at (16, 16).
+  // Bites progressively consume the food from the incoming ant edge inwards.
+  return [
+    {
+      progress: 0.05,
+      x: 16 + Math.cos(incomingAngle) * 9,
+      y: 16 + Math.sin(incomingAngle) * 9,
+      radius: 7
+    },
+    {
+      progress: 0.24,
+      x: 16 + Math.cos(incomingAngle + 0.85) * 8,
+      y: 16 + Math.sin(incomingAngle + 0.85) * 8,
+      radius: 7.5
+    },
+    {
+      progress: 0.44,
+      x: 16 + Math.cos(incomingAngle - 0.85) * 8,
+      y: 16 + Math.sin(incomingAngle - 0.85) * 8,
+      radius: 7.5
+    },
+    {
+      progress: 0.64,
+      x: 16 + Math.cos(incomingAngle) * 3,
+      y: 16 + Math.sin(incomingAngle) * 3,
+      radius: 9
+    },
+    {
+      progress: 0.82,
+      x: 16 - Math.cos(incomingAngle) * 4,
+      y: 16 - Math.sin(incomingAngle) * 4,
+      radius: 10
+    },
+    {
+      progress: 0.94,
+      x: 16,
+      y: 16,
+      radius: 16
+    }
+  ];
+}
+
+export function getActiveFoodBites(
+  progress: number,
+  sequence: FoodBiteStep[]
+): FoodBiteStep[] {
+  return sequence.filter((step) => step.progress <= progress);
+}
 
 export function canFoodBeDragged(
   isBeingEaten: boolean,

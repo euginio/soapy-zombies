@@ -540,12 +540,18 @@ test("eating food lowers the remaining count without a new high score when tied"
     return {
       tweenCount: gameScene.tweens.getTweensOf(targetFood).length,
       foodCount: gameScene.foodCount,
-      availableFood: gameScene.foods.getChildren().filter((food) => food.body.enable).length
+      availableFood: gameScene.foods.getChildren().filter((food) => food.body.enable).length,
+      isBeingEaten: targetFood.isBeingEaten,
+      scaleDuringEating: targetFood.scaleX,
+      textureKey: targetFood.texture.key
     };
   });
   expect(prepped.foodCount).toBe(8);
   expect(prepped.availableFood).toBe(8);
   expect(prepped.tweenCount).toBe(1);
+  expect(prepped.isBeingEaten).toBe(true);
+  expect(prepped.scaleDuringEating).toBeGreaterThanOrEqual(1.4);
+  expect(prepped.textureKey).toContain("eaten_food_");
 
   await expect.poll(() => readGameState(page), { timeout: 8_000 }).toMatchObject({
     foodCount: 7,

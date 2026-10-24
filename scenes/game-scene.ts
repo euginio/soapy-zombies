@@ -398,7 +398,7 @@ export class GameScene extends MyScene {
     if (food.isBeingDragged) {
       return;
     }
-    food.beingEat();
+    food.beingEat(ant);
     // ant.eating()
   }
 

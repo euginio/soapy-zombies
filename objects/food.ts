@@ -4,7 +4,10 @@ import {
     canFoodBeEaten,
     clampFoodPosition,
     FOOD_DRAG_COOLDOWN_MS,
+    FOOD_EAT_DURATION_MS,
     FOOD_MAX_DRAG_MS,
+    FoodBiteStep,
+    getFoodBiteSequence,
     resolveFoodDropPosition
 } from "../game-rules";
 import { GameScene } from "../scenes/game-scene";
@@ -26,6 +29,8 @@ export class Food extends MySprite {
     dragOffsetY: number = 0;
     dragOriginX: number = 0;
     dragOriginY: number = 0;
+    eatProgress: number = 0;
+    private eatCanvasKey: string | null = null;
     private dragHoldTimer: Phaser.Time.TimerEvent | null = null;
     private dragCooldownTimer: Phaser.Time.TimerEvent | null = null;
 
@@ -54,7 +59,11 @@ export class Food extends MySprite {
         this.dragOffsetY = 0;
         this.dragOriginX = this.x;
         this.dragOriginY = this.y;
+        this.cleanupEatCanvas();
+        this.setTexture("food");
+        this.setFrame(Phaser.Math.Between(0, 24));
         this.setAlpha(1);
+        this.setAngle(0);
         this.setDepth(0);
         this.isBeingEaten = false;
         this.setScale(1.5);
@@ -98,6 +107,7 @@ export class Food extends MySprite {
         if (this.scene?.tweens) {
             this.scene.tweens.killTweensOf(this);
         }
+        this.cleanupEatCanvas();
         this.isBeingEaten = false;
 
         if (fromScene) {
@@ -123,29 +133,121 @@ export class Food extends MySprite {
         // }
     }
 
-    beingEat() {
-        if (canFoodBeEaten(this.isBeingEaten, this.isBeingDragged, this.body?.enable ?? false)) {
-            this.clearDragTimers();
-            this.resetInputDragState();
-            this.isDragCooldown = false;
-            this.setAlpha(1);
-            this.isBeingEaten = true;
-            this.emitCrumbs();
-            this.scene.time.delayedCall(400, () => {
-                if (this.scene && !this.scene.gameOver && this.isBeingEaten) {
-                    this.emitCrumbs();
+    beingEat(ant?: { x: number; y: number }) {
+        if (!canFoodBeEaten(this.isBeingEaten, this.isBeingDragged, this.body?.enable ?? false)) {
+            return;
+        }
+        this.clearDragTimers();
+        this.resetInputDragState();
+        this.isDragCooldown = false;
+        this.setAlpha(1);
+        this.isBeingEaten = true;
+
+        let incomingAngle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+        if (ant && typeof ant.x === 'number' && typeof ant.y === 'number') {
+            incomingAngle = Math.atan2(ant.y - this.y, ant.x - this.x);
+        }
+
+        const biteSequence = getFoodBiteSequence(incomingAngle);
+        let appliedBiteIndex = 0;
+
+        this.cleanupEatCanvas();
+        this.eatCanvasKey = `eaten_food_${Date.now()}_${Phaser.Math.Between(1000, 9999)}`;
+        let canvasTex: Phaser.Textures.CanvasTexture | null = null;
+        try {
+            if (this.scene?.textures) {
+                canvasTex = this.scene.textures.createCanvas(this.eatCanvasKey, 32, 32);
+            }
+        } catch {
+            canvasTex = null;
+        }
+
+        if (canvasTex) {
+            canvasTex.drawFrame('food', this.frame.name, 0, 0);
+            this.setTexture(this.eatCanvasKey);
+        }
+
+        const applyBiteStep = (step: FoodBiteStep) => {
+            if (canvasTex) {
+                const ctx = canvasTex.context;
+                let sampledColor: number | null = null;
+                try {
+                    const sampleX = Math.floor(Phaser.Math.Clamp(step.x, 0, 31));
+                    const sampleY = Math.floor(Phaser.Math.Clamp(step.y, 0, 31));
+                    const pixel = ctx.getImageData(sampleX, sampleY, 1, 1).data;
+                    if (pixel[3] > 60) {
+                        sampledColor = (pixel[0] << 16) | (pixel[1] << 8) | pixel[2];
+                    }
+                } catch {
+                    // Fall back if pixel reading fails
                 }
-            });
-            // Guard against multiple collision callbacks starting duplicate eat animations.
-            // Combine scale shrink and nibble wiggle in a single tween so tween counting remains exact.
-            this.scene.tweens.add({
-                targets: this, 
-                scale: { value: 0, duration: 1500, ease: 'Power1' },
-                angle: { value: '+=12', duration: 110, yoyo: true, repeat: 6, ease: 'Sine.easeInOut' },
-                yoyo: false,
-                loop: 0,
-                onComplete: () => this.destroy()
-            });
+
+                ctx.save();
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.beginPath();
+                ctx.arc(step.x, step.y, step.radius, 0, Math.PI * 2);
+                const subAngle = step.progress * 13;
+                ctx.arc(
+                    step.x + Math.cos(subAngle) * (step.radius * 0.4),
+                    step.y + Math.sin(subAngle) * (step.radius * 0.4),
+                    step.radius * 0.7,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+                ctx.restore();
+                canvasTex.update();
+
+                const worldBiteX = this.x + (step.x - 16) * this.scaleX;
+                const worldBiteY = this.y + (step.y - 16) * this.scaleY;
+                this.emitCrumbs(worldBiteX, worldBiteY, sampledColor);
+            } else {
+                this.emitCrumbs(this.x, this.y);
+            }
+        };
+
+        if (biteSequence.length > 0 && biteSequence[0].progress <= 0.06) {
+            applyBiteStep(biteSequence[0]);
+            appliedBiteIndex = 1;
+        }
+
+        this.eatProgress = 0;
+        this.scene.tweens.add({
+            targets: this,
+            eatProgress: 1,
+            duration: FOOD_EAT_DURATION_MS,
+            ease: 'Linear',
+            onUpdate: (tween: Phaser.Tweens.Tween) => {
+                if (!this.active || !this.isBeingEaten) {
+                    return;
+                }
+                const progress = tween.progress;
+                while (appliedBiteIndex < biteSequence.length && progress >= biteSequence[appliedBiteIndex].progress) {
+                    applyBiteStep(biteSequence[appliedBiteIndex]);
+                    appliedBiteIndex++;
+                }
+                const chompWiggle = Math.sin(progress * Math.PI * 18) * 5;
+                this.setAngle(chompWiggle);
+                const chompPulse = Math.sin((progress * 6) % 1 * Math.PI) * 0.08;
+                this.setScale(1.5 + chompPulse);
+                if (progress > 0.92) {
+                    this.setAlpha((1 - progress) / 0.08);
+                }
+            },
+            onComplete: () => {
+                this.cleanupEatCanvas();
+                this.destroy();
+            }
+        });
+    }
+
+    private cleanupEatCanvas() {
+        if (this.eatCanvasKey) {
+            const key = this.eatCanvasKey;
+            this.eatCanvasKey = null;
+            if (this.scene?.textures?.exists(key)) {
+                this.scene.textures.remove(key);
+            }
         }
     }
 
@@ -324,29 +426,32 @@ export class Food extends MySprite {
         this.clearDragCooldownTimer();
     }
 
-    private emitCrumbs() {
+    private emitCrumbs(originX = this.x, originY = this.y, preferredColor?: number | null) {
         if (!this.scene?.add || this.scene.gameOver) {
             return;
         }
-        const crumbPalette = [0xffd166, 0xffa07a, 0xf4a261, 0xe76f51, 0xffbe0b];
-        for (let i = 0; i < 5; i++) {
-            const color = Phaser.Math.RND.pick(crumbPalette);
+        const defaultPalette = [0xffd166, 0xffa07a, 0xf4a261, 0xe76f51, 0xffbe0b];
+        const count = Phaser.Math.Between(4, 7);
+        for (let i = 0; i < count; i++) {
+            const color = preferredColor && Math.random() < 0.75 ? preferredColor : Phaser.Math.RND.pick(defaultPalette);
             const crumb = this.scene.add.circle(
-                this.x + Phaser.Math.Between(-6, 6),
-                this.y + Phaser.Math.Between(-6, 6),
+                originX + Phaser.Math.Between(-4, 4),
+                originY + Phaser.Math.Between(-4, 4),
                 Phaser.Math.Between(2, 3),
                 color
             );
-            crumb.setDepth(1);
-            const destX = crumb.x + Phaser.Math.Between(-18, 18);
-            const destY = crumb.y + Phaser.Math.Between(-18, 18);
+            crumb.setDepth(2);
+            const burstAngle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+            const burstDist = Phaser.Math.Between(8, 22);
+            const destX = crumb.x + Math.cos(burstAngle) * burstDist;
+            const destY = crumb.y + Math.sin(burstAngle) * burstDist;
             this.scene.tweens.add({
                 targets: crumb,
                 x: destX,
                 y: destY,
                 alpha: 0,
-                scale: 0.2,
-                duration: 550,
+                scale: 0.1,
+                duration: Phaser.Math.Between(450, 650),
                 ease: 'Cubic.easeOut',
                 onComplete: () => {
                     crumb.destroy();
