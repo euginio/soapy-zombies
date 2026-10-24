@@ -3,6 +3,10 @@ import { describe, it } from "node:test";
 import {
   areFoodsOverlapping,
   calculateAntVelocity,
+  calculateAntStealVelocity,
+  canAntStealFood,
+  findNearestTrayEdgePoint,
+  isFoodInsideTray,
   calculateWormInchingScale,
   CATERPILLAR_FALL_SCORE,
   CATERPILLAR_GRAVITY_FACTOR,
@@ -64,6 +68,68 @@ describe("caterpillar rules", () => {
     const result2 = resolveCaterpillarEscape(5);
     assert.equal(result2.score, 7);
     assert.equal(result2.pointsAwarded, 2);
+  });
+});
+
+describe("ant food stealing rules", () => {
+  const tray = { x: 50, y: 30, width: 400, height: 240 };
+
+  it("determines whether an ant can steal a food piece", () => {
+    // Normal live ant and available food -> can steal
+    assert.equal(canAntStealFood(true, false, false, false, false, false, true), true);
+    // Ant already carrying food -> cannot steal another
+    assert.equal(canAntStealFood(true, false, true, false, false, false, true), false);
+    // Food already being carried by another ant -> cannot steal
+    assert.equal(canAntStealFood(true, false, false, true, false, false, true), false);
+    // Food being dragged by player -> cannot steal
+    assert.equal(canAntStealFood(true, false, false, false, true, false, true), false);
+    // Food being eaten by caterpillar -> cannot steal
+    assert.equal(canAntStealFood(true, false, false, false, false, true, true), false);
+    // Ant climbing onto tray -> cannot steal
+    assert.equal(canAntStealFood(true, true, false, false, false, false, true), false);
+  });
+
+  it("finds the nearest tray edge exit point for stealing food", () => {
+    // Close to left edge
+    const nearLeft = findNearestTrayEdgePoint(70, 150, tray);
+    assert.ok(nearLeft.x < 50);
+    assert.equal(nearLeft.y, 150);
+
+    // Close to right edge
+    const nearRight = findNearestTrayEdgePoint(430, 150, tray);
+    assert.ok(nearRight.x > 450);
+    assert.equal(nearRight.y, 150);
+
+    // Close to top edge
+    const nearTop = findNearestTrayEdgePoint(250, 45, tray);
+    assert.ok(nearTop.y < 30);
+    assert.equal(nearTop.x, 250);
+
+    // Close to bottom edge
+    const nearBottom = findNearestTrayEdgePoint(250, 255, tray);
+    assert.ok(nearBottom.y > 270);
+    assert.equal(nearBottom.x, 250);
+  });
+
+  it("calculates steal velocity directing the ant towards the closest edge", () => {
+    // Ant near left edge moves leftward (negative vx)
+    const velLeft = calculateAntStealVelocity(70, 150, tray, 50, 0, 0, 10);
+    assert.ok(velLeft.x < 0);
+
+    // Ant near right edge moves rightward (positive vx)
+    const velRight = calculateAntStealVelocity(430, 150, tray, 50, 0, 0, 10);
+    assert.ok(velRight.x > 0);
+  });
+
+  it("checks whether food coordinates remain inside tray bounds", () => {
+    assert.equal(isFoodInsideTray(200, 150, tray), true);
+    assert.equal(isFoodInsideTray(40, 150, tray), false);
+    assert.equal(isFoodInsideTray(460, 150, tray), false);
+  });
+
+  it("disallows food from being eaten while being carried by an ant", () => {
+    assert.equal(canFoodBeEaten(false, false, true, true), false);
+    assert.equal(canFoodBeEaten(false, false, true, false), true);
   });
 });
 

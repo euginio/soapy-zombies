@@ -1240,6 +1240,8 @@ test("Vite dev server supports PC mouse food dragging and window release", async
 
   await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
+    scene.ants.getChildren().forEach((ant) => ant.disableBody(true, false));
+    scene.caterpillars?.getChildren().forEach((caterpillar) => caterpillar.disableBody(true, false));
     const food = scene.foods.getChildren()[0];
     food.setPosition(250, 150);
     food.body.reset(250, 150);
@@ -1317,4 +1319,61 @@ test("caterpillar spawns, resists tilt with lower gravityFactor, and awards 2 po
   });
 
   expect(escapeScore.scoreAfter).toBe(escapeScore.scoreBefore + 2);
+});
+
+test("ants steal food and carry it towards edges, releasing it when dragged or dropped", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  // 1. Ant steals food upon collision
+  const stealResult = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const ant = scene.ants.getChildren()[0];
+    const food = scene.foods.getChildren()[0];
+
+    ant.isAlive = true;
+    ant.isClimbing = false;
+    food.isBeingEaten = false;
+    food.isBeingCarried = false;
+    food.isBeingDragged = false;
+
+    // Freeze other bugs
+    scene.ants.getChildren().slice(1).forEach((a) => a.disableBody(true, false));
+    scene.caterpillars?.getChildren().forEach((c) => c.disableBody(true, false));
+
+    // Ant hits food
+    scene.antHitFood(ant, food);
+
+    return {
+      antCarryingFood: ant.carriedFood === food,
+      foodBeingCarried: food.isBeingCarried,
+      foodCarrierAnt: food.carrierAnt === ant
+    };
+  });
+
+  expect(stealResult.antCarryingFood).toBe(true);
+  expect(stealResult.foodBeingCarried).toBe(true);
+  expect(stealResult.foodCarrierAnt).toBe(true);
+
+  // 2. Snatching food via drag releases it from the ant
+  const rescueResult = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const ant = scene.ants.getChildren()[0];
+    const food = scene.foods.getChildren()[0];
+
+    // Player drags the food away
+    food.startDrag();
+
+    return {
+      antCarryingFood: ant.carriedFood !== null,
+      foodBeingCarried: food.isBeingCarried,
+      isBeingDragged: food.isBeingDragged
+    };
+  });
+
+  expect(rescueResult.antCarryingFood).toBe(false);
+  expect(rescueResult.foodBeingCarried).toBe(false);
+  expect(rescueResult.isBeingDragged).toBe(true);
 });

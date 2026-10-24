@@ -310,7 +310,7 @@ export class GameScene extends MyScene {
       this.addNewAnt()
     }
 
-    this.physics.add.collider(this.ants, this.foods, this.eatFood, (_ant, food) => !(food as Food).isBeingDragged, this);
+    this.physics.add.collider(this.ants, this.foods, this.antHitFood, (_ant, food) => !(food as Food).isBeingDragged && !(food as Food).isBeingCarried, this);
     this.physics.add.collider(this.ants, this.ants, null, null, this);
     this.caterpillars = this.add.group();
     this.caterpillars.runChildUpdate = true;
@@ -318,7 +318,7 @@ export class GameScene extends MyScene {
       this.addNewCaterpillar();
     }
 
-    this.physics.add.collider(this.caterpillars, this.foods, this.eatFood, (_worm, food) => !(food as Food).isBeingDragged, this);
+    this.physics.add.collider(this.caterpillars, this.foods, this.eatFood, (_worm, food) => !(food as Food).isBeingDragged && !(food as Food).isBeingCarried, this);
     this.physics.add.collider(this.caterpillars, this.ants, null, null, this);
     this.physics.add.collider(this.caterpillars, this.caterpillars, null, null, this);
 
@@ -422,6 +422,13 @@ export class GameScene extends MyScene {
     if (DEBUG_MODE && ant.debugColor) {
       ant.setTintFill(debugColorToTint(ant.debugColor));
     }
+  }
+
+  antHitFood(ant: Ant, food: Food) {
+    if (food.isBeingDragged || food.isBeingEaten || food.isBeingCarried) {
+      return;
+    }
+    ant.stealFood(food);
   }
 
   eatFood(ant: Ant | Caterpillar, food: Food) {

@@ -133,10 +133,83 @@ export function canFoodBeDragged(
 export function canFoodBeEaten(
   isBeingEaten: boolean,
   isBeingDragged: boolean,
-  bodyEnabled = true
+  bodyEnabled = true,
+  isBeingCarried = false
 ): boolean {
-  // A food piece cannot be eaten if it is disabled, already being eaten, or currently being dragged by the player.
-  return bodyEnabled && !isBeingEaten && !isBeingDragged;
+  // A food piece cannot be eaten if disabled, being eaten, being dragged, or being stolen by an ant.
+  return bodyEnabled && !isBeingEaten && !isBeingDragged && !isBeingCarried;
+}
+
+export function findNearestTrayEdgePoint(x: number, y: number, trayBounds: Rect): Point {
+  const left = trayBounds.x;
+  const right = trayBounds.x + trayBounds.width;
+  const top = trayBounds.y;
+  const bottom = trayBounds.y + trayBounds.height;
+
+  const distLeft = Math.abs(x - left);
+  const distRight = Math.abs(right - x);
+  const distTop = Math.abs(y - top);
+  const distBottom = Math.abs(bottom - y);
+
+  const minDist = Math.min(distLeft, distRight, distTop, distBottom);
+  if (minDist === distLeft) {
+    return { x: left - 15, y: Math.max(top, Math.min(bottom, y)) };
+  } else if (minDist === distRight) {
+    return { x: right + 15, y: Math.max(top, Math.min(bottom, y)) };
+  } else if (minDist === distTop) {
+    return { x: Math.max(left, Math.min(right, x)), y: top - 15 };
+  } else {
+    return { x: Math.max(left, Math.min(right, x)), y: bottom + 15 };
+  }
+}
+
+export function calculateAntStealVelocity(
+  antX: number,
+  antY: number,
+  trayBounds: Rect,
+  speed: number,
+  gravityX: number,
+  gravityY: number,
+  gravityFactor: number
+): AntVelocity {
+  const edge = findNearestTrayEdgePoint(antX, antY, trayBounds);
+  const dx = antX - edge.x;
+  const dy = antY - edge.y;
+  return calculateAntVelocity(dx, dy, speed, gravityX, gravityY, gravityFactor);
+}
+
+export function isFoodInsideTray(
+  foodX: number,
+  foodY: number,
+  trayBounds: Rect,
+  margin = 0
+): boolean {
+  return (
+    foodX >= trayBounds.x + margin &&
+    foodX <= trayBounds.x + trayBounds.width - margin &&
+    foodY >= trayBounds.y + margin &&
+    foodY <= trayBounds.y + trayBounds.height - margin
+  );
+}
+
+export function canAntStealFood(
+  isAntAlive: boolean,
+  isAntClimbing: boolean,
+  antCarryingFood: boolean,
+  isFoodBeingCarried: boolean,
+  isFoodBeingDragged: boolean,
+  isFoodBeingEaten: boolean,
+  isFoodBodyEnabled = true
+): boolean {
+  return (
+    isAntAlive &&
+    !isAntClimbing &&
+    !antCarryingFood &&
+    !isFoodBeingCarried &&
+    !isFoodBeingDragged &&
+    !isFoodBeingEaten &&
+    isFoodBodyEnabled
+  );
 }
 
 export function clampFoodPosition(

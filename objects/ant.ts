@@ -1,6 +1,11 @@
 import {
+  calculateAntStealVelocity,
   calculateAntVelocity,
+  canAntStealFood,
+  clampFoodPosition,
+  findNearestTrayEdgePoint,
   insetHorizontalTrayBounds,
+  isFoodInsideTray,
   pickNearestTarget,
   rectanglesOverlap
 } from "../game-rules";
@@ -20,6 +25,7 @@ export class Ant extends MySprite {
     debugColor: string | null = null;
     gravityFactor = 10;
     myFood: Food | null = null;
+    carriedFood: Food | null = null;
     isAlive: boolean;
     isClimbing: boolean;
     isTouchingTray: boolean;
@@ -46,6 +52,47 @@ export class Ant extends MySprite {
 
         this.climb();
         // this.setScale(1)
+    }
+
+    stealFood(food: Food): boolean {
+        if (!canAntStealFood(
+            this.isAlive,
+            this.isClimbing,
+            Boolean(this.carriedFood),
+            Boolean(food.isBeingCarried),
+            Boolean(food.isBeingDragged),
+            Boolean(food.isBeingEaten),
+            Boolean(food.body?.enable)
+        )) {
+            return false;
+        }
+        this.carriedFood = food;
+        food.isBeingCarried = true;
+        food.carrierAnt = this;
+        food.setDepth(1);
+        return true;
+    }
+
+    dropFood(returnToTray = true) {
+        if (!this.carriedFood) {
+            return;
+        }
+        const food = this.carriedFood;
+        this.carriedFood = null;
+        food.isBeingCarried = false;
+        food.carrierAnt = null;
+        food.setDepth(0);
+        if (food.body) {
+            food.body.reset(food.x, food.y);
+        }
+        if (returnToTray && this.scene?.tray) {
+            const bounds = this.scene.tray.getBounds();
+            const clamped = clampFoodPosition(food.x, food.y, bounds, 25);
+            food.setPosition(clamped.x, clamped.y);
+            if (food.body) {
+                food.body.reset(clamped.x, clamped.y);
+            }
+        }
     }
 
     private climb() {
@@ -86,7 +133,54 @@ export class Ant extends MySprite {
 
     update() {
         if (this.scene.gameOver || !this.isAlive || this.isClimbing) {
-            return
+            return;
+        }
+
+        if (this.carriedFood) {
+            if (!this.carriedFood.active || this.carriedFood.isBeingDragged || this.carriedFood.isBeingEaten) {
+                this.carriedFood.isBeingCarried = false;
+                this.carriedFood.carrierAnt = null;
+                this.carriedFood = null;
+                return;
+            }
+
+            const trayBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
+            const velocity = calculateAntStealVelocity(
+                this.x,
+                this.y,
+                trayBounds,
+                this.ANT_SPEED * 0.75,
+                this.scene.gravity.x,
+                this.scene.gravity.y,
+                this.gravityFactor
+            );
+            this.setVelocityX(velocity.x);
+            this.setVelocityY(velocity.y);
+
+            const edgePoint = findNearestTrayEdgePoint(this.x, this.y, trayBounds);
+            const angle = Phaser.Math.Angle.Between(this.x, this.y, edgePoint.x, edgePoint.y);
+            this.setAngle(Phaser.Math.RadToDeg(angle) + 90);
+
+            this.carriedFood.setPosition(this.x, this.y);
+            if (this.carriedFood.body) {
+                this.carriedFood.body.reset(this.x, this.y);
+            }
+
+            const trayOverlapBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
+            this.isTouchingTray = rectanglesOverlap(trayOverlapBounds, this.getBounds());
+            if (!this.isTouchingTray) {
+                const stolenFood = this.carriedFood;
+                this.carriedFood = null;
+                stolenFood.isBeingCarried = false;
+                stolenFood.carrierAnt = null;
+                if (stolenFood.body && stolenFood.body.enable) {
+                    this.scene.destroyFood(stolenFood);
+                    stolenFood.disableBody(true, true);
+                    stolenFood.destroy();
+                }
+                this.kill();
+            }
+            return;
         }
 
         // Re-select each frame so ants can react when food is eaten or moved.
@@ -130,6 +224,22 @@ export class Ant extends MySprite {
         if (!this.isAlive || this.scene.gameOver) {
             return;
         }
+        if (this.carriedFood) {
+            const trayBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
+            if (isFoodInsideTray(this.carriedFood.x, this.carriedFood.y, trayBounds)) {
+                this.dropFood(true);
+            } else {
+                const stolenFood = this.carriedFood;
+                this.carriedFood = null;
+                stolenFood.isBeingCarried = false;
+                stolenFood.carrierAnt = null;
+                if (stolenFood.body && stolenFood.body.enable) {
+                    this.scene.destroyFood(stolenFood);
+                    stolenFood.disableBody(true, true);
+                    stolenFood.destroy();
+                }
+            }
+        }
         this.isAlive = false;
         this.isClimbing = false;
         this.setImmovable(true);
@@ -156,6 +266,9 @@ export class Ant extends MySprite {
     }
 
     destroy(fromScene?: boolean) {
+        if (this.carriedFood) {
+            this.dropFood(false);
+        }
         if (this.scene?.tweens) {
             this.scene.tweens.killTweensOf(this);
         }
@@ -193,7 +306,7 @@ export class Ant extends MySprite {
 
     pickNearestFood(): Food | null {
         const availableFood = this.scene.foods.getChildren()
-            .filter((food: Food) => food.body && food.body.enable && !food.isBeingDragged) as Food[];
+            .filter((food: Food) => food.body && food.body.enable && !food.isBeingDragged && !food.isBeingCarried && !food.isBeingEaten) as Food[];
         return pickNearestTarget(this.x, this.y, availableFood);
     }
 

@@ -166,7 +166,7 @@ export class Caterpillar extends MySprite {
 
     pickNearestFood(): Food | null {
         const availableFood = (this.scene.foods.getChildren() as Food[])
-            .filter((food: Food) => food.body && food.body.enable && !food.isBeingDragged);
+            .filter((food: Food) => food.body && food.body.enable && !food.isBeingDragged && !food.isBeingCarried && !food.isBeingEaten);
         return pickNearestTarget(this.x, this.y, availableFood);
     }
 }

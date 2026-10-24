@@ -25,6 +25,8 @@ export class Food extends MySprite {
     isBeingEaten: boolean = false;
     isBeingDragged: boolean = false;
     isDragCooldown: boolean = false;
+    isBeingCarried: boolean = false;
+    carrierAnt: any | null = null;
     dragOffsetX: number = 0;
     dragOffsetY: number = 0;
     dragOriginX: number = 0;
@@ -55,6 +57,8 @@ export class Food extends MySprite {
         this.resetInputDragState();
         this.isBeingDragged = false;
         this.isDragCooldown = false;
+        this.isBeingCarried = false;
+        this.carrierAnt = null;
         this.dragOffsetX = 0;
         this.dragOffsetY = 0;
         this.dragOriginX = this.x;
@@ -108,6 +112,11 @@ export class Food extends MySprite {
             this.scene.tweens.killTweensOf(this);
         }
         this.cleanupEatCanvas();
+        if (this.carrierAnt) {
+            this.carrierAnt.carriedFood = null;
+            this.carrierAnt = null;
+        }
+        this.isBeingCarried = false;
         this.isBeingEaten = false;
 
         if (fromScene) {
@@ -296,6 +305,11 @@ export class Food extends MySprite {
         if (this.scene?.isAnyFoodDragging()) {
             this.resetInputDragState(pointer);
             return false;
+        }
+        if (this.isBeingCarried && this.carrierAnt) {
+            this.carrierAnt.dropFood(false);
+            this.isBeingCarried = false;
+            this.carrierAnt = null;
         }
         this.isBeingDragged = true;
         this.dragOriginX = this.x;
