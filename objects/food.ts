@@ -2,7 +2,14 @@ import {
     areFoodsOverlapping,
     canFoodBeDragged,
     canFoodBeEaten,
+    calculateAntStealVelocity,
+    calculateCarrierAntOffset,
+    calculateCooperativeStealSpeed,
     clampFoodPosition,
+    findNearestTrayEdgePoint,
+    insetHorizontalTrayBounds,
+    MAX_CARRIER_ANTS,
+    rectanglesOverlap,
     FOOD_DRAG_COOLDOWN_MS,
     FOOD_EAT_DURATION_MS,
     FOOD_MAX_DRAG_MS,
@@ -25,8 +32,10 @@ export class Food extends MySprite {
     isBeingEaten: boolean = false;
     isBeingDragged: boolean = false;
     isDragCooldown: boolean = false;
-    isBeingCarried: boolean = false;
-    carrierAnt: any | null = null;
+    carrierAnts: any[] = [];
+    get carrierCount(): number { return this.carrierAnts.length; }
+    get isBeingCarried(): boolean { return this.carrierAnts.length > 0; }
+    get carrierAnt(): any | null { return this.carrierAnts[0] ?? null; }
     dragOffsetX: number = 0;
     dragOffsetY: number = 0;
     dragOriginX: number = 0;
@@ -57,8 +66,7 @@ export class Food extends MySprite {
         this.resetInputDragState();
         this.isBeingDragged = false;
         this.isDragCooldown = false;
-        this.isBeingCarried = false;
-        this.carrierAnt = null;
+        this.releaseAllCarriers(false);
         this.dragOffsetX = 0;
         this.dragOffsetY = 0;
         this.dragOriginX = this.x;
@@ -74,6 +82,41 @@ export class Food extends MySprite {
         this.placeInTray()
     }
     
+    addCarrier(ant: any): boolean {
+        if (!this.carrierAnts.includes(ant) && this.carrierAnts.length < MAX_CARRIER_ANTS) {
+            this.carrierAnts.push(ant);
+            this.setDepth(2);
+            return true;
+        }
+        return false;
+    }
+
+    removeCarrier(ant: any) {
+        this.carrierAnts = this.carrierAnts.filter((a) => a !== ant);
+        if (this.carrierAnts.length === 0) {
+            this.setDepth(0);
+        }
+    }
+
+    releaseAllCarriers(returnToTray = true) {
+        const ants = [...this.carrierAnts];
+        this.carrierAnts = [];
+        this.setDepth(0);
+        ants.forEach((ant) => ant.dropFood(returnToTray));
+    }
+
+    dropFoodOnTray() {
+        this.releaseAllCarriers(false);
+        if (this.scene?.tray) {
+            const bounds = this.scene.tray.getBounds();
+            const clamped = clampFoodPosition(this.x, this.y, bounds, 25);
+            this.setPosition(clamped.x, clamped.y);
+            if (this.body) {
+                this.body.reset(clamped.x, clamped.y);
+            }
+        }
+    }
+
     placeInTray(){
         // Keep food away from the tray's edges and avoid spawning on top of existing food.
         let tray = this.scene.tray
@@ -112,11 +155,7 @@ export class Food extends MySprite {
             this.scene.tweens.killTweensOf(this);
         }
         this.cleanupEatCanvas();
-        if (this.carrierAnt) {
-            this.carrierAnt.carriedFood = null;
-            this.carrierAnt = null;
-        }
-        this.isBeingCarried = false;
+        this.releaseAllCarriers(false);
         this.isBeingEaten = false;
 
         if (fromScene) {
@@ -130,16 +169,54 @@ export class Food extends MySprite {
             this.disableBody(true, true);
         }
     }
-    update() {
-        // if(this.body.enable){
+    update(_time?: number, delta: number = 16) {
+        if (this.isBeingCarried && this.carrierAnts.length > 0 && this.scene?.tray) {
+            if (this.isBeingDragged || this.isBeingEaten) {
+                this.releaseAllCarriers(false);
+                return;
+            }
+            const trayBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
+            const speed = calculateCooperativeStealSpeed(55, this.carrierAnts.length);
+            const velocity = calculateAntStealVelocity(
+                this.x,
+                this.y,
+                trayBounds,
+                speed,
+                this.scene.gravity.x,
+                this.scene.gravity.y,
+                10
+            );
+            const dt = delta / 1000;
+            this.x += velocity.x * dt;
+            this.y += velocity.y * dt;
+            if (this.body) {
+                this.body.reset(this.x, this.y);
+            }
 
-        //     this.setGravityX(this.scene.gravity.x * this.gravityFactor)
-        //     this.setGravityY(this.scene.gravity.y * this.gravityFactor)
+            const edgePoint = findNearestTrayEdgePoint(this.x, this.y, trayBounds);
+            const escapeAngle = Phaser.Math.Angle.Between(this.x, this.y, edgePoint.x, edgePoint.y);
 
-        //     if (!Phaser.Geom.Rectangle.Overlaps(this.scene.physics.world.bounds, this.getBounds())) {
-        //         this.scene.foodOut(this)
-        //     }
-        // }
+            this.carrierAnts.forEach((ant, idx) => {
+                const offset = calculateCarrierAntOffset(idx, this.carrierAnts.length, escapeAngle, 18);
+                ant.setPosition(this.x + offset.x, this.y + offset.y);
+                ant.setAngle(Phaser.Math.RadToDeg(escapeAngle) + 90);
+                if (ant.body) {
+                    ant.body.reset(ant.x, ant.y);
+                }
+            });
+
+            const trayOverlapBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
+            if (!rectanglesOverlap(trayOverlapBounds, this.getBounds())) {
+                const carriers = [...this.carrierAnts];
+                this.carrierAnts = [];
+                if (this.body && this.body.enable) {
+                    this.scene.destroyFood(this);
+                    this.disableBody(true, true);
+                    this.destroy();
+                }
+                carriers.forEach((ant) => ant.kill());
+            }
+        }
     }
 
     beingEat(ant?: { x: number; y: number }) {
@@ -306,10 +383,8 @@ export class Food extends MySprite {
             this.resetInputDragState(pointer);
             return false;
         }
-        if (this.isBeingCarried && this.carrierAnt) {
-            this.carrierAnt.dropFood(false);
-            this.isBeingCarried = false;
-            this.carrierAnt = null;
+        if (this.isBeingCarried) {
+            this.releaseAllCarriers(false);
         }
         this.isBeingDragged = true;
         this.dragOriginX = this.x;

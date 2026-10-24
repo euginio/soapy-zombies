@@ -4,6 +4,8 @@ import {
   areFoodsOverlapping,
   calculateAntVelocity,
   calculateAntStealVelocity,
+  calculateCarrierAntOffset,
+  calculateCooperativeStealSpeed,
   canAntStealFood,
   findNearestTrayEdgePoint,
   isFoodInsideTray,
@@ -23,6 +25,7 @@ import {
   calculateVisualLayerLayout,
   debugColorToTint,
   insetHorizontalTrayBounds,
+  MAX_CARRIER_ANTS,
   isNewHighScore,
   isTabletDevice,
   parseStoredHighScore,
@@ -74,19 +77,54 @@ describe("caterpillar rules", () => {
 describe("ant food stealing rules", () => {
   const tray = { x: 50, y: 30, width: 400, height: 240 };
 
-  it("determines whether an ant can steal a food piece", () => {
-    // Normal live ant and available food -> can steal
-    assert.equal(canAntStealFood(true, false, false, false, false, false, true), true);
+  it("determines whether an ant can steal or join stealing a food piece", () => {
+    // 0 carriers -> can steal
+    assert.equal(canAntStealFood(true, false, false, 0, false, false, true), true);
+    // 1 to 3 carriers -> additional ants can join in
+    assert.equal(canAntStealFood(true, false, false, 1, false, false, true), true);
+    assert.equal(canAntStealFood(true, false, false, 3, false, false, true), true);
+    // 4 carriers (max reached) -> no more ants can join this food
+    assert.equal(canAntStealFood(true, false, false, 4, false, false, true), false);
     // Ant already carrying food -> cannot steal another
-    assert.equal(canAntStealFood(true, false, true, false, false, false, true), false);
-    // Food already being carried by another ant -> cannot steal
-    assert.equal(canAntStealFood(true, false, false, true, false, false, true), false);
+    assert.equal(canAntStealFood(true, false, true, 0, false, false, true), false);
     // Food being dragged by player -> cannot steal
-    assert.equal(canAntStealFood(true, false, false, false, true, false, true), false);
+    assert.equal(canAntStealFood(true, false, false, 0, true, false, true), false);
     // Food being eaten by caterpillar -> cannot steal
-    assert.equal(canAntStealFood(true, false, false, false, false, true, true), false);
+    assert.equal(canAntStealFood(true, false, false, 0, false, true, true), false);
     // Ant climbing onto tray -> cannot steal
-    assert.equal(canAntStealFood(true, true, false, false, false, false, true), false);
+    assert.equal(canAntStealFood(true, true, false, 0, false, false, true), false);
+  });
+
+  it("scales steal speed faster as more ants carry the same food", () => {
+    const baseSpeed = 55;
+    const speed0 = calculateCooperativeStealSpeed(baseSpeed, 0);
+    const speed1 = calculateCooperativeStealSpeed(baseSpeed, 1);
+    const speed2 = calculateCooperativeStealSpeed(baseSpeed, 2);
+    const speed3 = calculateCooperativeStealSpeed(baseSpeed, 3);
+    const speed4 = calculateCooperativeStealSpeed(baseSpeed, 4);
+    const speed5 = calculateCooperativeStealSpeed(baseSpeed, 5);
+
+    assert.equal(speed0, 0);
+    // Speed must strictly increase with each additional ant
+    assert.ok(speed1 < speed2);
+    assert.ok(speed2 < speed3);
+    assert.ok(speed3 < speed4);
+    // Caps at MAX_CARRIER_ANTS
+    assert.equal(speed5, speed4);
+    assert.equal(speed1, baseSpeed * 0.7);
+    assert.equal(speed2, baseSpeed * 1.0);
+    assert.equal(speed4, baseSpeed * 1.6);
+  });
+
+  it("calculates distinct ant offsets around the carried food", () => {
+    const offset1 = calculateCarrierAntOffset(0, 1, 0, 20);
+    assert.ok(Math.hypot(offset1.x, offset1.y) >= 19);
+
+    const offset2A = calculateCarrierAntOffset(0, 2, 0, 20);
+    const offset2B = calculateCarrierAntOffset(1, 2, 0, 20);
+    // Offsets for ant 0 and ant 1 must be distinct (opposite sides)
+    assert.notDeepEqual(offset2A, offset2B);
+    assert.ok(offset2A.y > 0 && offset2B.y < 0);
   });
 
   it("finds the nearest tray edge exit point for stealing food", () => {

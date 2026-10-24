@@ -163,6 +163,46 @@ export function findNearestTrayEdgePoint(x: number, y: number, trayBounds: Rect)
   }
 }
 
+export const MAX_CARRIER_ANTS = 4;
+
+export function calculateCooperativeStealSpeed(
+  baseSpeed: number,
+  carrierCount: number,
+  maxCarriers = MAX_CARRIER_ANTS
+): number {
+  if (carrierCount <= 0) {
+    return 0;
+  }
+  const count = Math.min(carrierCount, maxCarriers);
+  const multiplier = 0.4 + 0.3 * count;
+  return baseSpeed * multiplier;
+}
+
+export function calculateCarrierAntOffset(
+  index: number,
+  totalCarriers: number,
+  escapeAngle: number,
+  radius = 18
+): Point {
+  if (totalCarriers <= 1) {
+    const angle = escapeAngle + Math.PI;
+    return {
+      x: Math.cos(angle) * radius,
+      y: Math.sin(angle) * radius
+    };
+  }
+
+  const spreadStart = escapeAngle + Math.PI / 2;
+  const spreadEnd = escapeAngle + (3 * Math.PI) / 2;
+  const step = (spreadEnd - spreadStart) / (totalCarriers - 1);
+  const antAngle = spreadStart + index * step;
+
+  return {
+    x: Math.cos(antAngle) * radius,
+    y: Math.sin(antAngle) * radius
+  };
+}
+
 export function calculateAntStealVelocity(
   antX: number,
   antY: number,
@@ -196,16 +236,17 @@ export function canAntStealFood(
   isAntAlive: boolean,
   isAntClimbing: boolean,
   antCarryingFood: boolean,
-  isFoodBeingCarried: boolean,
+  carrierCount: number,
   isFoodBeingDragged: boolean,
   isFoodBeingEaten: boolean,
-  isFoodBodyEnabled = true
+  isFoodBodyEnabled = true,
+  maxCarriers = MAX_CARRIER_ANTS
 ): boolean {
   return (
     isAntAlive &&
     !isAntClimbing &&
     !antCarryingFood &&
-    !isFoodBeingCarried &&
+    carrierCount < maxCarriers &&
     !isFoodBeingDragged &&
     !isFoodBeingEaten &&
     isFoodBodyEnabled

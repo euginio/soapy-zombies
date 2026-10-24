@@ -16,6 +16,7 @@ import {
   getScreenOrientationAngle,
   isNewHighScore,
   isTabletDevice,
+  MAX_CARRIER_ANTS,
   parseStoredHighScore,
   resolveAntEscape,
   resolveCaterpillarEscape,
@@ -310,7 +311,7 @@ export class GameScene extends MyScene {
       this.addNewAnt()
     }
 
-    this.physics.add.collider(this.ants, this.foods, this.antHitFood, (_ant, food) => !(food as Food).isBeingDragged && !(food as Food).isBeingCarried, this);
+    this.physics.add.collider(this.ants, this.foods, this.antHitFood, (ant, food) => !(ant as Ant).carriedFood && !(food as Food).isBeingDragged && (food as Food).carrierCount < MAX_CARRIER_ANTS, this);
     this.physics.add.collider(this.ants, this.ants, null, null, this);
     this.caterpillars = this.add.group();
     this.caterpillars.runChildUpdate = true;
@@ -425,7 +426,7 @@ export class GameScene extends MyScene {
   }
 
   antHitFood(ant: Ant, food: Food) {
-    if (food.isBeingDragged || food.isBeingEaten || food.isBeingCarried) {
+    if (food.isBeingDragged || food.isBeingEaten || food.carrierCount >= MAX_CARRIER_ANTS) {
       return;
     }
     ant.stealFood(food);

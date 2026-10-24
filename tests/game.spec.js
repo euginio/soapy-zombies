@@ -1321,59 +1321,87 @@ test("caterpillar spawns, resists tilt with lower gravityFactor, and awards 2 po
   expect(escapeScore.scoreAfter).toBe(escapeScore.scoreBefore + 2);
 });
 
-test("ants steal food and carry it towards edges, releasing it when dragged or dropped", async ({ page }) => {
+test("ants steal food cooperatively and carry it faster towards edges", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
   await page.goto("/");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
-  // 1. Ant steals food upon collision
-  const stealResult = await page.evaluate(() => {
+  // 1. First ant steals food upon collision
+  const firstStealResult = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
-    const ant = scene.ants.getChildren()[0];
+    const ant1 = scene.ants.getChildren()[0];
+    const ant2 = scene.ants.getChildren()[1];
     const food = scene.foods.getChildren()[0];
 
-    ant.isAlive = true;
-    ant.isClimbing = false;
+    ant1.isAlive = true;
+    ant1.isClimbing = false;
+    ant2.isAlive = true;
+    ant2.isClimbing = false;
     food.isBeingEaten = false;
-    food.isBeingCarried = false;
+    food.releaseAllCarriers(false);
     food.isBeingDragged = false;
 
     // Freeze other bugs
-    scene.ants.getChildren().slice(1).forEach((a) => a.disableBody(true, false));
+    scene.ants.getChildren().slice(2).forEach((a) => a.disableBody(true, false));
     scene.caterpillars?.getChildren().forEach((c) => c.disableBody(true, false));
 
-    // Ant hits food
-    scene.antHitFood(ant, food);
+    // Ant 1 hits food
+    scene.antHitFood(ant1, food);
 
     return {
-      antCarryingFood: ant.carriedFood === food,
-      foodBeingCarried: food.isBeingCarried,
-      foodCarrierAnt: food.carrierAnt === ant
+      ant1CarryingFood: ant1.carriedFood === food,
+      carrierCountAfterOne: food.carrierCount,
+      isBeingCarried: food.isBeingCarried,
+      carrierAnt: food.carrierAnt === ant1
     };
   });
 
-  expect(stealResult.antCarryingFood).toBe(true);
-  expect(stealResult.foodBeingCarried).toBe(true);
-  expect(stealResult.foodCarrierAnt).toBe(true);
+  expect(firstStealResult.ant1CarryingFood).toBe(true);
+  expect(firstStealResult.carrierCountAfterOne).toBe(1);
+  expect(firstStealResult.isBeingCarried).toBe(true);
+  expect(firstStealResult.carrierAnt).toBe(true);
 
-  // 2. Snatching food via drag releases it from the ant
+  // 2. Second ant joins stealing the same food piece
+  const secondStealResult = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const ant2 = scene.ants.getChildren()[1];
+    const food = scene.foods.getChildren()[0];
+
+    // Ant 2 hits the same food
+    scene.antHitFood(ant2, food);
+
+    return {
+      ant2CarryingFood: ant2.carriedFood === food,
+      carrierCountAfterTwo: food.carrierCount
+    };
+  });
+
+  expect(secondStealResult.ant2CarryingFood).toBe(true);
+  expect(secondStealResult.carrierCountAfterTwo).toBe(2);
+
+  // 3. Snatching food via drag releases all carrier ants
   const rescueResult = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
-    const ant = scene.ants.getChildren()[0];
+    const ant1 = scene.ants.getChildren()[0];
+    const ant2 = scene.ants.getChildren()[1];
     const food = scene.foods.getChildren()[0];
 
     // Player drags the food away
     food.startDrag();
 
     return {
-      antCarryingFood: ant.carriedFood !== null,
-      foodBeingCarried: food.isBeingCarried,
+      ant1CarryingFood: ant1.carriedFood !== null,
+      ant2CarryingFood: ant2.carriedFood !== null,
+      carrierCountAfterDrag: food.carrierCount,
+      isBeingCarried: food.isBeingCarried,
       isBeingDragged: food.isBeingDragged
     };
   });
 
-  expect(rescueResult.antCarryingFood).toBe(false);
-  expect(rescueResult.foodBeingCarried).toBe(false);
+  expect(rescueResult.ant1CarryingFood).toBe(false);
+  expect(rescueResult.ant2CarryingFood).toBe(false);
+  expect(rescueResult.carrierCountAfterDrag).toBe(0);
+  expect(rescueResult.isBeingCarried).toBe(false);
   expect(rescueResult.isBeingDragged).toBe(true);
 });
