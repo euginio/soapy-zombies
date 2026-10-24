@@ -7,6 +7,7 @@ const REQUIRED_ASSETS = [
   "/assets/images/trayWithCompleteClothe.png",
   "/assets/images/food.png",
   "/assets/images/ant_sheet.png",
+  "/assets/images/caterpillar.png",
   "/assets/audio/music.ogg",
   "/assets/audio/ant-fall.ogg",
   "/assets/audio/food-eaten.ogg",
@@ -525,6 +526,12 @@ test("eating food lowers the remaining count without a new high score when tied"
       ant.setVelocityY(0);
       ant.disableBody(true, false);
     });
+    gameScene.caterpillars?.getChildren().forEach((caterpillar) => {
+      caterpillar.isAlive = false;
+      caterpillar.setVelocityX(0);
+      caterpillar.setVelocityY(0);
+      caterpillar.disableBody(true, false);
+    });
     gameScene.foods.getChildren().forEach((food) => {
       gameScene.tweens.killTweensOf(food);
       food.isBeingEaten = false;
@@ -977,6 +984,23 @@ test("food can be dragged for up to 3 seconds, cannot be eaten while dragging, a
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
+  // Freeze living bugs so they do not collide with test foods while dragging is evaluated
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    scene.ants.getChildren().forEach((ant) => {
+      ant.isAlive = false;
+      ant.setVelocityX(0);
+      ant.setVelocityY(0);
+      ant.disableBody(true, false);
+    });
+    scene.caterpillars?.getChildren().forEach((caterpillar) => {
+      caterpillar.isAlive = false;
+      caterpillar.setVelocityX(0);
+      caterpillar.setVelocityY(0);
+      caterpillar.disableBody(true, false);
+    });
+  });
+
   // 1. Verify manual drag, protection from being eaten, and cooldown after release
   const dragResult = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
@@ -1257,4 +1281,40 @@ test("Vite dev server supports PC mouse food dragging and window release", async
   });
   expect(endState.isBeingDragged).toBe(false);
   expect(endState.isDragCooldown).toBe(true);
+});
+
+test("caterpillar spawns, resists tilt with lower gravityFactor, and awards 2 points on escape", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const caterpillarData = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const caterpillar = scene.caterpillars.getChildren()[0];
+    return {
+      caterpillarCount: scene.caterpillars.getChildren().length,
+      speed: caterpillar.CATERPILLAR_SPEED,
+      gravityFactor: caterpillar.gravityFactor,
+      isAlive: caterpillar.isAlive,
+      textureKey: caterpillar.texture.key
+    };
+  });
+
+  expect(caterpillarData.caterpillarCount).toBe(1);
+  expect(caterpillarData.speed).toBe(24);
+  expect(caterpillarData.gravityFactor).toBe(3.5);
+  expect(caterpillarData.isAlive).toBe(true);
+  expect(caterpillarData.textureKey).toBe("caterpillar");
+
+  // Trigger worm escape and verify 2 points are awarded
+  const escapeScore = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const caterpillar = scene.caterpillars.getChildren()[0];
+    const scoreBefore = scene.score;
+    scene.wormDied(caterpillar);
+    return { scoreBefore, scoreAfter: scene.score };
+  });
+
+  expect(escapeScore.scoreAfter).toBe(escapeScore.scoreBefore + 2);
 });

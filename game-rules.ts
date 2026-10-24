@@ -3,6 +3,39 @@ export interface AntEscapeOutcome {
   spawnAnt: boolean;
 }
 
+export const CATERPILLAR_SPEED = 24;
+export const CATERPILLAR_GRAVITY_FACTOR = 3.5;
+export const CATERPILLAR_FALL_SCORE = 2;
+
+export interface InchingScale {
+  scaleX: number;
+  scaleY: number;
+}
+
+export function calculateWormInchingScale(
+  cycleMs: number,
+  periodMs = 600
+): InchingScale {
+  const phase = (cycleMs % periodMs) / periodMs;
+  const sine = Math.sin(phase * Math.PI * 2);
+  return {
+    scaleX: 1 - 0.12 * sine,
+    scaleY: 1 + 0.2 * sine
+  };
+}
+
+export interface CaterpillarEscapeOutcome {
+  score: number;
+  pointsAwarded: number;
+}
+
+export function resolveCaterpillarEscape(score: number): CaterpillarEscapeOutcome {
+  return {
+    score: score + CATERPILLAR_FALL_SCORE,
+    pointsAwarded: CATERPILLAR_FALL_SCORE
+  };
+}
+
 export function resolveAntEscape(score: number, antSpawnRate: number): AntEscapeOutcome {
   // The score is also the counter used to decide when the next ant appears.
   const nextScore = score + 1;

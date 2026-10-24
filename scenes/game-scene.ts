@@ -18,9 +18,11 @@ import {
   isTabletDevice,
   parseStoredHighScore,
   resolveAntEscape,
+  resolveCaterpillarEscape,
   resolveFoodLoss
 } from "../game-rules";
 import { Ant } from "../objects/ant";
+import { Caterpillar } from "../objects/caterpillar";
 import { Food } from "../objects/food";
 import { MyScene } from "./my-scene";
 
@@ -54,6 +56,8 @@ export class GameScene extends MyScene {
   private hasMotionInput = false;
   private currentCanvasTransform = "";
   ants: Phaser.GameObjects.Group;
+  caterpillars: Phaser.GameObjects.Group;
+  initialCaterpillars: number = 1;
   foods: Phaser.GameObjects.Group;
   gameOver = false;
   cursors: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -308,6 +312,16 @@ export class GameScene extends MyScene {
 
     this.physics.add.collider(this.ants, this.foods, this.eatFood, (_ant, food) => !(food as Food).isBeingDragged, this);
     this.physics.add.collider(this.ants, this.ants, null, null, this);
+    this.caterpillars = this.add.group();
+    this.caterpillars.runChildUpdate = true;
+    for (let i = 0; i < this.initialCaterpillars; i++) {
+      this.addNewCaterpillar();
+    }
+
+    this.physics.add.collider(this.caterpillars, this.foods, this.eatFood, (_worm, food) => !(food as Food).isBeingDragged, this);
+    this.physics.add.collider(this.caterpillars, this.ants, null, null, this);
+    this.physics.add.collider(this.caterpillars, this.caterpillars, null, null, this);
+
     // this.physics.add.overlap(this.ants, this.tray, this.antOut, null, this);
     // this.ants.children.iterate((z:Ant)=>z.init())
     // Prefer orientation angles when available; raw acceleration is the fallback input.
@@ -375,6 +389,22 @@ export class GameScene extends MyScene {
   //   ant.outOfTray()
   // }
 
+  addNewCaterpillar() {
+    const caterpillar = new Caterpillar(this);
+    this.caterpillars.add(caterpillar, true);
+  }
+
+  wormDied(_caterpillar: Caterpillar) {
+    if (this.gameOver) {
+      return;
+    }
+    const outcome = resolveCaterpillarEscape(this.score);
+    this.score = outcome.score;
+    this.scoreText.setText(this.score.toString());
+    this.scoreLabel.textContent = this.score.toString();
+    this.audio.play(AUDIO_KEYS.antFall);
+  }
+
   addNewAnt() {
     const ant = new Ant(this);
     if (DEBUG_MODE) {
@@ -394,7 +424,7 @@ export class GameScene extends MyScene {
     }
   }
 
-  eatFood(ant: Ant, food: Food) {
+  eatFood(ant: Ant | Caterpillar, food: Food) {
     if (food.isBeingDragged) {
       return;
     }

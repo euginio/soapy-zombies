@@ -3,6 +3,11 @@ import { describe, it } from "node:test";
 import {
   areFoodsOverlapping,
   calculateAntVelocity,
+  calculateWormInchingScale,
+  CATERPILLAR_FALL_SCORE,
+  CATERPILLAR_GRAVITY_FACTOR,
+  CATERPILLAR_SPEED,
+  resolveCaterpillarEscape,
   calculateDeviceMotionTilt,
   calculateDeviceTilt,
   canFoodBeDragged,
@@ -27,6 +32,40 @@ import {
   getFoodBiteSequence,
   getActiveFoodBites
 } from "../game-rules";
+
+describe("caterpillar rules", () => {
+  it("defines caterpillar movement speed and heavy gravity resistance", () => {
+    assert.equal(CATERPILLAR_SPEED, 24);
+    assert.equal(CATERPILLAR_GRAVITY_FACTOR, 3.5);
+    assert.equal(CATERPILLAR_FALL_SCORE, 2);
+  });
+
+  it("calculates inching crawling wave scale values", () => {
+    const at0 = calculateWormInchingScale(0, 600);
+    assert.equal(at0.scaleX, 1);
+    assert.equal(at0.scaleY, 1);
+
+    // Quarter cycle: maximum stretch (higher scaleY, lower scaleX)
+    const at150 = calculateWormInchingScale(150, 600);
+    assert.ok(at150.scaleY > 1);
+    assert.ok(at150.scaleX < 1);
+
+    // Three-quarter cycle: maximum contraction (lower scaleY, higher scaleX)
+    const at450 = calculateWormInchingScale(450, 600);
+    assert.ok(at450.scaleY < 1);
+    assert.ok(at450.scaleX > 1);
+  });
+
+  it("awards 2 points when a caterpillar escapes the tray", () => {
+    const result1 = resolveCaterpillarEscape(0);
+    assert.equal(result1.score, 2);
+    assert.equal(result1.pointsAwarded, 2);
+
+    const result2 = resolveCaterpillarEscape(5);
+    assert.equal(result2.score, 7);
+    assert.equal(result2.pointsAwarded, 2);
+  });
+});
 
 describe("visual rendering helpers", () => {
   it("converts debug hex colors to Phaser fill tint values", () => {
