@@ -1600,6 +1600,88 @@ test("ants steal food cooperatively and carry it faster towards edges", async ({
   expect(stealExitResult.ant2Carrying).toBe(false);
 });
 
+test("tray tilt does not affect ants carrying food", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const tiltImmunityResult = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    const carrierAnt = scene.ants.getChildren()[0];
+    const freeAnt = scene.ants.getChildren()[1];
+
+    // Position food and carrier ant at center
+    carrierAnt.isAlive = true;
+    carrierAnt.isClimbing = false;
+    freeAnt.isAlive = true;
+    freeAnt.isClimbing = false;
+
+    food.isBeingEaten = false;
+    food.isBeingDragged = false;
+    food.setPosition(250, 150);
+    food.body.reset(250, 150);
+    food.releaseAllCarriers(false);
+
+    carrierAnt.setPosition(250, 150);
+    carrierAnt.body.reset(250, 150);
+    scene.antHitFood(carrierAnt, food);
+
+    // Apply strong rightward/downward tilt
+    scene.gravity.x = 30;
+    scene.gravity.y = 30;
+
+    // Call setVelocity on both ants
+    carrierAnt.setVelocity(0, 0);
+    freeAnt.setVelocity(0, 0);
+
+    const carrierVx = carrierAnt.body.velocity.x;
+    const carrierVy = carrierAnt.body.velocity.y;
+    const freeVx = freeAnt.body.velocity.x;
+    const freeVy = freeAnt.body.velocity.y;
+
+    // Simulate food update with tilted scene gravity
+    const foodXBefore = food.x;
+    const foodYBefore = food.y;
+    food.update(0, 100);
+    const deltaXWithTilt = food.x - foodXBefore;
+    const deltaYWithTilt = food.y - foodYBefore;
+
+    // Reset position and simulate food update with zero tilt
+    food.setPosition(250, 150);
+    food.body.reset(250, 150);
+    scene.gravity.x = 0;
+    scene.gravity.y = 0;
+    food.update(0, 100);
+    const deltaXWithoutTilt = food.x - 250;
+    const deltaYWithoutTilt = food.y - 150;
+
+    return {
+      antCarryingFood: carrierAnt.carriedFood === food,
+      carrierVx,
+      carrierVy,
+      freeVx,
+      freeVy,
+      deltaXWithTilt,
+      deltaYWithTilt,
+      deltaXWithoutTilt,
+      deltaYWithoutTilt
+    };
+  });
+
+  expect(tiltImmunityResult.antCarryingFood).toBe(true);
+  // Free ant has gravity applied (30 * 10 = 300)
+  expect(tiltImmunityResult.freeVx).toBe(300);
+  expect(tiltImmunityResult.freeVy).toBe(300);
+  // Carrier ant has 0 gravity velocity
+  expect(tiltImmunityResult.carrierVx).toBe(0);
+  expect(tiltImmunityResult.carrierVy).toBe(0);
+  // Food steal progression is identical with or without tilt
+  expect(tiltImmunityResult.deltaXWithTilt).toBeCloseTo(tiltImmunityResult.deltaXWithoutTilt, 4);
+  expect(tiltImmunityResult.deltaYWithTilt).toBeCloseTo(tiltImmunityResult.deltaYWithoutTilt, 4);
+});
+
 test("fullscreen toggle and recovery prompt restore fullscreen when exited", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
   await page.goto("/");

@@ -4,6 +4,7 @@ import {
   areFoodsOverlapping,
   calculateAntVelocity,
   calculateAntStealVelocity,
+  shouldTiltAffectAnt,
   calculateCarrierAntOffset,
   calculateCooperativeStealSpeed,
   calculateRandomTrayPosition,
@@ -236,6 +237,17 @@ describe("ant food stealing rules", () => {
     // Ant near right edge moves rightward (positive vx)
     const velRight = calculateAntStealVelocity(430, 150, tray, 50, 0, 0, 10);
     assert.ok(velRight.x > 0);
+  });
+
+  it("does not allow tray tilt or gravity to affect ants carrying food", () => {
+    assert.equal(shouldTiltAffectAnt(false), true);
+    assert.equal(shouldTiltAffectAnt(true), false);
+
+    // Steal velocity must be unaffected by board tilt / gravity parameters
+    const velWithoutTilt = calculateAntStealVelocity(70, 150, tray, 50, 0, 0, 0);
+    const velWithTilt = calculateAntStealVelocity(70, 150, tray, 50, 30, -30, 10);
+    assert.equal(velWithTilt.x, velWithoutTilt.x);
+    assert.equal(velWithTilt.y, velWithoutTilt.y);
   });
 
   it("checks whether food coordinates remain inside tray bounds", () => {

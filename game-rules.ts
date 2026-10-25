@@ -208,19 +208,24 @@ export function calculateCarrierAntOffset(
   };
 }
 
+export function shouldTiltAffectAnt(isCarryingFood: boolean): boolean {
+  return !isCarryingFood;
+}
+
 export function calculateAntStealVelocity(
   antX: number,
   antY: number,
   trayBounds: Rect,
   speed: number,
-  gravityX: number,
-  gravityY: number,
-  gravityFactor: number
+  gravityX: number = 0,
+  gravityY: number = 0,
+  gravityFactor: number = 0
 ): AntVelocity {
   const edge = findNearestTrayEdgePoint(antX, antY, trayBounds);
   const dx = antX - edge.x;
   const dy = antY - edge.y;
-  return calculateAntVelocity(dx, dy, speed, gravityX, gravityY, gravityFactor);
+  // Ants carrying food are not affected by tray tilt; gravity is not applied.
+  return calculateAntVelocity(dx, dy, speed, 0, 0, 0);
 }
 
 export function hasCarriedFoodExitedTray(

@@ -269,10 +269,7 @@ export class Food extends MySprite {
                 this.x,
                 this.y,
                 trayBounds,
-                speed,
-                this.scene.gravity.x,
-                this.scene.gravity.y,
-                10
+                speed
             );
             const dt = delta / 1000;
             this.x += velocity.x * dt;
