@@ -1759,8 +1759,8 @@ test("caterpillar eating pauses and stops when the worm is no longer touching th
     const caterpillar = scene.caterpillars.getChildren()[0];
     const food = scene.foods.getChildren()[0];
 
-    caterpillar.setPosition(50, 50);
-    caterpillar.body.reset(50, 50);
+    caterpillar.setPosition(350, 150);
+    caterpillar.body.reset(350, 150);
 
     food.update(0, 16);
 
