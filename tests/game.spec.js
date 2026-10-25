@@ -1269,15 +1269,18 @@ test("food can be dragged for up to 3 seconds, cannot be eaten while dragging, a
     foodA.emit("drag", scene.input.activePointer, 250, 150);
     const duringPos = { x: foodA.x, y: foodA.y };
 
-    // Drop foodA on foodB: rejected and reverted to origin
+    // Drop foodA on foodB: placed next to foodB instead of reverting to origin
     foodA.emit("dragend", scene.input.activePointer);
 
     const afterPos = { x: foodA.x, y: foodA.y };
-    return { duringPos, afterPos };
+    const distToFoodB = Math.hypot(afterPos.x - 250, afterPos.y - 150);
+    return { duringPos, afterPos, distToFoodB };
   });
 
   expect(overlapDropResult.duringPos).toEqual({ x: 250, y: 150 });
-  expect(overlapDropResult.afterPos).toEqual({ x: 150, y: 150 });
+  expect(overlapDropResult.afterPos).not.toEqual({ x: 150, y: 150 });
+  expect(overlapDropResult.distToFoodB).toBeGreaterThanOrEqual(32);
+  expect(overlapDropResult.distToFoodB).toBeLessThanOrEqual(45);
 });
 
 test("Vite dev server supports PC mouse food dragging and window release", async ({ page }) => {
@@ -1669,4 +1672,49 @@ test("screen wake lock is acquired during gameplay and released on shutdown", as
     window.__gameSceneForTest.scene.start("TitleScene");
   });
   await expect.poll(() => page.evaluate(() => window.__wakeLockReleased)).toBeGreaterThanOrEqual(1);
+});
+
+test("dropping food over another food places it next to it instead of reverting to origin", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const dropResult = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const foods = scene.foods.getChildren();
+    const food1 = foods[0];
+    const food2 = foods[1];
+
+    food2.setPosition(250, 150);
+    food2.body.reset(250, 150);
+
+    food1.setPosition(100, 100);
+    food1.body.reset(100, 100);
+    food1.emit("dragstart", scene.input.activePointer);
+
+    const origin = { x: food1.dragOriginX, y: food1.dragOriginY };
+
+    food1.emit("drag", scene.input.activePointer, 255, 150);
+    food1.emit("dragend", scene.input.activePointer);
+
+    const finalPos = { x: food1.x, y: food1.y };
+    const dx = finalPos.x - food2.x;
+    const dy = finalPos.y - food2.y;
+    const distanceToFood2 = Math.hypot(dx, dy);
+
+    return {
+      origin,
+      finalPos,
+      food2Pos: { x: food2.x, y: food2.y },
+      distanceToFood2,
+      revertedToOrigin: finalPos.x === origin.x && finalPos.y === origin.y,
+      overlapsFood2: distanceToFood2 < 32
+    };
+  });
+
+  expect(dropResult.revertedToOrigin).toBe(false);
+  expect(dropResult.overlapsFood2).toBe(false);
+  expect(dropResult.distanceToFood2).toBeGreaterThanOrEqual(32);
+  expect(dropResult.distanceToFood2).toBeLessThanOrEqual(45);
 });

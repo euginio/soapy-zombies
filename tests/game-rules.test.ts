@@ -402,7 +402,7 @@ describe("food drag and interaction", () => {
     assert.equal(areFoodsOverlapping({ x: 100, y: 100 }, { x: 140, y: 100 }, 32), false);
   });
 
-  it("resolves food drop position by accepting free spots and rejecting placements on existing food", () => {
+  it("resolves food drop position by accepting free spots and placing next to existing food on overlap", () => {
     const tray = { x: 50, y: 30, width: 400, height: 240 };
     const existing = [{ x: 100, y: 100 }, { x: 200, y: 150 }];
     const origin = { x: 300, y: 180 };
@@ -411,17 +411,36 @@ describe("food drag and interaction", () => {
     const freeCandidate = { x: 280, y: 80 };
     assert.deepEqual(resolveFoodDropPosition(freeCandidate, existing, tray, origin, 32), freeCandidate);
 
-    // Placing at the exact position of another food is rejected and returns origin
-    assert.deepEqual(resolveFoodDropPosition({ x: 100, y: 100 }, existing, tray, origin, 32), origin);
+    // Placing overlapping another food places next to it without overlapping any existing food
+    const overlapDrop = resolveFoodDropPosition({ x: 110, y: 110 }, existing, tray, origin, 32);
+    assert.notDeepEqual(overlapDrop, origin);
+    assert.equal(areFoodsOverlapping(overlapDrop, existing[0], 32), false);
+    assert.equal(areFoodsOverlapping(overlapDrop, existing[1], 32), false);
+    assert.deepEqual(clampFoodPosition(overlapDrop.x, overlapDrop.y, tray, 25), overlapDrop);
+    const distToTarget = Math.hypot(overlapDrop.x - existing[0].x, overlapDrop.y - existing[0].y);
+    assert.ok(distToTarget >= 32 && distToTarget <= 40);
 
-    // Placing overlapping another food (distance 20 < 32) is rejected and returns origin
-    assert.deepEqual(resolveFoodDropPosition({ x: 110, y: 110 }, existing, tray, origin, 32), origin);
+    // Placing directly at the exact position of another food also places next to it
+    const exactDrop = resolveFoodDropPosition({ x: 100, y: 100 }, existing, tray, origin, 32);
+    assert.notDeepEqual(exactDrop, origin);
+    assert.equal(areFoodsOverlapping(exactDrop, existing[0], 32), false);
+    assert.equal(areFoodsOverlapping(exactDrop, existing[1], 32), false);
+    assert.deepEqual(clampFoodPosition(exactDrop.x, exactDrop.y, tray, 25), exactDrop);
 
     // Placing with clearance (distance 40 >= 32) succeeds
     assert.deepEqual(resolveFoodDropPosition({ x: 140, y: 100 }, existing, tray, origin, 32), { x: 140, y: 100 });
 
     // Placing outside tray bounds clamps to tray
     assert.deepEqual(resolveFoodDropPosition({ x: 10, y: 10 }, [], tray, origin, 32, 20), { x: 70, y: 50 });
+
+    // When completely surrounded on all sides and no free spot can be found, falls back to origin
+    const denselySurrounded = [{ x: 100, y: 100 }];
+    for (let r = 25; r <= 80; r += 20) {
+      for (let a = 0; a < 2 * Math.PI; a += Math.PI / 8) {
+        denselySurrounded.push({ x: 100 + r * Math.cos(a), y: 100 + r * Math.sin(a) });
+      }
+    }
+    assert.deepEqual(resolveFoodDropPosition({ x: 100, y: 100 }, denselySurrounded, tray, origin, 32), origin);
   });
 
   it("generates bite steps that progressively consume the food from the incoming angle", () => {

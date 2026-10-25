@@ -402,12 +402,68 @@ export function resolveFoodDropPosition(
   margin = 25
 ): Point {
   const clamped = clampFoodPosition(candidate.x, candidate.y, trayBounds, margin);
-  const overlapsAny = existingFoods.some((other) =>
+  const overlappingFoods = existingFoods.filter((other) =>
     areFoodsOverlapping(clamped, other, minDistance)
   );
-  if (!overlapsAny) {
+  if (overlappingFoods.length === 0) {
     return clamped;
   }
+
+  // Sort overlapping foods so the closest obstacle to the drop position is handled first
+  overlappingFoods.sort((a, b) => {
+    const da = (a.x - clamped.x) ** 2 + (a.y - clamped.y) ** 2;
+    const db = (b.x - clamped.x) ** 2 + (b.y - clamped.y) ** 2;
+    return da - db;
+  });
+
+  const distanceMultipliers = [1.05, 1.25, 1.5, 1.75, 2.0];
+  const angleSteps = 24;
+
+  for (const target of overlappingFoods) {
+    let baseAngle = 0;
+    const distToTarget = Math.hypot(clamped.x - target.x, clamped.y - target.y);
+    if (distToTarget > 0.001) {
+      baseAngle = Math.atan2(clamped.y - target.y, clamped.x - target.x);
+    } else {
+      const distToOrigin = Math.hypot(clamped.x - origin.x, clamped.y - origin.y);
+      if (distToOrigin > 0.001) {
+        baseAngle = Math.atan2(clamped.y - origin.y, clamped.x - origin.x);
+      }
+    }
+
+    for (const mult of distanceMultipliers) {
+      const searchDist = minDistance * mult;
+      let bestCandidate: Point | null = null;
+      let bestDistSq = Infinity;
+
+      for (let i = 0; i < angleSteps; i++) {
+        const stepIndex = Math.ceil(i / 2) * (i % 2 === 1 ? 1 : -1);
+        const angle = baseAngle + (stepIndex * 2 * Math.PI) / angleSteps;
+
+        const rawX = target.x + searchDist * Math.cos(angle);
+        const rawY = target.y + searchDist * Math.sin(angle);
+        const clampedSpot = clampFoodPosition(rawX, rawY, trayBounds, margin);
+
+        const overlapsAny = existingFoods.some((other) =>
+          areFoodsOverlapping(clampedSpot, other, minDistance)
+        );
+
+        if (!overlapsAny) {
+          const distSq = (clampedSpot.x - clamped.x) ** 2 + (clampedSpot.y - clamped.y) ** 2;
+          if (distSq < bestDistSq) {
+            bestDistSq = distSq;
+            bestCandidate = clampedSpot;
+          }
+        }
+      }
+
+      if (bestCandidate) {
+        return bestCandidate;
+      }
+    }
+  }
+
+  // If no adjacent free space could be found, return to origin
   return clampFoodPosition(origin.x, origin.y, trayBounds, margin);
 }
 
