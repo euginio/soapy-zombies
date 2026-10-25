@@ -41,8 +41,11 @@ import {
   resolveFoodLoss,
   FOOD_EAT_DURATION_MS,
   getFoodBiteSequence,
-  getActiveFoodBites
+  getActiveFoodBites,
+  shouldKeepScreenAwake,
+  isScreenWakeLockSupported
 } from "../game-rules";
+import { ScreenWakeLock, WakeLockSentinelLike } from "../services/wake-lock";
 
 describe("caterpillar rules", () => {
   it("defines caterpillar movement speed and heavy gravity resistance", () => {
@@ -598,5 +601,114 @@ describe("food shake and ant scatter rules", () => {
       { x: 92, y: 100, time: 260 }
     ];
     assert.equal(detectFoodShake(wiggleShake), true);
+  });
+
+  it("determines whether the screen should remain awake", () => {
+    assert.equal(shouldKeepScreenAwake(true, true), true);
+    assert.equal(shouldKeepScreenAwake(false, true), false);
+    assert.equal(shouldKeepScreenAwake(true, false), false);
+    assert.equal(shouldKeepScreenAwake(false, false), false);
+  });
+
+  it("checks whether navigator supports wake lock", () => {
+    assert.equal(isScreenWakeLockSupported(undefined), false);
+    assert.equal(isScreenWakeLockSupported({} as any), false);
+    assert.equal(isScreenWakeLockSupported({ wakeLock: {} } as any), true);
+  });
+
+  it("manages wake lock acquisition, release, and visibility recovery", async () => {
+    let requestCount = 0;
+    let releasedCount = 0;
+    const releaseListeners = new Set<() => void>();
+
+    class MockSentinel implements WakeLockSentinelLike {
+      released = false;
+      type = "screen";
+      async release() {
+        this.released = true;
+        releasedCount++;
+        for (const listener of releaseListeners) {
+          listener();
+        }
+      }
+      addEventListener(type: string, listener: () => void) {
+        if (type === "release") releaseListeners.add(listener);
+      }
+      removeEventListener(type: string, listener: () => void) {
+        if (type === "release") releaseListeners.delete(listener);
+      }
+    }
+
+    let currentSentinel: MockSentinel | null = null;
+    const mockNav = {
+      wakeLock: {
+        async request() {
+          requestCount++;
+          currentSentinel = new MockSentinel();
+          return currentSentinel;
+        }
+      }
+    };
+
+    let docVisibility: DocumentVisibilityState = "visible";
+    const docListeners = new Map<string, Set<() => void>>();
+    const mockDoc = {
+      get visibilityState() {
+        return docVisibility;
+      },
+      addEventListener(type: string, listener: () => void) {
+        if (!docListeners.has(type)) docListeners.set(type, new Set());
+        docListeners.get(type)!.add(listener);
+      },
+      removeEventListener(type: string, listener: () => void) {
+        docListeners.get(type)?.delete(listener);
+      }
+    };
+
+    const winListeners = new Map<string, Set<() => void>>();
+    const mockWin = {
+      addEventListener(type: string, listener: () => void) {
+        if (!winListeners.has(type)) winListeners.set(type, new Set());
+        winListeners.get(type)!.add(listener);
+      },
+      removeEventListener(type: string, listener: () => void) {
+        winListeners.get(type)?.delete(listener);
+      }
+    };
+
+    const wakeLock = new ScreenWakeLock(
+      () => mockNav as any,
+      () => mockDoc as any,
+      () => mockWin as any
+    );
+
+    const acquired = await wakeLock.acquire();
+    assert.equal(acquired, true);
+    assert.equal(wakeLock.isLocked, true);
+    assert.equal(requestCount, 1);
+
+    await wakeLock.requestLock();
+    assert.equal(requestCount, 1);
+
+    docVisibility = "hidden";
+    await currentSentinel?.release();
+    assert.equal(wakeLock.isLocked, false);
+
+    for (const listener of docListeners.get("visibilitychange") || []) {
+      listener();
+    }
+    assert.equal(requestCount, 1);
+
+    docVisibility = "visible";
+    for (const listener of docListeners.get("visibilitychange") || []) {
+      listener();
+    }
+    await Promise.resolve();
+    assert.equal(wakeLock.isLocked, true);
+    assert.equal(requestCount, 2);
+
+    wakeLock.release();
+    assert.equal(wakeLock.isLocked, false);
+    assert.equal(wakeLock.active, false);
   });
 });

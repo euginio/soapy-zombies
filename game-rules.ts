@@ -617,3 +617,11 @@ export function insetHorizontalTrayBounds(tray: Rect, horizontalInset = 25): Rec
 export function rectanglesOverlap(a: Rect, b: Rect): boolean {
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
+
+export function shouldKeepScreenAwake(isGameActive: boolean, isDocumentVisible: boolean): boolean {
+  return isGameActive && isDocumentVisible;
+}
+
+export function isScreenWakeLockSupported(nav?: { wakeLock?: unknown }): boolean {
+  return Boolean(nav && "wakeLock" in nav && nav.wakeLock != null);
+}

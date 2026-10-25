@@ -25,6 +25,7 @@ import {
 import { Ant } from "../objects/ant";
 import { Caterpillar } from "../objects/caterpillar";
 import { Food } from "../objects/food";
+import { screenWakeLock } from "../services/wake-lock";
 import { MyScene } from "./my-scene";
 
 export class GameScene extends MyScene {
@@ -293,6 +294,7 @@ export class GameScene extends MyScene {
     window.addEventListener("popstate", this.onPopState);
     document.addEventListener("fullscreenchange", this.onFullscreenChange);
     document.addEventListener("webkitfullscreenchange", this.onFullscreenChange);
+    screenWakeLock.acquire().catch(() => {});
 
     this.tray = this.add.image(this.width / 2, this.height / 2, 'tray');
     this.tray.setSize(this.tray.width-20,this.tray.height-3)
@@ -1153,6 +1155,7 @@ export class GameScene extends MyScene {
     window.removeEventListener("popstate", this.onPopState);
     document.removeEventListener("fullscreenchange", this.onFullscreenChange);
     document.removeEventListener("webkitfullscreenchange", this.onFullscreenChange);
+    screenWakeLock.release();
     if (this.onWindowPointerUp) {
       window.removeEventListener("pointerup", this.onWindowPointerUp);
       window.removeEventListener("mouseup", this.onWindowPointerUp);

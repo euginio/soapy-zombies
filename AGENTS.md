@@ -18,6 +18,7 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
   - `game.ts` - Phaser config and entry point.
   - `scenes/` - `boot-scene`, `title-scene`, `game-scene` (plus `my-scene` base class).
   - `objects/` - `Ant`, `Food`, `MySprite` base class.
+  - `services/` - `wake-lock` Screen Wake Lock manager.
   - `game-rules.ts` - **pure** game logic (no Phaser/DOM). Unit tested in `tests/game-rules.test.ts`.
   - `tests/game.spec.js` - Playwright browser tests (production build and Vite dev server).
   - `backlog` - the owner's ideas, problems and done list. It states intent; read it before

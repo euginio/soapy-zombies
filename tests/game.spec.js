@@ -1622,3 +1622,51 @@ test("fullscreen toggle and recovery prompt restore fullscreen when exited", asy
   await promptOverlay.click();
   await expect(promptOverlay).toBeHidden();
 });
+
+test("screen wake lock is acquired during gameplay and released on shutdown", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__wakeLockRequests = [];
+    window.__wakeLockReleased = 0;
+    const mockSentinel = {
+      released: false,
+      type: "screen",
+      listeners: new Set(),
+      async release() {
+        this.released = true;
+        window.__wakeLockReleased++;
+        for (const l of this.listeners) l();
+      },
+      addEventListener(type, l) {
+        if (type === "release") this.listeners.add(l);
+      },
+      removeEventListener(type, l) {
+        if (type === "release") this.listeners.delete(l);
+      }
+    };
+    Object.defineProperty(navigator, "wakeLock", {
+      configurable: true,
+      writable: true,
+      value: {
+        async request(type) {
+          window.__wakeLockRequests.push(type);
+          mockSentinel.released = false;
+          return mockSentinel;
+        }
+      }
+    });
+  });
+
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  await expect.poll(() => page.evaluate(() => window.__wakeLockRequests?.length)).toBeGreaterThanOrEqual(1);
+  const requests = await page.evaluate(() => window.__wakeLockRequests);
+  expect(requests).toContain("screen");
+
+  await page.evaluate(() => {
+    window.__gameSceneForTest.scene.start("TitleScene");
+  });
+  await expect.poll(() => page.evaluate(() => window.__wakeLockReleased)).toBeGreaterThanOrEqual(1);
+});

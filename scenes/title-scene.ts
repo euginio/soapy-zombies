@@ -7,6 +7,7 @@
 
 import { AUDIO_KEYS, GameAudio } from "../audio/game-audio";
 import { MyScene } from "./my-scene";
+import { screenWakeLock } from "../services/wake-lock";
 
 export class TitleScene extends MyScene {
   private isStarting = false;
@@ -21,6 +22,7 @@ export class TitleScene extends MyScene {
   create() {
     // The scene instance is reused when returning from the game, so allow starting again.
     this.isStarting = false;
+    screenWakeLock.release();
     // this.explanationDevice = 'inclinando el celular en diferentes sentidos'
     // if (this.sys.game.device.os.desktop) {
     //   this.explanationDevice = 'con las flechas del teclado'
@@ -50,6 +52,7 @@ export class TitleScene extends MyScene {
       return;
     }
     this.isStarting = true;
+    screenWakeLock.acquire().catch(() => {});
     new GameAudio(this.sound).play(AUDIO_KEYS.uiTap);
     // Request iOS 13+ sensor permissions while still within the user gesture callback.
     await this.requestMotionPermissions();
