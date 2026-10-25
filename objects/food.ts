@@ -10,6 +10,8 @@ import {
     DragSample,
     clampFoodPosition,
     findNearestTrayEdgePoint,
+    isFoodInsideTray,
+    hasCarriedFoodExitedTray,
     insetHorizontalTrayBounds,
     MAX_CARRIER_ANTS,
     rectanglesOverlap,
@@ -173,6 +175,27 @@ export class Food extends MySprite {
             this.disableBody(true, true);
         }
     }
+    stealFoodAndDestroy() {
+        if (!this.active || !this.body) {
+            return;
+        }
+        const carriers = [...this.carrierAnts];
+        this.carrierAnts = [];
+        carriers.forEach((ant) => {
+            ant.carriedFood = null;
+        });
+
+        if (this.body.enable) {
+            this.scene.destroyFood(this);
+            this.disableBody(true, true);
+        }
+        this.destroy();
+
+        carriers.forEach((ant) => {
+            ant.kill();
+        });
+    }
+
     shakeOffCarriers() {
         if (!this.isBeingCarried || this.carrierAnts.length === 0) {
             return;
@@ -242,15 +265,13 @@ export class Food extends MySprite {
             this.updateCarrierPositions();
 
             const trayOverlapBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
-            if (!rectanglesOverlap(trayOverlapBounds, this.getBounds())) {
-                const carriers = [...this.carrierAnts];
-                this.carrierAnts = [];
-                if (this.body && this.body.enable) {
-                    this.scene.destroyFood(this);
-                    this.disableBody(true, true);
-                    this.destroy();
-                }
-                carriers.forEach((ant) => ant.kill());
+            const carrierBounds = this.carrierAnts.map((ant) => ant.getBounds());
+            if (
+                hasCarriedFoodExitedTray(this.getBounds(), trayOverlapBounds, carrierBounds) ||
+                !isFoodInsideTray(this.x, this.y, trayOverlapBounds)
+            ) {
+                this.stealFoodAndDestroy();
+                return;
             }
         }
     }

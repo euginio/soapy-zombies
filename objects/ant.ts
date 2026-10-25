@@ -181,7 +181,11 @@ export class Ant extends MySprite {
                 this.dropFood(false);
                 return;
             }
-            // Food.update() handles collective movement and positioning of all carrier ants
+            const trayOverlapBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
+            if (!rectanglesOverlap(trayOverlapBounds, this.getBounds())) {
+                this.carriedFood.stealFoodAndDestroy();
+                return;
+            }
             return;
         }
 

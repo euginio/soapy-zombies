@@ -11,6 +11,7 @@ import {
   DragSample,
   canAntStealFood,
   findNearestTrayEdgePoint,
+  hasCarriedFoodExitedTray,
   isFoodInsideTray,
   calculateWormInchingScale,
   CATERPILLAR_FALL_SCORE,
@@ -171,6 +172,32 @@ describe("ant food stealing rules", () => {
   it("disallows food from being eaten while being carried by an ant", () => {
     assert.equal(canFoodBeEaten(false, false, true, true), false);
     assert.equal(canFoodBeEaten(false, false, true, false), true);
+  });
+
+  it("detects when food or carrier ants have exited the tray bounds", () => {
+    const trayBounds = { x: 50, y: 30, width: 400, height: 240 };
+    const foodInside = { x: 200, y: 150, width: 30, height: 30 };
+    const antInside1 = { x: 190, y: 150, width: 20, height: 20 };
+    const antInside2 = { x: 210, y: 150, width: 20, height: 20 };
+
+    assert.equal(
+      hasCarriedFoodExitedTray(foodInside, trayBounds, [antInside1, antInside2]),
+      false
+    );
+
+    // One carrier ant steps off the tray
+    const antOutside = { x: 20, y: 150, width: 20, height: 20 };
+    assert.equal(
+      hasCarriedFoodExitedTray(foodInside, trayBounds, [antInside1, antOutside]),
+      true
+    );
+
+    // Food itself moves off the tray
+    const foodOutside = { x: 10, y: 150, width: 30, height: 30 };
+    assert.equal(
+      hasCarriedFoodExitedTray(foodOutside, trayBounds, [antInside1, antInside2]),
+      true
+    );
   });
 });
 

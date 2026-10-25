@@ -140,7 +140,12 @@ export function canFoodBeEaten(
   return bodyEnabled && !isBeingEaten && !isBeingDragged && !isBeingCarried;
 }
 
-export function findNearestTrayEdgePoint(x: number, y: number, trayBounds: Rect): Point {
+export function findNearestTrayEdgePoint(
+  x: number,
+  y: number,
+  trayBounds: Rect,
+  exitDistance = 40
+): Point {
   const left = trayBounds.x;
   const right = trayBounds.x + trayBounds.width;
   const top = trayBounds.y;
@@ -153,13 +158,13 @@ export function findNearestTrayEdgePoint(x: number, y: number, trayBounds: Rect)
 
   const minDist = Math.min(distLeft, distRight, distTop, distBottom);
   if (minDist === distLeft) {
-    return { x: left - 15, y: Math.max(top, Math.min(bottom, y)) };
+    return { x: left - exitDistance, y: Math.max(top, Math.min(bottom, y)) };
   } else if (minDist === distRight) {
-    return { x: right + 15, y: Math.max(top, Math.min(bottom, y)) };
+    return { x: right + exitDistance, y: Math.max(top, Math.min(bottom, y)) };
   } else if (minDist === distTop) {
-    return { x: Math.max(left, Math.min(right, x)), y: top - 15 };
+    return { x: Math.max(left, Math.min(right, x)), y: top - exitDistance };
   } else {
-    return { x: Math.max(left, Math.min(right, x)), y: bottom + 15 };
+    return { x: Math.max(left, Math.min(right, x)), y: bottom + exitDistance };
   }
 }
 
@@ -216,6 +221,22 @@ export function calculateAntStealVelocity(
   const dx = antX - edge.x;
   const dy = antY - edge.y;
   return calculateAntVelocity(dx, dy, speed, gravityX, gravityY, gravityFactor);
+}
+
+export function hasCarriedFoodExitedTray(
+  foodBounds: Rect,
+  trayBounds: Rect,
+  carrierBounds: Rect[] = []
+): boolean {
+  if (!rectanglesOverlap(trayBounds, foodBounds)) {
+    return true;
+  }
+  for (const ant of carrierBounds) {
+    if (!rectanglesOverlap(trayBounds, ant)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export function isFoodInsideTray(

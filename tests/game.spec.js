@@ -1521,4 +1521,41 @@ test("ants steal food cooperatively and carry it faster towards edges", async ({
   expect(shakeResult.ant2CarryingFood).toBe(false);
   expect(shakeResult.ant1InsideTray).toBe(true);
   expect(shakeResult.ant2InsideTray).toBe(true);
+
+  // 7. Carrying food out of the tray causes the food to be stolen and destroyed
+  const initialFoodCount = await page.evaluate(() => window.__gameSceneForTest.foodCount);
+  const stealExitResult = await page.evaluate(async () => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    const ant1 = scene.ants.getChildren()[0];
+    const ant2 = scene.ants.getChildren()[1];
+
+    food.isBeingDragged = false;
+    food.isBeingEaten = false;
+    food.isDragCooldown = false;
+    food.addCarrier(ant1);
+    food.addCarrier(ant2);
+    ant1.carriedFood = food;
+    ant2.carriedFood = food;
+
+    const trayBounds = scene.tray.getBounds();
+    // Position food at the outer edge so carriers step off on update
+    food.setPosition(trayBounds.x - 10, 160);
+    food.body.reset(food.x, food.y);
+
+    food.update(scene.time.now, 300);
+
+    return {
+      foodCountAfterSteal: scene.foodCount,
+      foodActive: food.active,
+      foodBodyEnabled: Boolean(food.body?.enable),
+      ant1Carrying: ant1.carriedFood !== null,
+      ant2Carrying: ant2.carriedFood !== null
+    };
+  });
+
+  expect(stealExitResult.foodCountAfterSteal).toBe(initialFoodCount - 1);
+  expect(stealExitResult.foodActive).toBe(false);
+  expect(stealExitResult.ant1Carrying).toBe(false);
+  expect(stealExitResult.ant2Carrying).toBe(false);
 });
