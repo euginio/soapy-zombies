@@ -1155,12 +1155,19 @@ test("food can be dragged for up to 3 seconds, cannot be eaten while dragging, a
     const scene = window.__gameSceneForTest;
     const cooldownFood = scene.foods.getChildren()[1];
     const draggableFood = scene.foods.getChildren()[2];
+    cooldownFood.isDragCooldown = true;
     cooldownFood.setPosition(220, 140);
     cooldownFood.body.reset(220, 140);
     draggableFood.setPosition(220, 140);
     draggableFood.body.reset(220, 140);
     draggableFood.isBeingEaten = false;
     draggableFood.isDragCooldown = false;
+    scene.foods.getChildren().forEach((f, idx) => {
+      if (idx !== 1 && idx !== 2) {
+        f.setPosition(50 + idx * 25, 50);
+        f.body.reset(50 + idx * 25, 50);
+      }
+    });
   });
 
   const startScreenX = canvasBox.x + (220 / 580) * canvasBox.width;
@@ -1483,11 +1490,12 @@ test("ants steal food cooperatively and carry it faster towards edges", async ({
     const ant1PosBefore = { x: ant1.x, y: ant1.y };
     const ant2PosBefore = { x: ant2.x, y: ant2.y };
 
-    // Rapid shaking back and forth
+    // Rapid shaking back and forth (4 alternating moves to guarantee >= 2 reversals)
     const t = scene.time.now;
-    food.moveDrag(250, 160, t + 50);
-    food.moveDrag(190, 160, t + 100);
-    food.moveDrag(260, 160, t + 150);
+    food.moveDrag(180, 160, t + 40);
+    food.moveDrag(250, 160, t + 80);
+    food.moveDrag(180, 160, t + 120);
+    food.moveDrag(250, 160, t + 160);
 
     const bounds = scene.tray.getBounds();
     const ant1InsideTray = ant1.x >= bounds.x && ant1.x <= bounds.x + bounds.width &&
