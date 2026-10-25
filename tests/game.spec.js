@@ -150,6 +150,43 @@ test("production build loads its assets and starts a game", async ({ page }) => 
   await expectGameLoads(page, "/");
 });
 
+test("PWA manifest, service worker, icons, and installability tags are configured", async ({ page }) => {
+  await page.goto("/");
+
+  const manifestLink = page.locator('link[rel="manifest"]');
+  await expect(manifestLink).toHaveCount(1);
+  const manifestHref = await manifestLink.getAttribute("href");
+  expect(manifestHref).toContain("manifest.webmanifest");
+
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute("content", "#172312");
+  await expect(page.locator('meta[name="apple-mobile-web-app-capable"]')).toHaveAttribute("content", "yes");
+  await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute("href", "assets/images/icon-192.png");
+
+  const manifestResponse = await page.request.get("/manifest.webmanifest");
+  expect(manifestResponse.status()).toBe(200);
+  const manifest = await manifestResponse.json();
+  expect(manifest.name).toBe("Ants Feast");
+  expect(manifest.short_name).toBe("Ants Feast");
+  expect(manifest.display).toBe("standalone");
+  expect(manifest.orientation).toBe("landscape");
+  expect(manifest.icons.length).toBeGreaterThanOrEqual(2);
+
+  const icon192 = await page.request.get("/assets/images/icon-192.png");
+  expect(icon192.status()).toBe(200);
+  const icon512 = await page.request.get("/assets/images/icon-512.png");
+  expect(icon512.status()).toBe(200);
+
+  const swResponse = await page.request.get("/sw.js");
+  expect(swResponse.status()).toBe(200);
+
+  const swRegistered = await page.evaluate(async () => {
+    if (!("serviceWorker" in navigator)) return false;
+    const registration = await navigator.serviceWorker.ready.catch(() => null);
+    return Boolean(registration);
+  });
+  expect(swRegistered).toBe(true);
+});
+
 test("both pages define a mobile viewport", async ({ page }) => {
   await stubFullscreen(page);
   await page.goto("/");

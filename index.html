@@ -5,9 +5,25 @@
     <!-- Mobile browsers need an explicit viewport or they render at ~980px and scale down. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="author" content="eugenio arosteguy">
+    <meta name="description" content="Protect the picnic food from hungry ants and bugs in this landscape tilt game!">
+    <meta name="theme-color" content="#172312">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ants Feast">
+    <link rel="apple-touch-icon" href="assets/images/icon-192.png">
+    <link rel="manifest" href="manifest.webmanifest">
     <title>Ants Feast</title>
-    <!-- <link rel="manifest" href="manifest.json"> -->
     <script src="dist/bundle.js"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("./sw.js").catch((err) => {
+            console.warn("ServiceWorker registration failed:", err);
+          });
+        });
+      }
+    </script>
   </head>
   <body>
     <div id="game"></div>

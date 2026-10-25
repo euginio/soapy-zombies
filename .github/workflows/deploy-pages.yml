@@ -47,11 +47,11 @@ jobs:
       - name: Assemble the site
         run: |
           mkdir -p _site/assets/images _site/assets/audio
-          cp index.html _site/
+          cp index.html sw.js manifest.webmanifest manifest.json _site/
           cp -r dist _site/dist
           find assets/images -maxdepth 1 -type f -exec cp {} _site/assets/images/ \;
           cp assets/audio/*.ogg _site/assets/audio/
-          for file in index.html dist/bundle.js assets/images/ant_sheet.png assets/images/caterpillar.png assets/images/food.png assets/images/grass.png assets/images/trayWithCompleteClothe.png assets/audio/music.ogg assets/audio/ant-fall.ogg assets/audio/food-eaten.ogg assets/audio/game-over.ogg assets/audio/ui-tap.ogg assets/audio/ui-toggle.ogg; do
+          for file in index.html sw.js manifest.webmanifest manifest.json dist/bundle.js assets/images/icon-192.png assets/images/icon-512.png assets/images/ant_sheet.png assets/images/caterpillar.png assets/images/food.png assets/images/grass.png assets/images/trayWithCompleteClothe.png assets/audio/music.ogg assets/audio/ant-fall.ogg assets/audio/food-eaten.ogg assets/audio/game-over.ogg assets/audio/ui-tap.ogg assets/audio/ui-toggle.ogg; do
             test -f "_site/$file" || { echo "Missing $file in the site artifact"; exit 1; }
           done
 

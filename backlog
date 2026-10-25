@@ -60,6 +60,7 @@ non-coding-logic
             how to monetize games
 
 Done
+    * Progressive Web App (PWA) support: offline service worker, web manifest, installability icons (192x192 & 512x512 standard & maskable), and iOS install tags
     * iPhone and all modern browsers compatibility (iOS motion permissions, window.orientation fallback, touch drag tilt, WASD keys, portrait rotate prompt)
     * test in popular browsers (desktop and mobile)
     * add tablecloth to tray
