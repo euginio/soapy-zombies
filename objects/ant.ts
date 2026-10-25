@@ -91,23 +91,35 @@ export class Ant extends MySprite {
         this.scene.playAntFallAudio?.();
         const spin = Phaser.Math.Between(0, 1) === 0 ? -360 : 360;
 
+        if (this.body) {
+            this.body.moves = false;
+            this.body.checkCollision.none = true;
+            this.setVelocity(0, 0);
+        }
+
         if (this.scene?.tweens) {
             this.scene.tweens.add({
                 targets: this,
                 x: targetX,
                 y: targetY,
                 angle: this.angle + spin,
-                duration: 400,
+                duration: 450,
                 ease: 'Quad.easeOut',
                 onComplete: () => {
                     if (this.active && this.isAlive && !this.scene?.gameOver) {
                         this.setPosition(targetX, targetY);
                         if (this.body) {
                             this.body.reset(targetX, targetY);
+                            this.body.moves = true;
+                            this.body.checkCollision.none = false;
                         }
                         this.setDepth(0);
-                        this.isClimbing = false;
-                        this.play('walk');
+                        this.scene.time.delayedCall(700, () => {
+                            if (this.active && this.isAlive && !this.scene?.gameOver) {
+                                this.isClimbing = false;
+                                this.play('walk');
+                            }
+                        });
                     }
                 }
             });
@@ -115,6 +127,8 @@ export class Ant extends MySprite {
             this.setPosition(targetX, targetY);
             if (this.body) {
                 this.body.reset(targetX, targetY);
+                this.body.moves = true;
+                this.body.checkCollision.none = false;
             }
             this.setDepth(0);
             this.isClimbing = false;

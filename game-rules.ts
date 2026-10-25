@@ -261,6 +261,7 @@ export interface DragSample {
 
 export interface FoodShakeOptions {
   windowMs?: number;
+  minStrokeDistance?: number;
   minSegmentDistance?: number;
   minReversals?: number;
   minTotalDistance?: number;
@@ -270,10 +271,10 @@ export function detectFoodShake(
   samples: DragSample[],
   options: FoodShakeOptions = {}
 ): boolean {
-  const windowMs = options.windowMs ?? 500;
-  const minSegmentDistance = options.minSegmentDistance ?? 10;
+  const windowMs = options.windowMs ?? 650;
+  const minStrokeDistance = options.minStrokeDistance ?? options.minSegmentDistance ?? 6;
   const minReversals = options.minReversals ?? 2;
-  const minTotalDistance = options.minTotalDistance ?? 40;
+  const minTotalDistance = options.minTotalDistance ?? 25;
 
   if (samples.length < 3) {
     return false;
@@ -285,38 +286,45 @@ export function detectFoodShake(
     return false;
   }
 
-  const segments: Point[] = [];
-  let anchor = recent[0];
+  let strokeX = 0;
+  let strokeY = 0;
+  let reversals = 0;
   let totalDistance = 0;
 
   for (let i = 1; i < recent.length; i++) {
-    const current = recent[i];
-    const dx = current.x - anchor.x;
-    const dy = current.y - anchor.y;
+    const prev = recent[i - 1];
+    const curr = recent[i];
+    const dx = curr.x - prev.x;
+    const dy = curr.y - prev.y;
     const dist = Math.hypot(dx, dy);
 
-    if (dist >= minSegmentDistance) {
-      segments.push({ x: dx, y: dy });
-      totalDistance += dist;
-      anchor = current;
+    if (dist < 1.5) {
+      continue;
     }
-  }
 
-  if (segments.length < 2 || totalDistance < minTotalDistance) {
-    return false;
-  }
+    totalDistance += dist;
+    const strokeLen = Math.hypot(strokeX, strokeY);
 
-  let reversals = 0;
-  for (let i = 1; i < segments.length; i++) {
-    const prev = segments[i - 1];
-    const curr = segments[i];
-    const dot = prev.x * curr.x + prev.y * curr.y;
+    if (strokeLen < 0.1) {
+      strokeX = dx;
+      strokeY = dy;
+      continue;
+    }
+
+    const dot = dx * strokeX + dy * strokeY;
     if (dot < 0) {
-      reversals++;
+      if (strokeLen >= minStrokeDistance) {
+        reversals++;
+      }
+      strokeX = dx;
+      strokeY = dy;
+    } else {
+      strokeX += dx;
+      strokeY += dy;
     }
   }
 
-  return reversals >= minReversals;
+  return reversals >= minReversals && totalDistance >= minTotalDistance;
 }
 
 export function calculateRandomTrayPosition(

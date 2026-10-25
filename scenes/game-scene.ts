@@ -243,7 +243,7 @@ export class GameScene extends MyScene {
         }
         const px = pointer.x;
         const py = pointer.y;
-        draggedFood.moveDrag(px - draggedFood.dragOffsetX, py - draggedFood.dragOffsetY);
+        draggedFood.moveDrag(px - draggedFood.dragOffsetX, py - draggedFood.dragOffsetY, pointer.event?.timeStamp);
         return;
       }
       if (!this.touchDragOrigin || this.gameOver || this.deviceTilt || this.hasMotionInput) {

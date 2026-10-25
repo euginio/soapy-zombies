@@ -97,7 +97,7 @@ export class Food extends MySprite {
 
     removeCarrier(ant: any) {
         this.carrierAnts = this.carrierAnts.filter((a) => a !== ant);
-        if (this.carrierAnts.length === 0) {
+        if (this.carrierAnts.length === 0 && !this.isBeingDragged) {
             this.setDepth(0);
         }
     }
@@ -462,9 +462,13 @@ export class Food extends MySprite {
             this.body.reset(clamped.x, clamped.y);
         }
 
-        const now = timeMs ?? (this.scene?.time?.now ?? Date.now());
-        this.dragSamples.push({ x: clamped.x, y: clamped.y, time: now });
-        if (this.dragSamples.length > 25) {
+        const now = timeMs ?? (typeof performance !== 'undefined' ? performance.now() : Date.now());
+        const lastSample = this.dragSamples[this.dragSamples.length - 1];
+        if (!lastSample || Math.hypot(dragX - lastSample.x, dragY - lastSample.y) >= 1.5 || (now - lastSample.time) >= 16) {
+            this.dragSamples.push({ x: dragX, y: dragY, time: now });
+        }
+        const cutoff = now - 800;
+        while (this.dragSamples.length > 0 && this.dragSamples[0].time < cutoff) {
             this.dragSamples.shift();
         }
 

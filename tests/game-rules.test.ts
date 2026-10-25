@@ -561,5 +561,15 @@ describe("food shake and ant scatter rules", () => {
       { x: 80, y: 100, time: 1000 }
     ];
     assert.equal(detectFoodShake(expiredShake), false);
+
+    // Tight back-and-forth wiggle (small amplitude 16px swing)
+    const wiggleShake: DragSample[] = [
+      { x: 100, y: 100, time: 100 },
+      { x: 108, y: 100, time: 140 },
+      { x: 92, y: 100, time: 180 },
+      { x: 108, y: 100, time: 220 },
+      { x: 92, y: 100, time: 260 }
+    ];
+    assert.equal(detectFoodShake(wiggleShake), true);
   });
 });
