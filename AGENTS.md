@@ -45,9 +45,10 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
 2. **Verify your work.** Run `npm run test:smoke` after code changes. Behaviour changes need a
    test: put pure rules in `game-rules.ts` with a unit test, and UI/scene behaviour in
    `tests/game.spec.js`.
-3. **Never push, amend or rewrite history.** The owner reviews and syncs manually, and a push to
-   `master` deploys the game to the public site. Exception: rewrite a local commit only when the
-   owner explicitly asks for it.
+3. **Push finished changes to GitHub.** Per the owner's instruction, once changes are verified
+   with `npm run test:smoke` and committed to `master`, push them to `origin/master` so the GitHub
+   Actions deployment workflow runs and updates the public site. Never amend or rewrite history
+   unless the owner explicitly asks for it.
 4. **Commit after every finished change, but only if the working tree was clean before you
    started.** Pre-existing unrelated uncommitted work means: do not commit, tell the owner.
    - Stage explicit paths. Do not use `git add -A`.
