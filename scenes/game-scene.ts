@@ -85,6 +85,8 @@ export class GameScene extends MyScene {
   private touchTilt: { x: number; y: number } | null = null;
   private rotateOverlay: HTMLDivElement | null = null;
   private onWindowPointerUp: (() => void) | null = null;
+  private fullscreenToggleButton: HTMLButtonElement | null = null;
+  private fullscreenPromptOverlay: HTMLDivElement | null = null;
 
   constructor() {
     super({
@@ -285,6 +287,12 @@ export class GameScene extends MyScene {
     };
     window.addEventListener("pointerup", this.onWindowPointerUp);
     window.addEventListener("mouseup", this.onWindowPointerUp);
+    try {
+      history.pushState({ inGame: true }, "");
+    } catch {}
+    window.addEventListener("popstate", this.onPopState);
+    document.addEventListener("fullscreenchange", this.onFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", this.onFullscreenChange);
 
     this.tray = this.add.image(this.width / 2, this.height / 2, 'tray');
     this.tray.setSize(this.tray.width-20,this.tray.height-3)
@@ -627,6 +635,8 @@ export class GameScene extends MyScene {
     this.visualLayerParent.appendChild(this.hudOverlay);
     this.createGameOverOverlay();
     this.createSoundToggleButton();
+    this.createFullscreenToggleButton();
+    this.createFullscreenPromptOverlay();
     this.createRotatePromptOverlay();
     this.syncVisualLayerBounds(gameCanvas);
 
@@ -859,6 +869,18 @@ export class GameScene extends MyScene {
       this.soundToggleButton.style.left = `${layout.left + 8}px`;
       this.soundToggleButton.style.top = `${layout.top + layout.height - this.soundToggleButton.offsetHeight - 8}px`;
     }
+    if (this.fullscreenToggleButton) {
+      this.fullscreenToggleButton.style.fontSize = `${18 * layout.scaleX}px`;
+      this.fullscreenToggleButton.style.left = `${layout.left + layout.width - this.fullscreenToggleButton.offsetWidth - 8}px`;
+      this.fullscreenToggleButton.style.top = `${layout.top + layout.height - this.fullscreenToggleButton.offsetHeight - 8}px`;
+    }
+    if (this.fullscreenPromptOverlay) {
+      this.fullscreenPromptOverlay.style.fontSize = `${13 * layout.scaleX}px`;
+      const promptWidth = Math.min(layout.width * 0.9, 440 * layout.scaleX);
+      this.fullscreenPromptOverlay.style.width = `${promptWidth}px`;
+      this.fullscreenPromptOverlay.style.left = `${layout.left + (layout.width - promptWidth) / 2}px`;
+      this.fullscreenPromptOverlay.style.top = `${layout.top + 8 * layout.scaleY}px`;
+    }
     if (this.sensorRecenterButton) {
       this.sensorRecenterButton.style.left = `${layout.left + layout.width - this.sensorRecenterButton.offsetWidth - 8}px`;
       this.sensorRecenterButton.style.top = `${layout.top + 8}px`;
@@ -898,7 +920,7 @@ export class GameScene extends MyScene {
     }
     this.visualLayerParent = parent;
 
-    for (const layer of [this.hudOverlay, this.sensorRecenterButton, this.soundToggleButton, this.gameOverOverlay]) {
+    for (const layer of [this.hudOverlay, this.sensorRecenterButton, this.soundToggleButton, this.gameOverOverlay, this.fullscreenToggleButton, this.fullscreenPromptOverlay]) {
       if (layer && layer.parentElement !== parent) {
         parent.appendChild(layer);
       }
@@ -949,6 +971,154 @@ export class GameScene extends MyScene {
     this.visualLayerParent.appendChild(overlay);
   }
 
+  private onPopState = () => {
+    if (this.gameOver) {
+      return;
+    }
+    try {
+      history.pushState({ inGame: true }, "");
+    } catch {}
+    if (!this.scale.isFullscreen && this.scale.fullscreen.available) {
+      this.showFullscreenPrompt();
+    }
+  };
+
+  private onFullscreenChange = () => {
+    this.refreshFullscreenButton();
+    if (!this.scale.isFullscreen && !this.gameOver && this.scale.fullscreen.available) {
+      this.showFullscreenPrompt();
+    } else {
+      this.hideFullscreenPrompt();
+    }
+  };
+
+  private createFullscreenToggleButton() {
+    const button = document.createElement("button");
+    button.id = "fullscreen-toggle";
+    button.type = "button";
+    Object.assign(button.style, {
+      position: "absolute",
+      zIndex: "10001",
+      padding: "0.25em 0.45em",
+      border: "0",
+      borderRadius: "0.4em",
+      color: "#201",
+      background: "rgba(255, 255, 255, 0.9)",
+      font: "bold 18px sans-serif",
+      lineHeight: "1.2",
+      cursor: "pointer",
+      pointerEvents: "auto",
+      display: this.scale.fullscreen.available ? "block" : "none"
+    });
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.toggleFullscreen();
+    });
+    this.fullscreenToggleButton = button;
+    this.refreshFullscreenButton();
+    this.visualLayerParent.appendChild(button);
+  }
+
+  private refreshFullscreenButton() {
+    if (!this.fullscreenToggleButton) {
+      return;
+    }
+    const isFull = this.scale.isFullscreen;
+    this.fullscreenToggleButton.textContent = isFull ? "🗗" : "⛶";
+    this.fullscreenToggleButton.setAttribute("aria-label", isFull ? "Exit fullscreen" : "Enter fullscreen");
+    this.fullscreenToggleButton.setAttribute("aria-pressed", isFull ? "true" : "false");
+  }
+
+  private createFullscreenPromptOverlay() {
+    const overlay = document.createElement("div");
+    overlay.id = "fullscreen-prompt-overlay";
+    overlay.setAttribute("role", "note");
+    overlay.setAttribute("aria-live", "polite");
+    Object.assign(overlay.style, {
+      position: "absolute",
+      display: "none",
+      alignItems: "center",
+      justifyContent: "space-between",
+      zIndex: "10002",
+      background: "rgba(23, 35, 18, 0.92)",
+      color: "#fff",
+      boxShadow: "0 4px 16px rgba(0, 0, 0, 0.45)",
+      fontFamily: "system-ui, sans-serif",
+      fontWeight: "bold",
+      boxSizing: "border-box",
+      cursor: "pointer",
+      pointerEvents: "auto",
+      padding: "8px 14px",
+      borderRadius: "20px",
+      border: "1px solid rgba(255, 255, 255, 0.3)"
+    });
+
+    const label = document.createElement("span");
+    label.textContent = "⛶ Toca para volver a pantalla completa / Tap to restore fullscreen";
+    Object.assign(label.style, {
+      marginRight: "10px",
+      userSelect: "none",
+      webkitUserSelect: "none"
+    });
+
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "✕";
+    closeBtn.type = "button";
+    closeBtn.setAttribute("aria-label", "Dismiss");
+    Object.assign(closeBtn.style, {
+      background: "transparent",
+      border: "0",
+      color: "#fff",
+      fontSize: "16px",
+      cursor: "pointer",
+      padding: "2px 6px",
+      borderRadius: "4px"
+    });
+    closeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.hideFullscreenPrompt();
+    });
+
+    overlay.addEventListener("click", () => {
+      this.toggleFullscreen(true);
+    });
+
+    overlay.append(label, closeBtn);
+    this.fullscreenPromptOverlay = overlay;
+    this.visualLayerParent.appendChild(overlay);
+  }
+
+  showFullscreenPrompt() {
+    if (this.fullscreenPromptOverlay && !this.gameOver && this.scale.fullscreen.available) {
+      this.fullscreenPromptOverlay.style.display = "flex";
+      this.syncVisualLayerBoundsWhenNeeded();
+    }
+  }
+
+  hideFullscreenPrompt() {
+    if (this.fullscreenPromptOverlay) {
+      this.fullscreenPromptOverlay.style.display = "none";
+    }
+  }
+
+  async toggleFullscreen(forceStart?: boolean) {
+    if (forceStart || !this.scale.isFullscreen) {
+      if (this.scale.fullscreen.available) {
+        this.scale.startFullscreen();
+        try {
+          const screenAny = screen as any;
+          const orientObj = screenAny.orientation ?? screenAny.mozOrientation ?? screenAny.msOrientation;
+          await orientObj?.lock?.("landscape-primary")?.catch(() => {});
+        } catch {}
+      }
+      this.hideFullscreenPrompt();
+    } else {
+      this.scale.stopFullscreen();
+    }
+    this.refreshFullscreenButton();
+  }
+
   private destroyVisualLayers() {
     // A restarted scene reuses the canvas, so remove observers, transforms, and DOM layers first.
     this.events.off(Phaser.Scenes.Events.POST_UPDATE, this.syncVisualLayerBoundsWhenNeeded, this);
@@ -976,6 +1146,13 @@ export class GameScene extends MyScene {
     this.sensorRecenterButton = null;
     this.soundToggleButton?.remove();
     this.soundToggleButton = null;
+    this.fullscreenToggleButton?.remove();
+    this.fullscreenToggleButton = null;
+    this.fullscreenPromptOverlay?.remove();
+    this.fullscreenPromptOverlay = null;
+    window.removeEventListener("popstate", this.onPopState);
+    document.removeEventListener("fullscreenchange", this.onFullscreenChange);
+    document.removeEventListener("webkitfullscreenchange", this.onFullscreenChange);
     if (this.onWindowPointerUp) {
       window.removeEventListener("pointerup", this.onWindowPointerUp);
       window.removeEventListener("mouseup", this.onWindowPointerUp);

@@ -1596,3 +1596,29 @@ test("ants steal food cooperatively and carry it faster towards edges", async ({
   expect(stealExitResult.ant1Carrying).toBe(false);
   expect(stealExitResult.ant2Carrying).toBe(false);
 });
+
+test("fullscreen toggle and recovery prompt restore fullscreen when exited", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const fullscreenBtn = page.locator("#fullscreen-toggle");
+  await expect(fullscreenBtn).toHaveCount(1);
+  await expect(fullscreenBtn).toBeVisible();
+
+  // Fullscreen prompt overlay exists
+  const promptOverlay = page.locator("#fullscreen-prompt-overlay");
+  await expect(promptOverlay).toHaveCount(1);
+
+  // Triggering fullscreen loss shows the prompt overlay
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    scene.showFullscreenPrompt();
+  });
+  await expect(promptOverlay).toBeVisible();
+
+  // Clicking the prompt overlay restores fullscreen and hides the prompt
+  await promptOverlay.click();
+  await expect(promptOverlay).toBeHidden();
+});

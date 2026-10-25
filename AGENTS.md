@@ -83,7 +83,8 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
   - `window.__gameSceneForTest` / `window.__titleSceneForTest` (exposed by patching
     `SceneManager.start` inside the tests).
   - DOM ids `#tilting-board`, `#stationary-hud`, `#high-score-label`, `#game-over-overlay`,
-    `#game-over-restart`, `#game-over-home`, `#recenter-device-tilt`, `#sound-toggle`.
+    `#game-over-restart`, `#game-over-home`, `#recenter-device-tilt`, `#sound-toggle`,
+    `#fullscreen-toggle`, `#fullscreen-prompt-overlay`.
   - The `highScore` localStorage key.
 - UI text is currently mixed Spanish/English (the game-over overlay is Spanish). Keep it
   consistent with the surrounding text until i18n is done.
