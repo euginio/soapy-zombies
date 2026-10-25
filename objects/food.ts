@@ -6,11 +6,14 @@ import {
     calculateCarrierAntOffset,
     calculateCooperativeStealSpeed,
     calculateRandomTrayPosition,
+    CATERPILLAR_GRAVITY_FACTOR,
+    CATERPILLAR_SPEED,
     detectFoodShake,
     DragSample,
     clampFoodPosition,
     findNearestTrayEdgePoint,
     isFoodInsideTray,
+    isWormTouchingFood,
     hasCarriedFoodExitedTray,
     insetHorizontalTrayBounds,
     MAX_CARRIER_ANTS,
@@ -23,6 +26,7 @@ import {
     resolveFoodDropPosition
 } from "../game-rules";
 import { GameScene } from "../scenes/game-scene";
+import { Caterpillar } from "./caterpillar";
 import { MySprite } from "./mySprite";
 
 
@@ -46,6 +50,12 @@ export class Food extends MySprite {
     dragOriginX: number = 0;
     dragOriginY: number = 0;
     eatProgress: number = 0;
+    isWormEating: boolean = false;
+    eatingBug: any | null = null;
+    eatTween: Phaser.Tweens.Tween | null = null;
+    private biteSequence: FoodBiteStep[] = [];
+    private appliedBiteIndex: number = 0;
+    private canvasTex: Phaser.Textures.CanvasTexture | null = null;
     private eatCanvasKey: string | null = null;
     private dragHoldTimer: Phaser.Time.TimerEvent | null = null;
     private dragSamples: DragSample[] = [];
@@ -84,6 +94,12 @@ export class Food extends MySprite {
         this.setAngle(0);
         this.setDepth(0);
         this.isBeingEaten = false;
+        this.isWormEating = false;
+        this.eatingBug = null;
+        this.eatTween = null;
+        this.eatProgress = 0;
+        this.biteSequence = [];
+        this.appliedBiteIndex = 0;
         this.setScale(1.5);
         this.placeInTray()
     }
@@ -163,6 +179,9 @@ export class Food extends MySprite {
         this.cleanupEatCanvas();
         this.releaseAllCarriers(false);
         this.isBeingEaten = false;
+        this.isWormEating = false;
+        this.eatingBug = null;
+        this.eatTween = null;
 
         if (fromScene) {
             super.destroy(fromScene);
@@ -274,10 +293,55 @@ export class Food extends MySprite {
                 return;
             }
         }
+
+        if (this.isWormEating && this.eatTween && !this.eatTween.isDestroyed()) {
+            const wormTouching = this.checkWormTouching();
+            if (this.isBeingEaten && !wormTouching) {
+                this.eatTween.pause();
+                this.isBeingEaten = false;
+                this.setAngle(0);
+                this.setScale(1.5);
+                this.eatingBug = null;
+            } else if (!this.isBeingEaten && wormTouching && !this.isBeingDragged && !this.isBeingCarried) {
+                this.isBeingEaten = true;
+                this.eatTween.resume();
+            }
+        }
+    }
+
+    checkWormTouching(): boolean {
+        if (this.isBeingDragged || this.isBeingCarried || !this.body?.enable || !this.active) {
+            return false;
+        }
+        const worm = this.eatingBug as Caterpillar | null;
+        if (worm && worm.active && worm.isAlive && !worm.isClimbing && Boolean(worm.body?.enable)) {
+            if (
+                rectanglesOverlap(this.getBounds(), worm.getBounds()) ||
+                isWormTouchingFood({ x: worm.x, y: worm.y }, { x: this.x, y: this.y }, 46)
+            ) {
+                return true;
+            }
+        }
+        const caterpillars = this.scene?.caterpillars?.getChildren() as Caterpillar[] | undefined;
+        if (caterpillars) {
+            const myBounds = this.getBounds();
+            for (const c of caterpillars) {
+                if (c.active && c.isAlive && !c.isClimbing && Boolean(c.body?.enable)) {
+                    if (
+                        rectanglesOverlap(myBounds, c.getBounds()) ||
+                        isWormTouchingFood({ x: c.x, y: c.y }, { x: this.x, y: this.y }, 46)
+                    ) {
+                        this.eatingBug = c;
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     beingEat(ant?: { x: number; y: number }) {
-        if (!canFoodBeEaten(this.isBeingEaten, this.isBeingDragged, this.body?.enable ?? false)) {
+        if (!canFoodBeEaten(this.isBeingEaten, this.isBeingDragged, this.body?.enable ?? false, this.isBeingCarried)) {
             return;
         }
         this.clearDragTimers();
@@ -285,34 +349,54 @@ export class Food extends MySprite {
         this.isDragCooldown = false;
         this.setAlpha(1);
         this.isBeingEaten = true;
+        this.eatingBug = ant ?? null;
+
+        const isCaterpillar = Boolean(
+            ant && (
+                ant instanceof Caterpillar ||
+                (ant as any).gravityFactor === CATERPILLAR_GRAVITY_FACTOR ||
+                (ant as any).CATERPILLAR_SPEED === CATERPILLAR_SPEED ||
+                (this.scene?.caterpillars && (this.scene.caterpillars.getChildren() as any[]).includes(ant))
+            )
+        );
+        if (isCaterpillar) {
+            this.isWormEating = true;
+        }
+
+        if (this.eatTween && !this.eatTween.isDestroyed()) {
+            if (this.eatTween.isPaused()) {
+                this.eatTween.resume();
+            }
+            return;
+        }
 
         let incomingAngle = Phaser.Math.FloatBetween(0, Math.PI * 2);
         if (ant && typeof ant.x === 'number' && typeof ant.y === 'number') {
             incomingAngle = Math.atan2(ant.y - this.y, ant.x - this.x);
         }
 
-        const biteSequence = getFoodBiteSequence(incomingAngle);
-        let appliedBiteIndex = 0;
+        this.biteSequence = getFoodBiteSequence(incomingAngle);
+        this.appliedBiteIndex = 0;
 
         this.cleanupEatCanvas();
         this.eatCanvasKey = `eaten_food_${Date.now()}_${Phaser.Math.Between(1000, 9999)}`;
-        let canvasTex: Phaser.Textures.CanvasTexture | null = null;
+        this.canvasTex = null;
         try {
             if (this.scene?.textures) {
-                canvasTex = this.scene.textures.createCanvas(this.eatCanvasKey, 32, 32);
+                this.canvasTex = this.scene.textures.createCanvas(this.eatCanvasKey, 32, 32);
             }
         } catch {
-            canvasTex = null;
+            this.canvasTex = null;
         }
 
-        if (canvasTex) {
-            canvasTex.drawFrame('food', this.frame.name, 0, 0);
+        if (this.canvasTex) {
+            this.canvasTex.drawFrame('food', this.frame.name, 0, 0);
             this.setTexture(this.eatCanvasKey);
         }
 
         const applyBiteStep = (step: FoodBiteStep) => {
-            if (canvasTex) {
-                const ctx = canvasTex.context;
+            if (this.canvasTex) {
+                const ctx = this.canvasTex.context;
                 let sampledColor: number | null = null;
                 try {
                     const sampleX = Math.floor(Phaser.Math.Clamp(step.x, 0, 31));
@@ -339,7 +423,7 @@ export class Food extends MySprite {
                 );
                 ctx.fill();
                 ctx.restore();
-                canvasTex.update();
+                this.canvasTex.update();
 
                 const worldBiteX = this.x + (step.x - 16) * this.scaleX;
                 const worldBiteY = this.y + (step.y - 16) * this.scaleY;
@@ -349,13 +433,13 @@ export class Food extends MySprite {
             }
         };
 
-        if (biteSequence.length > 0 && biteSequence[0].progress <= 0.06) {
-            applyBiteStep(biteSequence[0]);
-            appliedBiteIndex = 1;
+        if (this.biteSequence.length > 0 && this.biteSequence[0].progress <= 0.06) {
+            applyBiteStep(this.biteSequence[0]);
+            this.appliedBiteIndex = 1;
         }
 
         this.eatProgress = 0;
-        this.scene.tweens.add({
+        this.eatTween = this.scene.tweens.add({
             targets: this,
             eatProgress: 1,
             duration: FOOD_EAT_DURATION_MS,
@@ -365,9 +449,9 @@ export class Food extends MySprite {
                     return;
                 }
                 const progress = tween.progress;
-                while (appliedBiteIndex < biteSequence.length && progress >= biteSequence[appliedBiteIndex].progress) {
-                    applyBiteStep(biteSequence[appliedBiteIndex]);
-                    appliedBiteIndex++;
+                while (this.appliedBiteIndex < this.biteSequence.length && progress >= this.biteSequence[this.appliedBiteIndex].progress) {
+                    applyBiteStep(this.biteSequence[this.appliedBiteIndex]);
+                    this.appliedBiteIndex++;
                 }
                 const chompWiggle = Math.sin(progress * Math.PI * 18) * 5;
                 this.setAngle(chompWiggle);
@@ -385,6 +469,7 @@ export class Food extends MySprite {
     }
 
     private cleanupEatCanvas() {
+        this.canvasTex = null;
         if (this.eatCanvasKey) {
             const key = this.eatCanvasKey;
             this.eatCanvasKey = null;
@@ -439,6 +524,15 @@ export class Food extends MySprite {
         if (this.scene?.isAnyFoodDragging()) {
             this.resetInputDragState(pointer);
             return false;
+        }
+        if (this.isBeingEaten) {
+            this.isBeingEaten = false;
+            if (this.eatTween && !this.eatTween.isDestroyed()) {
+                this.eatTween.pause();
+            }
+            this.setAngle(0);
+            this.setScale(1.5);
+            this.eatingBug = null;
         }
         this.isBeingDragged = true;
         const now = pointer?.downTime ?? this.scene?.time?.now ?? Date.now();

@@ -329,7 +329,7 @@ export class GameScene extends MyScene {
       this.addNewCaterpillar();
     }
 
-    this.physics.add.collider(this.caterpillars, this.foods, this.eatFood, (worm, food) => (worm as Caterpillar).isAlive && !(worm as Caterpillar).isClimbing && !(food as Food).isBeingDragged && !(food as Food).isBeingCarried && !(food as Food).isBeingEaten, this);
+    this.physics.add.collider(this.caterpillars, this.foods, this.eatFood, (worm, food) => (worm as Caterpillar).isAlive && !(worm as Caterpillar).isClimbing && !(food as Food).isBeingDragged && !(food as Food).isBeingCarried, this);
     this.physics.add.collider(this.caterpillars, this.ants, null, null, this);
     this.physics.add.collider(this.caterpillars, this.caterpillars, null, null, this);
 

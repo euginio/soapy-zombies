@@ -1718,3 +1718,109 @@ test("dropping food over another food places it next to it instead of reverting 
   expect(dropResult.distanceToFood2).toBeGreaterThanOrEqual(32);
   expect(dropResult.distanceToFood2).toBeLessThanOrEqual(45);
 });
+
+test("caterpillar eating pauses and stops when the worm is no longer touching the food", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const startEatingResult = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const caterpillar = scene.caterpillars.getChildren()[0];
+    const food = scene.foods.getChildren()[0];
+
+    scene.ants?.getChildren().forEach((ant) => ant.disableBody(true, false));
+
+    food.setPosition(200, 150);
+    food.body.reset(200, 150);
+    caterpillar.setPosition(200, 150);
+    caterpillar.body.reset(200, 150);
+    caterpillar.isClimbing = false;
+    caterpillar.isAlive = true;
+
+    scene.eatFood(caterpillar, food);
+
+    return {
+      isBeingEaten: food.isBeingEaten,
+      isWormEating: food.isWormEating,
+      hasTween: Boolean(food.eatTween && !food.eatTween.isDestroyed()),
+      isTweenPlaying: Boolean(food.eatTween && food.eatTween.isPlaying() && !food.eatTween.isPaused())
+    };
+  });
+
+  expect(startEatingResult.isBeingEaten).toBe(true);
+  expect(startEatingResult.isWormEating).toBe(true);
+  expect(startEatingResult.hasTween).toBe(true);
+  expect(startEatingResult.isTweenPlaying).toBe(true);
+
+  const separatedResult = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const caterpillar = scene.caterpillars.getChildren()[0];
+    const food = scene.foods.getChildren()[0];
+
+    caterpillar.setPosition(50, 50);
+    caterpillar.body.reset(50, 50);
+
+    food.update(0, 16);
+
+    const progressWhenSeparated = food.eatProgress;
+
+    return {
+      isBeingEaten: food.isBeingEaten,
+      isPaused: Boolean(food.eatTween && food.eatTween.isPaused()),
+      scale: food.scaleX,
+      angle: food.angle,
+      progressWhenSeparated,
+      foodActive: food.active
+    };
+  });
+
+  expect(separatedResult.isBeingEaten).toBe(false);
+  expect(separatedResult.isPaused).toBe(true);
+  expect(separatedResult.scale).toBe(1.5);
+  expect(separatedResult.angle).toBe(0);
+  expect(separatedResult.foodActive).toBe(true);
+
+  const elapsedResult = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+
+    for (let i = 0; i < 20; i++) {
+      food.update(0, 16);
+    }
+
+    return {
+      isBeingEaten: food.isBeingEaten,
+      isPaused: Boolean(food.eatTween && food.eatTween.isPaused()),
+      eatProgress: food.eatProgress,
+      foodActive: food.active
+    };
+  });
+
+  expect(elapsedResult.isBeingEaten).toBe(false);
+  expect(elapsedResult.isPaused).toBe(true);
+  expect(elapsedResult.eatProgress).toBe(separatedResult.progressWhenSeparated);
+  expect(elapsedResult.foodActive).toBe(true);
+
+  const resumeResult = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const caterpillar = scene.caterpillars.getChildren()[0];
+    const food = scene.foods.getChildren()[0];
+
+    caterpillar.setPosition(200, 150);
+    caterpillar.body.reset(200, 150);
+
+    food.update(0, 16);
+
+    return {
+      isBeingEaten: food.isBeingEaten,
+      isPaused: Boolean(food.eatTween && food.eatTween.isPaused()),
+      isTweenPlaying: Boolean(food.eatTween && food.eatTween.isPlaying() && !food.eatTween.isPaused())
+    };
+  });
+
+  expect(resumeResult.isBeingEaten).toBe(true);
+  expect(resumeResult.isPaused).toBe(false);
+  expect(resumeResult.isTweenPlaying).toBe(true);
+});

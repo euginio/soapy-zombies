@@ -4,6 +4,7 @@ import {
     CATERPILLAR_GRAVITY_FACTOR,
     CATERPILLAR_SPEED,
     insetHorizontalTrayBounds,
+    isWormTouchingFood,
     pickNearestTarget,
     rectanglesOverlap
 } from "../game-rules";
@@ -166,7 +167,18 @@ export class Caterpillar extends MySprite {
 
     pickNearestFood(): Food | null {
         const availableFood = (this.scene.foods.getChildren() as Food[])
-            .filter((food: Food) => food.body && food.body.enable && !food.isBeingDragged && !food.isBeingCarried && !food.isBeingEaten);
+            .filter((food: Food) => food.active && food.body && food.body.enable && !food.isBeingDragged && !food.isBeingCarried);
+        if (
+            this.myFood &&
+            this.myFood.active &&
+            this.myFood.body &&
+            this.myFood.body.enable &&
+            !this.myFood.isBeingDragged &&
+            !this.myFood.isBeingCarried &&
+            isWormTouchingFood({ x: this.x, y: this.y }, { x: this.myFood.x, y: this.myFood.y }, 46)
+        ) {
+            return this.myFood;
+        }
         return pickNearestTarget(this.x, this.y, availableFood);
     }
 }

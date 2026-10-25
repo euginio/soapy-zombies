@@ -43,11 +43,83 @@ import {
   getFoodBiteSequence,
   getActiveFoodBites,
   shouldKeepScreenAwake,
-  isScreenWakeLockSupported
+  isScreenWakeLockSupported,
+  isWormTouchingFood,
+  shouldWormContinueEating
 } from "../game-rules";
 import { ScreenWakeLock, WakeLockSentinelLike } from "../services/wake-lock";
 
 describe("caterpillar rules", () => {
+  it("checks whether a worm is touching food and whether eating can continue", () => {
+    const food = { x: 200, y: 150 };
+    // Close contact (distance 30 <= 46)
+    assert.equal(isWormTouchingFood({ x: 220, y: 150 }, food, 46), true);
+    // Boundary contact (distance 45 <= 46)
+    assert.equal(isWormTouchingFood({ x: 200, y: 195 }, food, 46), true);
+    // Separated by tray tilt or drag (distance 60 > 46)
+    assert.equal(isWormTouchingFood({ x: 260, y: 150 }, food, 46), false);
+
+    // Active touching worm can continue eating
+    assert.equal(
+      shouldWormContinueEating({
+        isTouching: true,
+        isAlive: true,
+        isClimbing: false,
+        isFoodDragged: false,
+        isFoodCarried: false
+      }),
+      true
+    );
+
+    // When worm stops touching food (e.g. tilted away), eating must not continue
+    assert.equal(
+      shouldWormContinueEating({
+        isTouching: false,
+        isAlive: true,
+        isClimbing: false,
+        isFoodDragged: false,
+        isFoodCarried: false
+      }),
+      false
+    );
+
+    // When worm dies or falls off tray, eating must not continue
+    assert.equal(
+      shouldWormContinueEating({
+        isTouching: true,
+        isAlive: false,
+        isClimbing: false,
+        isFoodDragged: false,
+        isFoodCarried: false
+      }),
+      false
+    );
+
+    // When food is dragged away by the player, eating must not continue
+    assert.equal(
+      shouldWormContinueEating({
+        isTouching: true,
+        isAlive: true,
+        isClimbing: false,
+        isFoodDragged: true,
+        isFoodCarried: false
+      }),
+      false
+    );
+
+    // When food is carried away by ants, eating must not continue
+    assert.equal(
+      shouldWormContinueEating({
+        isTouching: true,
+        isAlive: true,
+        isClimbing: false,
+        isFoodDragged: false,
+        isFoodCarried: true
+      }),
+      false
+    );
+  });
+
   it("defines caterpillar movement speed and heavy gravity resistance", () => {
     assert.equal(CATERPILLAR_SPEED, 24);
     assert.equal(CATERPILLAR_GRAVITY_FACTOR, 3.5);

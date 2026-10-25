@@ -681,3 +681,28 @@ export function shouldKeepScreenAwake(isGameActive: boolean, isDocumentVisible: 
 export function isScreenWakeLockSupported(nav?: { wakeLock?: unknown }): boolean {
   return Boolean(nav && "wakeLock" in nav && nav.wakeLock != null);
 }
+export function isWormTouchingFood(
+  worm: Point,
+  food: Point,
+  touchDistance = 46
+): boolean {
+  const dx = worm.x - food.x;
+  const dy = worm.y - food.y;
+  return dx * dx + dy * dy <= touchDistance * touchDistance;
+}
+
+export function shouldWormContinueEating(options: {
+  isTouching: boolean;
+  isAlive: boolean;
+  isClimbing: boolean;
+  isFoodDragged: boolean;
+  isFoodCarried: boolean;
+}): boolean {
+  return (
+    options.isTouching &&
+    options.isAlive &&
+    !options.isClimbing &&
+    !options.isFoodDragged &&
+    !options.isFoodCarried
+  );
+}
