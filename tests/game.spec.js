@@ -999,6 +999,13 @@ test("food can be dragged for up to 3 seconds, cannot be eaten while dragging, a
       caterpillar.setVelocityY(0);
       caterpillar.disableBody(true, false);
     });
+    scene.foods.getChildren().forEach((food) => {
+      scene.tweens.killTweensOf(food);
+      food.isBeingEaten = false;
+      food.isDragCooldown = false;
+      food.releaseAllCarriers(false);
+      food.isBeingDragged = false;
+    });
   });
 
   // 1. Verify manual drag, protection from being eaten, and cooldown after release
@@ -1242,6 +1249,17 @@ test("Vite dev server supports PC mouse food dragging and window release", async
     const scene = window.__gameSceneForTest;
     scene.ants.getChildren().forEach((ant) => ant.disableBody(true, false));
     scene.caterpillars?.getChildren().forEach((caterpillar) => caterpillar.disableBody(true, false));
+    scene.foods.getChildren().forEach((f, idx) => {
+      scene.tweens.killTweensOf(f);
+      f.isBeingEaten = false;
+      f.isDragCooldown = false;
+      f.releaseAllCarriers(false);
+      f.isBeingDragged = false;
+      if (idx > 0) {
+        f.setPosition(50 + idx * 25, 50);
+        f.body.reset(50 + idx * 25, 50);
+      }
+    });
     const food = scene.foods.getChildren()[0];
     food.setPosition(250, 150);
     food.body.reset(250, 150);
@@ -1466,9 +1484,10 @@ test("ants steal food cooperatively and carry it faster towards edges", async ({
     const ant2PosBefore = { x: ant2.x, y: ant2.y };
 
     // Rapid shaking back and forth
-    food.moveDrag(250, 160, 1000);
-    food.moveDrag(190, 160, 1060);
-    food.moveDrag(260, 160, 1120);
+    const t = scene.time.now;
+    food.moveDrag(250, 160, t + 50);
+    food.moveDrag(190, 160, t + 100);
+    food.moveDrag(260, 160, t + 150);
 
     const bounds = scene.tray.getBounds();
     const ant1InsideTray = ant1.x >= bounds.x && ant1.x <= bounds.x + bounds.width &&

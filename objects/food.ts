@@ -420,7 +420,8 @@ export class Food extends MySprite {
             return false;
         }
         this.isBeingDragged = true;
-        this.dragSamples = [{ x: this.x, y: this.y, time: pointer?.downTime ?? this.scene?.time?.now ?? Date.now() }];
+        const now = pointer?.downTime ?? this.scene?.time?.now ?? Date.now();
+        this.dragSamples = [{ x: this.x, y: this.y, time: now }];
         this.dragOriginX = this.x;
         this.dragOriginY = this.y;
         const pointerX = pointer ? pointer.x : this.x;

@@ -280,7 +280,7 @@ export function detectFoodShake(
   }
 
   const latestTime = samples[samples.length - 1].time;
-  const recent = samples.filter((sample) => sample.time >= latestTime - windowMs);
+  const recent = samples.filter((sample) => sample.time >= latestTime - windowMs && sample.time <= latestTime);
   if (recent.length < 3) {
     return false;
   }
