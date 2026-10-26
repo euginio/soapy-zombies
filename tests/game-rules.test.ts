@@ -5,7 +5,9 @@ import {
   calculateAntVelocity,
   calculateAntStealVelocity,
   shouldTiltAffectAnt,
+  calculateWaveExtraAnts,
   getLevelConfig,
+  isFinalWaveTriggered,
   isLevelGoalMet,
   formatLevelObjective,
   calculateCarrierAntOffset,
@@ -902,6 +904,30 @@ describe("level progression rules", () => {
 
     const lvl5 = getLevelConfig(5);
     assert.equal(formatLevelObjective(lvl5, 4), "ANTS: 4/12");
+  });
+
+  it("determines whether the final ant wave is triggered near the end of the level", () => {
+    // Threshold is 70% of goalTarget
+    assert.equal(isFinalWaveTriggered(3, 5), false);
+    assert.equal(isFinalWaveTriggered(4, 5), true);
+
+    assert.equal(isFinalWaveTriggered(13, 20), false);
+    assert.equal(isFinalWaveTriggered(14, 20), true);
+
+    assert.equal(isFinalWaveTriggered(4, 7), false);
+    assert.equal(isFinalWaveTriggered(5, 7), true);
+
+    assert.equal(isFinalWaveTriggered(8, 12), false);
+    assert.equal(isFinalWaveTriggered(9, 12), true);
+
+    assert.equal(isFinalWaveTriggered(0, 0), false);
+  });
+
+  it("calculates extra ant count for the final wave based on level tier", () => {
+    assert.equal(calculateWaveExtraAnts(1), 2);
+    assert.equal(calculateWaveExtraAnts(4), 2);
+    assert.equal(calculateWaveExtraAnts(5), 3);
+    assert.equal(calculateWaveExtraAnts(10), 3);
   });
 
   it("respects dragEnabled parameter in canFoodBeDragged", () => {

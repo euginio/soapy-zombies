@@ -2044,6 +2044,39 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
     .toBe("perspective(900px) rotateX(0deg) rotateY(10deg)");
   await page.keyboard.up("ArrowRight");
 
+  // In Level 3, reaching 70% (5 of 7 ants) triggers the final wave of ants
+  const waveStateBefore = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    // Defeat 4 ants (progress 4/7 = 57%, below 70%)
+    for (let i = 0; i < 4; i++) {
+      scene.antDied(scene.ants.getChildren()[0]);
+    }
+    return {
+      progress: scene.levelProgress,
+      hasTriggeredFinalWave: scene.hasTriggeredFinalWave,
+      antsCount: scene.ants.getChildren().length
+    };
+  });
+  expect(waveStateBefore.progress).toBe(4);
+  expect(waveStateBefore.hasTriggeredFinalWave).toBe(false);
+  expect(waveStateBefore.antsCount).toBe(4);
+
+  // Defeat 5th ant (5/7 = 71% >= 70% threshold): triggers final wave!
+  const waveStateAfter = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    scene.antDied(scene.ants.getChildren()[0]);
+    return {
+      progress: scene.levelProgress,
+      hasTriggeredFinalWave: scene.hasTriggeredFinalWave,
+      antsCount: scene.ants.getChildren().length,
+      bannerText: document.querySelector("#level-banner-title")?.textContent ?? ""
+    };
+  });
+  expect(waveStateAfter.progress).toBe(5);
+  expect(waveStateAfter.hasTriggeredFinalWave).toBe(true);
+  expect(waveStateAfter.antsCount).toBe(6); // 4 base + 2 extra wave ants
+  expect(waveStateAfter.bannerText).toContain("FINAL WAVE!");
+
   // 7. Level 4 has full combined controls
   await page.evaluate(() => window.__gameSceneForTest.startLevel(4, false));
   const level4State = await page.evaluate(() => {

@@ -920,3 +920,23 @@ export function formatLevelObjective(
       return "ENDLESS";
   }
 }
+
+export const FINAL_WAVE_PROGRESS_THRESHOLD = 0.7;
+
+export function isFinalWaveTriggered(
+  currentProgress: number,
+  target: number,
+  thresholdRatio = FINAL_WAVE_PROGRESS_THRESHOLD
+): boolean {
+  if (target <= 0) {
+    return false;
+  }
+  return currentProgress / target >= thresholdRatio;
+}
+
+export function calculateWaveExtraAnts(level: number): number {
+  if (level <= 4) {
+    return 2;
+  }
+  return 3;
+}

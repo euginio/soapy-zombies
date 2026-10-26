@@ -12,9 +12,11 @@ import {
   calculateDeviceMotionTilt,
   calculateDeviceTilt,
   calculateVisualLayerLayout,
+  calculateWaveExtraAnts,
   debugColorToTint,
   formatLevelObjective,
   getLevelConfig,
+  isFinalWaveTriggered,
   isLevelGoalMet,
   LevelConfig,
   getScreenOrientationAngle,
@@ -73,6 +75,7 @@ export class GameScene extends MyScene {
   currentLevel: number = 1;
   currentLevelConfig: LevelConfig = getLevelConfig(1);
   levelProgress: number = 0;
+  hasTriggeredFinalWave: boolean = false;
   isLevelTransitioning: boolean = false;
   get isTiltEnabled(): boolean {
     return Boolean(this.currentLevelConfig?.tiltEnabled);
@@ -141,6 +144,7 @@ export class GameScene extends MyScene {
     if (!this.isLevelTransitioning && this.currentLevelConfig?.goalType === "defeat_ants") {
       this.levelProgress += 1;
       this.updateLevelHud();
+      this.checkFinalWave();
       this.checkLevelCompletion();
     }
   }
@@ -497,6 +501,7 @@ export class GameScene extends MyScene {
     if (!this.isLevelTransitioning && this.currentLevelConfig?.goalType === "survive_time") {
       this.levelProgress += delta / 1000;
       this.updateLevelHud();
+      this.checkFinalWave();
       this.checkLevelCompletion();
     }
 
@@ -1260,6 +1265,7 @@ export class GameScene extends MyScene {
     if (this.currentLevelConfig?.goalType === "shake_ants") {
       this.levelProgress += count;
       this.updateLevelHud();
+      this.checkFinalWave();
       this.checkLevelCompletion();
     }
   }
@@ -1268,6 +1274,7 @@ export class GameScene extends MyScene {
     this.currentLevel = levelNumber;
     this.currentLevelConfig = getLevelConfig(levelNumber);
     this.levelProgress = 0;
+    this.hasTriggeredFinalWave = false;
     this.isLevelTransitioning = false;
 
     if (!this.currentLevelConfig.tiltEnabled) {
@@ -1289,6 +1296,25 @@ export class GameScene extends MyScene {
         2500
       );
     }
+  }
+
+  checkFinalWave() {
+    if (this.hasTriggeredFinalWave || this.isLevelTransitioning || this.gameOver || !this.currentLevelConfig) {
+      return;
+    }
+    if (isFinalWaveTriggered(this.levelProgress, this.currentLevelConfig.goalTarget)) {
+      this.triggerFinalWave();
+    }
+  }
+
+  triggerFinalWave() {
+    this.hasTriggeredFinalWave = true;
+    const extraAnts = calculateWaveExtraAnts(this.currentLevel);
+    for (let i = 0; i < extraAnts; i++) {
+      this.addNewAnt();
+    }
+    this.audio.play(AUDIO_KEYS.antFall);
+    this.showLevelBanner("⚠️ FINAL WAVE!", "Ants incoming!", "Defend the picnic!", 1600);
   }
 
   checkLevelCompletion() {
