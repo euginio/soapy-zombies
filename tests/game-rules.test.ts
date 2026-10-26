@@ -5,6 +5,9 @@ import {
   calculateAntVelocity,
   calculateAntStealVelocity,
   shouldTiltAffectAnt,
+  getLevelConfig,
+  isLevelGoalMet,
+  formatLevelObjective,
   calculateCarrierAntOffset,
   calculateCooperativeStealSpeed,
   calculateRandomTrayPosition,
@@ -813,5 +816,83 @@ describe("food shake and ant scatter rules", () => {
     wakeLock.release();
     assert.equal(wakeLock.isLocked, false);
     assert.equal(wakeLock.active, false);
+  });
+});
+describe("level progression rules", () => {
+  it("provides distinct progression configurations for tutorial and advanced levels", () => {
+    const lvl1 = getLevelConfig(1);
+    assert.equal(lvl1.tiltEnabled, false);
+    assert.equal(lvl1.dragEnabled, true);
+    assert.equal(lvl1.caterpillarsEnabled, false);
+    assert.equal(lvl1.goalType, "shake_ants");
+    assert.equal(lvl1.initialAnts, 4);
+    assert.equal(lvl1.goalTarget, 5);
+
+    const lvl2 = getLevelConfig(2);
+    assert.equal(lvl2.tiltEnabled, false);
+    assert.equal(lvl2.dragEnabled, true);
+    assert.equal(lvl2.caterpillarsEnabled, false);
+    assert.equal(lvl2.goalType, "survive_time");
+    assert.equal(lvl2.goalTarget, 20);
+
+    const lvl3 = getLevelConfig(3);
+    assert.equal(lvl3.tiltEnabled, true);
+    assert.equal(lvl3.dragEnabled, false);
+    assert.equal(lvl3.caterpillarsEnabled, false);
+    assert.equal(lvl3.goalType, "defeat_ants");
+    assert.equal(lvl3.goalTarget, 7);
+
+    const lvl4 = getLevelConfig(4);
+    assert.equal(lvl4.tiltEnabled, true);
+    assert.equal(lvl4.dragEnabled, true);
+    assert.equal(lvl4.caterpillarsEnabled, false);
+    assert.equal(lvl4.goalType, "defeat_ants");
+    assert.equal(lvl4.goalTarget, 10);
+
+    const lvl5 = getLevelConfig(5);
+    assert.equal(lvl5.tiltEnabled, true);
+    assert.equal(lvl5.dragEnabled, true);
+    assert.equal(lvl5.caterpillarsEnabled, true);
+    assert.equal(lvl5.goalType, "endless");
+
+    // Level 6 escalates from level 5 base
+    const lvl6 = getLevelConfig(6);
+    assert.ok(lvl6.antSpeed > lvl5.antSpeed);
+    assert.equal(lvl6.level, 6);
+  });
+
+  it("evaluates whether level completion goals are met", () => {
+    assert.equal(isLevelGoalMet("shake_ants", 4, 5), false);
+    assert.equal(isLevelGoalMet("shake_ants", 5, 5), true);
+    assert.equal(isLevelGoalMet("shake_ants", 6, 5), true);
+
+    assert.equal(isLevelGoalMet("survive_time", 19.9, 20), false);
+    assert.equal(isLevelGoalMet("survive_time", 20.0, 20), true);
+
+    assert.equal(isLevelGoalMet("defeat_ants", 6, 7), false);
+    assert.equal(isLevelGoalMet("defeat_ants", 7, 7), true);
+
+    assert.equal(isLevelGoalMet("endless", 999, 0), false);
+  });
+
+  it("formats level objective HUD strings accurately", () => {
+    const lvl1 = getLevelConfig(1);
+    assert.equal(formatLevelObjective(lvl1, 2), "SHAKES: 2/5");
+
+    const lvl2 = getLevelConfig(2);
+    assert.equal(formatLevelObjective(lvl2, 6.2), "SURVIVE: 14s");
+
+    const lvl3 = getLevelConfig(3);
+    assert.equal(formatLevelObjective(lvl3, 5), "ANTS: 5/7");
+
+    const lvl5 = getLevelConfig(5);
+    assert.equal(formatLevelObjective(lvl5, 0), "ENDLESS");
+  });
+
+  it("respects dragEnabled parameter in canFoodBeDragged", () => {
+    // When dragEnabled is false (e.g. Level 3), food cannot be dragged
+    assert.equal(canFoodBeDragged(false, false, true, false, false), false);
+    // When dragEnabled is true, standard rules apply
+    assert.equal(canFoodBeDragged(false, false, true, false, true), true);
   });
 });

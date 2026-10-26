@@ -13,6 +13,10 @@ import {
   calculateDeviceTilt,
   calculateVisualLayerLayout,
   debugColorToTint,
+  formatLevelObjective,
+  getLevelConfig,
+  isLevelGoalMet,
+  LevelConfig,
   getScreenOrientationAngle,
   isNewHighScore,
   isTabletDevice,
@@ -66,6 +70,25 @@ export class GameScene extends MyScene {
   scoreText: Phaser.GameObjects.Text;
   highScoreText: Phaser.GameObjects.Text;
   score = 0;
+  currentLevel: number = 1;
+  currentLevelConfig: LevelConfig = getLevelConfig(1);
+  levelProgress: number = 0;
+  isLevelTransitioning: boolean = false;
+  get isTiltEnabled(): boolean {
+    return Boolean(this.currentLevelConfig?.tiltEnabled);
+  }
+  get isDragEnabled(): boolean {
+    return Boolean(this.currentLevelConfig?.dragEnabled);
+  }
+  private levelHud: HTMLDivElement | null = null;
+  private levelLabel: HTMLSpanElement | null = null;
+  private objectiveLabel: HTMLSpanElement | null = null;
+  private levelBanner: HTMLDivElement | null = null;
+  private levelBannerTitle: HTMLDivElement | null = null;
+  private levelBannerSubtitle: HTMLDivElement | null = null;
+  private levelBannerInstruction: HTMLDivElement | null = null;
+  private levelBannerTimeout: any = null;
+  private finalLevelValue: HTMLSpanElement | null = null;
   gravity: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
   
   foodCount: number;
@@ -393,6 +416,11 @@ export class GameScene extends MyScene {
     window.addEventListener("deviceorientation", this.deviceOrientationHandler);
     // The title tap already unlocked audio; the music survives restarts, so this only resumes it.
     this.audio.startMusic();
+
+    const urlParams = typeof window !== "undefined" && window.location ? new URLSearchParams(window.location.search) : null;
+    const paramLevel = urlParams?.get("level");
+    const startingLevel = paramLevel ? Number(paramLevel) : 1;
+    this.startLevel(Number.isFinite(startingLevel) && startingLevel > 0 ? startingLevel : 1);
   }
 
 
@@ -454,15 +482,24 @@ export class GameScene extends MyScene {
     // ant.eating()
   }
 
-  update(): void {
+  update(_time?: number, delta: number = 16): void {
     if (this.gameOver) {
       this.applyBoardTilt(0, 0);
       return;
     }
 
-    // debug angles
-    // let ant:Ant = <Ant>this.ants.getChildren()[0];
-    // this.scoreText.setText(`angulo: ${ant.body.angle},${ant.body.facing},${ant.angle}`);
+    if (!this.isLevelTransitioning && this.currentLevelConfig?.goalType === "survive_time") {
+      this.levelProgress += delta / 1000;
+      this.updateLevelHud();
+      this.checkLevelCompletion();
+    }
+
+    if (!this.isTiltEnabled) {
+      this.gravity.x = 0;
+      this.gravity.y = 0;
+      this.applyBoardTilt(0, 0);
+      return;
+    }
 
     // Sensor gravity drives physics; the canvas tilt is a separate visual effect.
     if (this.deviceTilt) {
@@ -640,6 +677,8 @@ export class GameScene extends MyScene {
     this.createFullscreenToggleButton();
     this.createFullscreenPromptOverlay();
     this.createRotatePromptOverlay();
+    this.createLevelHud();
+    this.createLevelBanner();
     this.syncVisualLayerBounds(gameCanvas);
 
     this.visualLayerResizeObserver = new ResizeObserver(this.invalidateVisualLayerBounds);
@@ -1180,6 +1219,11 @@ export class GameScene extends MyScene {
   }
 
   checkCursors() {
+    if (!this.isTiltEnabled) {
+      this.gravity.x = 0;
+      this.gravity.y = 0;
+      return;
+    }
     const left = this.cursors.left.isDown || Boolean(this.wasdKeys?.left.isDown);
     const right = this.cursors.right.isDown || Boolean(this.wasdKeys?.right.isDown);
     const up = this.cursors.up.isDown || Boolean(this.wasdKeys?.up.isDown);
@@ -1200,6 +1244,283 @@ export class GameScene extends MyScene {
     } else {
       this.gravity.y = 0;
     }
+  }
+
+
+  onAntsShaken(count: number) {
+    if (this.gameOver || this.isLevelTransitioning) {
+      return;
+    }
+    if (this.currentLevelConfig?.goalType === "shake_ants") {
+      this.levelProgress += count;
+      this.updateLevelHud();
+      this.checkLevelCompletion();
+    }
+  }
+
+  startLevel(levelNumber: number, showIntroBanner = true) {
+    this.currentLevel = levelNumber;
+    this.currentLevelConfig = getLevelConfig(levelNumber);
+    this.levelProgress = 0;
+    this.isLevelTransitioning = false;
+
+    if (!this.currentLevelConfig.tiltEnabled) {
+      this.gravity.x = 0;
+      this.gravity.y = 0;
+      this.applyBoardTilt(0, 0);
+    }
+
+    this.refillFoods();
+    this.syncAntsToLevel();
+    this.syncCaterpillarsToLevel();
+    this.updateLevelHud();
+
+    if (showIntroBanner) {
+      this.showLevelBanner(
+        this.currentLevelConfig.title,
+        this.currentLevelConfig.subtitle,
+        this.currentLevelConfig.instruction,
+        2500
+      );
+    }
+  }
+
+  checkLevelCompletion() {
+    if (this.isLevelTransitioning || this.gameOver || !this.currentLevelConfig) {
+      return;
+    }
+    if (isLevelGoalMet(this.currentLevelConfig.goalType, this.levelProgress, this.currentLevelConfig.goalTarget)) {
+      this.completeLevel();
+    }
+  }
+
+  completeLevel() {
+    this.isLevelTransitioning = true;
+    const completedLevel = this.currentLevel;
+    const nextLevel = completedLevel + 1;
+    const nextConfig = getLevelConfig(nextLevel);
+
+    this.audio.play(AUDIO_KEYS.antFall);
+
+    this.showLevelBanner(
+      `Level ${completedLevel} Complete!`,
+      `Next: ${nextConfig.title} - ${nextConfig.subtitle}`,
+      nextConfig.instruction,
+      2000
+    );
+
+    this.time.delayedCall(2000, () => {
+      if (this.gameOver) {
+        return;
+      }
+      this.startLevel(nextLevel);
+    });
+  }
+
+  updateLevelHud() {
+    if (!this.levelLabel || !this.objectiveLabel || !this.currentLevelConfig) {
+      return;
+    }
+    this.levelLabel.textContent = `LVL ${this.currentLevel}`;
+    this.objectiveLabel.textContent = formatLevelObjective(this.currentLevelConfig, this.levelProgress);
+  }
+
+  showLevelBanner(title: string, subtitle: string, instruction: string, durationMs = 2000) {
+    this.clearLevelBannerTimer();
+    if (!this.levelBanner || !this.levelBannerTitle || !this.levelBannerSubtitle || !this.levelBannerInstruction) {
+      return;
+    }
+    this.levelBannerTitle.textContent = title;
+    this.levelBannerSubtitle.textContent = subtitle;
+    this.levelBannerInstruction.textContent = instruction;
+    this.levelBanner.style.display = "flex";
+    this.levelBanner.style.opacity = "1";
+
+    if (durationMs > 0) {
+      this.levelBannerTimeout = setTimeout(() => {
+        this.hideLevelBanner();
+      }, durationMs);
+    }
+  }
+
+  hideLevelBanner() {
+    this.clearLevelBannerTimer();
+    if (this.levelBanner) {
+      this.levelBanner.style.opacity = "0";
+      setTimeout(() => {
+        if (this.levelBanner && this.levelBanner.style.opacity === "0") {
+          this.levelBanner.style.display = "none";
+        }
+      }, 300);
+    }
+  }
+
+  private clearLevelBannerTimer() {
+    if (this.levelBannerTimeout) {
+      clearTimeout(this.levelBannerTimeout);
+      this.levelBannerTimeout = null;
+    }
+  }
+
+  refillFoods() {
+    if (!this.foods || !this.tray) {
+      return;
+    }
+    const currentFoods = this.foods.getChildren().slice() as Food[];
+    currentFoods.forEach((food) => {
+      food.releaseAllCarriers(false);
+      food.isBeingDragged = false;
+      food.isDragCooldown = false;
+      food.setAlpha(1);
+    });
+
+    const activeFoods = currentFoods.filter((f) => f.active && f.body?.enable);
+    const needed = Math.max(0, this.initialFood - activeFoods.length);
+    for (let i = 0; i < needed; i++) {
+      const newF = new Food(this);
+      this.foods.add(newF, true);
+    }
+    this.foodCount = this.foods.getChildren().filter((f: any) => f.active && f.body?.enable).length;
+  }
+
+  syncAntsToLevel() {
+    if (!this.ants) {
+      return;
+    }
+    const targetCount = this.currentLevelConfig.initialAnts;
+    const currentAnts = this.ants.getChildren().slice() as Ant[];
+
+    currentAnts.forEach((ant) => {
+      ant.ANT_SPEED = this.currentLevelConfig.antSpeed;
+      if (ant.carriedFood) {
+        ant.dropFood(false);
+      }
+    });
+
+    if (currentAnts.length < targetCount) {
+      const needed = targetCount - currentAnts.length;
+      for (let i = 0; i < needed; i++) {
+        this.addNewAnt();
+      }
+    } else if (currentAnts.length > targetCount) {
+      const excess = currentAnts.slice(targetCount);
+      excess.forEach((ant) => {
+        ant.disableBody(true, true);
+        this.ants.remove(ant, true, true);
+      });
+    }
+
+    (this.ants.getChildren() as Ant[]).forEach((ant) => {
+      ant.ANT_SPEED = this.currentLevelConfig.antSpeed;
+    });
+  }
+
+  syncCaterpillarsToLevel() {
+    if (!this.caterpillars) {
+      return;
+    }
+    const targetCount = this.currentLevelConfig.caterpillarsEnabled ? this.currentLevelConfig.initialCaterpillars : 0;
+    const currentWorms = this.caterpillars.getChildren().slice() as Caterpillar[];
+
+    if (!this.currentLevelConfig.caterpillarsEnabled) {
+      currentWorms.forEach((worm) => {
+        worm.disableBody(true, true);
+        this.caterpillars.remove(worm, true, true);
+      });
+      return;
+    }
+
+    if (currentWorms.length < targetCount) {
+      const needed = targetCount - currentWorms.length;
+      for (let i = 0; i < needed; i++) {
+        this.addNewCaterpillar();
+      }
+    } else if (currentWorms.length > targetCount) {
+      const excess = currentWorms.slice(targetCount);
+      excess.forEach((worm) => {
+        worm.disableBody(true, true);
+        this.caterpillars.remove(worm, true, true);
+      });
+    }
+  }
+
+  private createLevelHud() {
+    const hud = document.createElement("div");
+    hud.id = "level-hud";
+    Object.assign(hud.style, {
+      position: "absolute",
+      zIndex: "15",
+      pointerEvents: "none",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "14px",
+      fontFamily: "Courier, monospace",
+      fontWeight: "bold",
+      color: "#201",
+      whiteSpace: "pre",
+      transform: "translateX(-50%)"
+    });
+
+    this.levelLabel = document.createElement("span");
+    this.levelLabel.id = "level-label";
+
+    this.objectiveLabel = document.createElement("span");
+    this.objectiveLabel.id = "level-objective";
+
+    hud.append(this.levelLabel, this.objectiveLabel);
+    this.levelHud = hud;
+    this.visualLayerParent.appendChild(hud);
+  }
+
+  private createLevelBanner() {
+    const banner = document.createElement("div");
+    banner.id = "level-banner";
+    Object.assign(banner.style, {
+      position: "absolute",
+      display: "none",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      textAlign: "center",
+      zIndex: "25",
+      pointerEvents: "none",
+      transition: "opacity 0.3s ease",
+      backgroundColor: "rgba(23, 35, 18, 0.92)",
+      border: "2px solid rgba(255, 255, 255, 0.3)",
+      borderRadius: "14px",
+      boxShadow: "0 6px 22px rgba(0, 0, 0, 0.5)",
+      color: "#fff",
+      fontFamily: "Courier, monospace",
+      padding: "14px 26px",
+      transform: "translate(-50%, -50%)"
+    });
+
+    const title = document.createElement("div");
+    title.id = "level-banner-title";
+    title.style.fontWeight = "bold";
+    title.style.fontSize = "1.3em";
+    title.style.color = "#ffbe0b";
+    title.style.marginBottom = "4px";
+
+    const subtitle = document.createElement("div");
+    subtitle.id = "level-banner-subtitle";
+    subtitle.style.fontWeight = "bold";
+    subtitle.style.fontSize = "1.05em";
+    subtitle.style.color = "#ffffff";
+    subtitle.style.marginBottom = "6px";
+
+    const instruction = document.createElement("div");
+    instruction.id = "level-banner-instruction";
+    instruction.style.fontSize = "0.85em";
+    instruction.style.color = "#e0e0e0";
+
+    banner.append(title, subtitle, instruction);
+    this.levelBanner = banner;
+    this.levelBannerTitle = title;
+    this.levelBannerSubtitle = subtitle;
+    this.levelBannerInstruction = instruction;
+    this.visualLayerParent.appendChild(banner);
   }
 
 }

@@ -247,6 +247,8 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
     expect(Math.abs(alignedBounds[1][dimension] - alignedBounds[0][dimension])).toBeLessThan(0.1);
   }
 
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
+
   const directions = [
     ["ArrowRight", "perspective(900px) rotateX(0deg) rotateY(10deg)", { x: 30, y: 0 }],
     ["ArrowLeft", "perspective(900px) rotateX(0deg) rotateY(-10deg)", { x: -30, y: 0 }],
@@ -339,6 +341,7 @@ test("tablet orientation tilts the board and re-centers from the current angle",
 
     const tiltedBoard = page.locator("#tilting-board");
     await expect(tiltedBoard).toBeVisible();
+    await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
     await page.evaluate(() => {
       window.dispatchEvent(new DeviceMotionEvent("devicemotion", {}));
       window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", {
@@ -414,6 +417,7 @@ test("game over shows the score and offers restart and home actions", async ({ p
   await clickStartOnCanvas(page);
   await expect(page.locator("#tilting-board")).toBeVisible();
   await waitForGameScene(page);
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
 
   await page.keyboard.down("ArrowRight");
   await expect
@@ -625,6 +629,7 @@ test("devicemotion fallback tilts the board according to screen orientation unti
   await page.goto("/");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
 
   const tiltedBoard = page.locator("#tilting-board");
   await page.evaluate(() => {
@@ -888,6 +893,7 @@ test("iPhone Safari prompts for sensor permission and tilts with window.orientat
     await page.goto("/");
     await clickStartOnCanvas(page, "touch");
     await waitForGameScene(page);
+    await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
 
     expect(await page.evaluate(() => window.__permissionRequested)).toBe(true);
     expect(pageErrors).toEqual([]);
@@ -927,6 +933,7 @@ test("touch drag tilts the board when motion sensors are not delivering input", 
     await page.goto("/");
     await clickStartOnCanvas(page, "touch");
     await waitForGameScene(page);
+    await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
 
     const canvas = page.locator("#tilting-board");
     const box = await canvas.boundingBox();
@@ -957,6 +964,7 @@ test("WASD keys tilt the board alongside arrow keys", async ({ page }) => {
   await page.goto("/");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
 
   const tiltedBoard = page.locator("#tilting-board");
   await expect(tiltedBoard).toBeVisible();
@@ -1355,6 +1363,7 @@ test("caterpillar spawns, resists tilt with lower gravityFactor, and awards 2 po
   await page.goto("/");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(5, false));
 
   const caterpillarData = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
@@ -1806,6 +1815,7 @@ test("caterpillar eating pauses and stops when the worm is no longer touching th
   await page.goto("/");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(5, false));
 
   const startEatingResult = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
@@ -1905,4 +1915,168 @@ test("caterpillar eating pauses and stops when the worm is no longer touching th
   expect(resumeResult.isBeingEaten).toBe(true);
   expect(resumeResult.isPaused).toBe(false);
   expect(resumeResult.isTweenPlaying).toBe(true);
+});
+test("level progression moves through tutorial levels, gates tilt/drag controls, and transitions seamlessly", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  // 1. Level 1: Starts at Level 1 with drag enabled, tilt disabled, and HUD displays level info
+  const initialLevelState = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const hud = document.querySelector("#level-hud");
+    const banner = document.querySelector("#level-banner");
+    const bannerTitle = document.querySelector("#level-banner-title");
+    return {
+      currentLevel: scene.currentLevel,
+      isTiltEnabled: scene.isTiltEnabled,
+      isDragEnabled: scene.isDragEnabled,
+      goalType: scene.currentLevelConfig.goalType,
+      goalTarget: scene.currentLevelConfig.goalTarget,
+      hudText: hud?.textContent ?? "",
+      bannerVisible: banner?.style.display !== "none",
+      bannerTitle: bannerTitle?.textContent ?? ""
+    };
+  });
+
+  expect(initialLevelState.currentLevel).toBe(1);
+  expect(initialLevelState.isTiltEnabled).toBe(false);
+  expect(initialLevelState.isDragEnabled).toBe(true);
+  expect(initialLevelState.goalType).toBe("shake_ants");
+  expect(initialLevelState.goalTarget).toBe(5);
+  expect(initialLevelState.hudText).toContain("LVL 1");
+  expect(initialLevelState.hudText).toContain("SHAKES: 0/5");
+  expect(initialLevelState.bannerTitle).toBe("Level 1");
+
+  // 2. In Level 1, tray tilt controls do NOT tilt the board
+  await page.keyboard.down("ArrowRight");
+  const tiltTransform = await page.locator("#tilting-board").evaluate((el) => el.style.transform);
+  expect(tiltTransform).toBe("perspective(900px) rotateX(0deg) rotateY(0deg)");
+
+  // 3. Shaking fruit increments Level 1 progress
+  const shakeProgress = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    const ant = scene.ants.getChildren()[0];
+
+    ant.isAlive = true;
+    ant.isClimbing = false;
+    scene.antHitFood(ant, food);
+
+    // Simulate shake off
+    food.shakeOffCarriers();
+
+    return {
+      levelProgress: scene.levelProgress,
+      hudText: document.querySelector("#level-hud")?.textContent ?? ""
+    };
+  });
+
+  expect(shakeProgress.levelProgress).toBeGreaterThanOrEqual(1);
+  expect(shakeProgress.hudText).toContain(`SHAKES: ${shakeProgress.levelProgress}/5`);
+
+  // 4. Completing Level 1 triggers the dynamic banner and transitions to Level 2
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    scene.onAntsShaken(5);
+  });
+
+  const bannerContent = await page.evaluate(() => {
+    const banner = document.querySelector("#level-banner");
+    return {
+      display: banner?.style.display,
+      title: document.querySelector("#level-banner-title")?.textContent,
+      subtitle: document.querySelector("#level-banner-subtitle")?.textContent
+    };
+  });
+  expect(bannerContent.display).toBe("flex");
+  expect(bannerContent.title).toContain("Level 1 Complete!");
+  expect(bannerContent.subtitle).toContain("Level 2");
+
+  // Wait for 2-second transition to Level 2
+  await expect.poll(() => page.evaluate(() => window.__gameSceneForTest.currentLevel), { timeout: 4000 }).toBe(2);
+
+  // 5. Level 2 has survive_time goal and tilt disabled
+  const level2State = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    return {
+      currentLevel: scene.currentLevel,
+      isTiltEnabled: scene.isTiltEnabled,
+      isDragEnabled: scene.isDragEnabled,
+      goalType: scene.currentLevelConfig.goalType,
+      hudText: document.querySelector("#level-hud")?.textContent ?? ""
+    };
+  });
+  expect(level2State.currentLevel).toBe(2);
+  expect(level2State.isTiltEnabled).toBe(false);
+  expect(level2State.isDragEnabled).toBe(true);
+  expect(level2State.goalType).toBe("survive_time");
+  expect(level2State.hudText).toContain("SURVIVE:");
+
+  // 6. Level 3 has fruit drag disabled and tray tilt enabled
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
+
+  const level3State = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    const dragSuccess = food.startDrag(scene.input.activePointer);
+    return {
+      currentLevel: scene.currentLevel,
+      isTiltEnabled: scene.isTiltEnabled,
+      isDragEnabled: scene.isDragEnabled,
+      dragSuccess,
+      goalType: scene.currentLevelConfig.goalType,
+      hudText: document.querySelector("#level-hud")?.textContent ?? ""
+    };
+  });
+  expect(level3State.currentLevel).toBe(3);
+  expect(level3State.isTiltEnabled).toBe(true);
+  expect(level3State.isDragEnabled).toBe(false);
+  expect(level3State.dragSuccess).toBe(false);
+  expect(level3State.goalType).toBe("defeat_ants");
+  expect(level3State.hudText).toContain("ANTS: 0/7");
+
+  // Arrow key tilts the board in Level 3
+  await page.keyboard.down("ArrowRight");
+  await expect
+    .poll(() => page.locator("#tilting-board").evaluate((el) => el.style.transform))
+    .toBe("perspective(900px) rotateX(0deg) rotateY(10deg)");
+  await page.keyboard.up("ArrowRight");
+
+  // 7. Level 4 has full combined controls
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(4, false));
+  const level4State = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    return {
+      currentLevel: scene.currentLevel,
+      isTiltEnabled: scene.isTiltEnabled,
+      isDragEnabled: scene.isDragEnabled,
+      caterpillarsEnabled: scene.currentLevelConfig.caterpillarsEnabled
+    };
+  });
+  expect(level4State.isTiltEnabled).toBe(true);
+  expect(level4State.isDragEnabled).toBe(true);
+  expect(level4State.caterpillarsEnabled).toBe(false);
+
+  // 8. Level 5 introduces caterpillars
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(5, false));
+  const level5State = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    return {
+      currentLevel: scene.currentLevel,
+      isTiltEnabled: scene.isTiltEnabled,
+      isDragEnabled: scene.isDragEnabled,
+      caterpillarsEnabled: scene.currentLevelConfig.caterpillarsEnabled,
+      caterpillarsCount: scene.caterpillars.getChildren().length,
+      goalType: scene.currentLevelConfig.goalType,
+      hudText: document.querySelector("#level-hud")?.textContent ?? ""
+    };
+  });
+  expect(level5State.isTiltEnabled).toBe(true);
+  expect(level5State.isDragEnabled).toBe(true);
+  expect(level5State.caterpillarsEnabled).toBe(true);
+  expect(level5State.caterpillarsCount).toBeGreaterThanOrEqual(1);
+  expect(level5State.goalType).toBe("endless");
+  expect(level5State.hudText).toContain("ENDLESS");
 });

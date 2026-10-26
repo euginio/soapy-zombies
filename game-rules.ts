@@ -124,10 +124,11 @@ export function canFoodBeDragged(
   isBeingEaten: boolean,
   isDragCooldown: boolean,
   bodyEnabled = true,
-  gameOver = false
+  gameOver = false,
+  dragEnabled = true
 ): boolean {
-  // Food can only be picked up when active, not being eaten, not on drag cooldown, and while the round is live.
-  return bodyEnabled && !isBeingEaten && !isDragCooldown && !gameOver;
+  // Food can only be picked up when active, not being eaten, not on drag cooldown, while live, and when dragging is enabled for the level.
+  return bodyEnabled && !isBeingEaten && !isDragCooldown && !gameOver && dragEnabled;
 }
 
 export function canFoodBeEaten(
@@ -710,4 +711,139 @@ export function shouldWormContinueEating(options: {
     !options.isFoodDragged &&
     !options.isFoodCarried
   );
+}
+export type LevelGoalType = "shake_ants" | "survive_time" | "defeat_ants" | "endless";
+
+export interface LevelConfig {
+  level: number;
+  title: string;
+  subtitle: string;
+  instruction: string;
+  tiltEnabled: boolean;
+  dragEnabled: boolean;
+  caterpillarsEnabled: boolean;
+  initialAnts: number;
+  initialCaterpillars: number;
+  antSpeed: number;
+  goalType: LevelGoalType;
+  goalTarget: number;
+}
+
+export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
+  1: {
+    level: 1,
+    title: "Level 1",
+    subtitle: "Shake the Fruit!",
+    instruction: "Drag & shake fruits to drop carrier ants!",
+    tiltEnabled: false,
+    dragEnabled: true,
+    caterpillarsEnabled: false,
+    initialAnts: 4,
+    initialCaterpillars: 0,
+    antSpeed: 45,
+    goalType: "shake_ants",
+    goalTarget: 5
+  },
+  2: {
+    level: 2,
+    title: "Level 2",
+    subtitle: "Defend the Food!",
+    instruction: "Drag fruits away from approaching ants!",
+    tiltEnabled: false,
+    dragEnabled: true,
+    caterpillarsEnabled: false,
+    initialAnts: 4,
+    initialCaterpillars: 0,
+    antSpeed: 50,
+    goalType: "survive_time",
+    goalTarget: 20
+  },
+  3: {
+    level: 3,
+    title: "Level 3",
+    subtitle: "Tilt the Tray!",
+    instruction: "Tilt your device or use arrow keys to slide ants off!",
+    tiltEnabled: true,
+    dragEnabled: false,
+    caterpillarsEnabled: false,
+    initialAnts: 4,
+    initialCaterpillars: 0,
+    antSpeed: 55,
+    goalType: "defeat_ants",
+    goalTarget: 7
+  },
+  4: {
+    level: 4,
+    title: "Level 4",
+    subtitle: "Full Defense!",
+    instruction: "Use tray tilt and fruit dragging together!",
+    tiltEnabled: true,
+    dragEnabled: true,
+    caterpillarsEnabled: false,
+    initialAnts: 5,
+    initialCaterpillars: 0,
+    antSpeed: 58,
+    goalType: "defeat_ants",
+    goalTarget: 10
+  },
+  5: {
+    level: 5,
+    title: "Level 5",
+    subtitle: "Beware of Worms!",
+    instruction: "Hungry caterpillars have arrived! Protect the picnic!",
+    tiltEnabled: true,
+    dragEnabled: true,
+    caterpillarsEnabled: true,
+    initialAnts: 5,
+    initialCaterpillars: 1,
+    antSpeed: 60,
+    goalType: "endless",
+    goalTarget: 0
+  }
+};
+
+export function getLevelConfig(level: number): LevelConfig {
+  if (level in LEVEL_CONFIGS) {
+    return LEVEL_CONFIGS[level];
+  }
+  const base = LEVEL_CONFIGS[5];
+  const extraLevels = level - 5;
+  return {
+    ...base,
+    level,
+    title: `Level ${level}`,
+    subtitle: "Picnic Mayhem!",
+    instruction: "Defend the picnic from endless waves!",
+    antSpeed: Math.min(85, base.antSpeed + extraLevels * 2),
+    initialAnts: Math.min(8, base.initialAnts + Math.floor(extraLevels / 2))
+  };
+}
+
+export function isLevelGoalMet(
+  goalType: LevelGoalType,
+  currentProgress: number,
+  target: number
+): boolean {
+  if (goalType === "endless") {
+    return false;
+  }
+  return currentProgress >= target;
+}
+
+export function formatLevelObjective(
+  config: LevelConfig,
+  currentProgress: number
+): string {
+  switch (config.goalType) {
+    case "shake_ants":
+      return `SHAKES: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;
+    case "survive_time": {
+      const remaining = Math.max(0, Math.ceil(config.goalTarget - currentProgress));
+      return `SURVIVE: ${remaining}s`;
+    }
+    case "defeat_ants":
+      return `ANTS: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;
+    case "endless":
+      return "ENDLESS";
+  }
 }

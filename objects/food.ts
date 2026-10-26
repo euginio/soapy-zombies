@@ -220,6 +220,7 @@ export class Food extends MySprite {
             return;
         }
         const ants = [...this.carrierAnts];
+        const shakenCount = ants.length;
         this.carrierAnts = [];
         this.setDepth(10);
         this.dragSamples = [];
@@ -232,6 +233,10 @@ export class Food extends MySprite {
             });
         } else {
             ants.forEach((ant) => ant.dropFood(false));
+        }
+
+        if (typeof (this.scene as any)?.onAntsShaken === "function") {
+            (this.scene as any).onAntsShaken(shakenCount);
         }
     }
 
@@ -512,7 +517,8 @@ export class Food extends MySprite {
                 this.isBeingEaten,
                 this.isDragCooldown,
                 this.body?.enable ?? false,
-                Boolean(this.scene?.gameOver)
+                Boolean(this.scene?.gameOver),
+                Boolean((this.scene as any)?.isDragEnabled ?? true)
             )
         ) {
             this.resetInputDragState(pointer);
