@@ -1944,9 +1944,9 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(initialLevelState.isTiltEnabled).toBe(false);
   expect(initialLevelState.isDragEnabled).toBe(true);
   expect(initialLevelState.goalType).toBe("shake_ants");
-  expect(initialLevelState.goalTarget).toBe(5);
+  expect(initialLevelState.goalTarget).toBe(10);
   expect(initialLevelState.hudText).toContain("LVL 1");
-  expect(initialLevelState.hudText).toContain("SHAKES: 0/5");
+  expect(initialLevelState.hudText).toContain("SHAKES: 0/10");
   expect(initialLevelState.bannerTitle).toBe("Level 1");
 
   // 2. In Level 1, tray tilt controls do NOT tilt the board
@@ -1974,12 +1974,12 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   });
 
   expect(shakeProgress.levelProgress).toBeGreaterThanOrEqual(1);
-  expect(shakeProgress.hudText).toContain(`SHAKES: ${shakeProgress.levelProgress}/5`);
+  expect(shakeProgress.hudText).toContain(`SHAKES: ${shakeProgress.levelProgress}/10`);
 
   // 4. Completing Level 1 triggers the level complete screen and requires pressing continue
   await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
-    scene.onAntsShaken(5);
+    scene.onAntsShaken(10);
   });
 
   const levelCompleteOverlay = page.locator("#level-complete-overlay");
@@ -2043,7 +2043,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(level3State.isDragEnabled).toBe(false);
   expect(level3State.dragSuccess).toBe(false);
   expect(level3State.goalType).toBe("defeat_ants");
-  expect(level3State.hudText).toContain("ANTS: 0/7");
+  expect(level3State.hudText).toContain("ANTS: 0/15");
 
   // Arrow key tilts the board in Level 3
   await page.keyboard.down("ArrowRight");
@@ -2052,11 +2052,11 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
     .toBe("perspective(900px) rotateX(0deg) rotateY(10deg)");
   await page.keyboard.up("ArrowRight");
 
-  // In Level 3, reaching 70% (5 of 7 ants) triggers the final wave of ants
+  // In Level 3, reaching 70% (11 of 15 ants) triggers the final wave of ants
   const waveStateBefore = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
-    // Defeat 4 ants (progress 4/7 = 57%, below 70%)
-    for (let i = 0; i < 4; i++) {
+    // Defeat 10 ants (progress 10/15 = 66.7%, below 70%)
+    for (let i = 0; i < 10; i++) {
       scene.antDied(scene.ants.getChildren()[0]);
     }
     return {
@@ -2065,11 +2065,11 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
       antsCount: scene.ants.getChildren().length
     };
   });
-  expect(waveStateBefore.progress).toBe(4);
+  expect(waveStateBefore.progress).toBe(10);
   expect(waveStateBefore.hasTriggeredFinalWave).toBe(false);
-  expect(waveStateBefore.antsCount).toBe(4);
+  expect(waveStateBefore.antsCount).toBe(5); // 4 base + 1 spawned at 7th escape milestone
 
-  // Defeat 5th ant (5/7 = 71% >= 70% threshold): triggers final wave!
+  // Defeat 11th ant (11/15 = 73.3% >= 70% threshold): triggers final wave!
   const waveStateAfter = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     scene.antDied(scene.ants.getChildren()[0]);
@@ -2080,9 +2080,9 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
       bannerText: document.querySelector("#level-banner-title")?.textContent ?? ""
     };
   });
-  expect(waveStateAfter.progress).toBe(5);
+  expect(waveStateAfter.progress).toBe(11);
   expect(waveStateAfter.hasTriggeredFinalWave).toBe(true);
-  expect(waveStateAfter.antsCount).toBe(6); // 4 base + 2 extra wave ants
+  expect(waveStateAfter.antsCount).toBe(7); // 5 current + 2 extra wave ants
   expect(waveStateAfter.bannerText).toContain("FINAL WAVE!");
 
   // 7. Level 4 has full combined controls
@@ -2120,8 +2120,8 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(level5State.caterpillarsEnabled).toBe(true);
   expect(level5State.caterpillarsCount).toBeGreaterThanOrEqual(1);
   expect(level5State.goalType).toBe("defeat_ants");
-  expect(level5State.goalTarget).toBe(12);
-  expect(level5State.hudText).toContain("ANTS: 0/12");
+  expect(level5State.goalTarget).toBe(25);
+  expect(level5State.hudText).toContain("ANTS: 0/25");
 
   // Ant falling from tray increments defeat_ants progress in Level 5
   const antProgress = await page.evaluate(() => {
@@ -2134,7 +2134,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
     };
   });
   expect(antProgress.levelProgress).toBe(1);
-  expect(antProgress.hudText).toContain("ANTS: 1/12");
+  expect(antProgress.hudText).toContain("ANTS: 1/25");
 
   // 9. Level 8 has 2 caterpillars and 22 ant target
   await page.evaluate(() => window.__gameSceneForTest.startLevel(8, false));
@@ -2149,7 +2149,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   });
   expect(level8State.currentLevel).toBe(8);
   expect(level8State.caterpillarsCount).toBe(2);
-  expect(level8State.goalTarget).toBe(22);
+  expect(level8State.goalTarget).toBe(40);
   expect(level8State.antSpeed).toBe(74);
 
   // 10. Level 10 has 8 ants, 2 caterpillars, and 30 ant target
@@ -2167,7 +2167,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(level10State.currentLevel).toBe(10);
   expect(level10State.antsCount).toBe(8);
   expect(level10State.caterpillarsCount).toBe(2);
-  expect(level10State.goalTarget).toBe(30);
+  expect(level10State.goalTarget).toBe(50);
   expect(level10State.antSpeed).toBe(82);
 });
 

@@ -835,97 +835,97 @@ describe("level progression rules", () => {
     assert.equal(lvl1.caterpillarsEnabled, false);
     assert.equal(lvl1.goalType, "shake_ants");
     assert.equal(lvl1.initialAnts, 4);
-    assert.equal(lvl1.goalTarget, 5);
+    assert.equal(lvl1.goalTarget, 10);
 
     const lvl2 = getLevelConfig(2);
     assert.equal(lvl2.tiltEnabled, false);
     assert.equal(lvl2.dragEnabled, true);
     assert.equal(lvl2.caterpillarsEnabled, false);
     assert.equal(lvl2.goalType, "survive_time");
-    assert.equal(lvl2.goalTarget, 20);
+    assert.equal(lvl2.goalTarget, 45);
 
     const lvl3 = getLevelConfig(3);
     assert.equal(lvl3.tiltEnabled, true);
     assert.equal(lvl3.dragEnabled, false);
     assert.equal(lvl3.caterpillarsEnabled, false);
     assert.equal(lvl3.goalType, "defeat_ants");
-    assert.equal(lvl3.goalTarget, 7);
+    assert.equal(lvl3.goalTarget, 15);
 
     const lvl4 = getLevelConfig(4);
     assert.equal(lvl4.tiltEnabled, true);
     assert.equal(lvl4.dragEnabled, true);
     assert.equal(lvl4.caterpillarsEnabled, false);
     assert.equal(lvl4.goalType, "defeat_ants");
-    assert.equal(lvl4.goalTarget, 10);
+    assert.equal(lvl4.goalTarget, 20);
 
     const lvl5 = getLevelConfig(5);
     assert.equal(lvl5.tiltEnabled, true);
     assert.equal(lvl5.dragEnabled, true);
     assert.equal(lvl5.caterpillarsEnabled, true);
     assert.equal(lvl5.goalType, "defeat_ants");
-    assert.equal(lvl5.goalTarget, 12);
+    assert.equal(lvl5.goalTarget, 25);
     assert.equal(lvl5.initialCaterpillars, 1);
     assert.equal(lvl5.antSpeed, 62);
 
     const lvl8 = getLevelConfig(8);
     assert.equal(lvl8.initialCaterpillars, 2);
-    assert.equal(lvl8.goalTarget, 22);
+    assert.equal(lvl8.goalTarget, 40);
     assert.equal(lvl8.antSpeed, 74);
 
     const lvl10 = getLevelConfig(10);
     assert.equal(lvl10.initialAnts, 8);
     assert.equal(lvl10.initialCaterpillars, 2);
-    assert.equal(lvl10.goalTarget, 30);
+    assert.equal(lvl10.goalTarget, 50);
     assert.equal(lvl10.antSpeed, 82);
 
     // Level 11 escalates dynamically
     const lvl11 = getLevelConfig(11);
     assert.ok(lvl11.antSpeed > lvl10.antSpeed);
     assert.equal(lvl11.level, 11);
-    assert.equal(lvl11.goalTarget, 35);
+    assert.equal(lvl11.goalTarget, 60);
   });
 
   it("evaluates whether level completion goals are met", () => {
-    assert.equal(isLevelGoalMet("shake_ants", 4, 5), false);
-    assert.equal(isLevelGoalMet("shake_ants", 5, 5), true);
-    assert.equal(isLevelGoalMet("shake_ants", 6, 5), true);
+    assert.equal(isLevelGoalMet("shake_ants", 9, 10), false);
+    assert.equal(isLevelGoalMet("shake_ants", 10, 10), true);
+    assert.equal(isLevelGoalMet("shake_ants", 11, 10), true);
 
-    assert.equal(isLevelGoalMet("survive_time", 19.9, 20), false);
-    assert.equal(isLevelGoalMet("survive_time", 20.0, 20), true);
+    assert.equal(isLevelGoalMet("survive_time", 44.9, 45), false);
+    assert.equal(isLevelGoalMet("survive_time", 45.0, 45), true);
 
-    assert.equal(isLevelGoalMet("defeat_ants", 6, 7), false);
-    assert.equal(isLevelGoalMet("defeat_ants", 7, 7), true);
+    assert.equal(isLevelGoalMet("defeat_ants", 14, 15), false);
+    assert.equal(isLevelGoalMet("defeat_ants", 15, 15), true);
 
     assert.equal(isLevelGoalMet("endless", 999, 0), false);
   });
 
   it("formats level objective HUD strings accurately", () => {
     const lvl1 = getLevelConfig(1);
-    assert.equal(formatLevelObjective(lvl1, 2), "SHAKES: 2/5");
+    assert.equal(formatLevelObjective(lvl1, 2), "SHAKES: 2/10");
 
     const lvl2 = getLevelConfig(2);
-    assert.equal(formatLevelObjective(lvl2, 6.2), "SURVIVE: 14s");
+    assert.equal(formatLevelObjective(lvl2, 6.2), "SURVIVE: 39s");
 
     const lvl3 = getLevelConfig(3);
-    assert.equal(formatLevelObjective(lvl3, 5), "ANTS: 5/7");
+    assert.equal(formatLevelObjective(lvl3, 5), "ANTS: 5/15");
 
     const lvl5 = getLevelConfig(5);
-    assert.equal(formatLevelObjective(lvl5, 4), "ANTS: 4/12");
+    assert.equal(formatLevelObjective(lvl5, 4), "ANTS: 4/25");
   });
 
   it("determines whether the final ant wave is triggered near the end of the level", () => {
     // Threshold is 70% of goalTarget
-    assert.equal(isFinalWaveTriggered(3, 5), false);
-    assert.equal(isFinalWaveTriggered(4, 5), true);
+    assert.equal(isFinalWaveTriggered(6, 10), false);
+    assert.equal(isFinalWaveTriggered(7, 10), true);
 
-    assert.equal(isFinalWaveTriggered(13, 20), false);
-    assert.equal(isFinalWaveTriggered(14, 20), true);
+    assert.equal(isFinalWaveTriggered(31, 45), false);
+    assert.equal(isFinalWaveTriggered(32, 45), true);
 
-    assert.equal(isFinalWaveTriggered(4, 7), false);
-    assert.equal(isFinalWaveTriggered(5, 7), true);
+    assert.equal(isFinalWaveTriggered(10, 15), false);
+    assert.equal(isFinalWaveTriggered(11, 15), true);
 
-    assert.equal(isFinalWaveTriggered(8, 12), false);
-    assert.equal(isFinalWaveTriggered(9, 12), true);
+    assert.equal(isFinalWaveTriggered(17, 25), false);
+    assert.equal(isFinalWaveTriggered(18, 25), true);
 
     assert.equal(isFinalWaveTriggered(0, 0), false);
   });
