@@ -5,6 +5,7 @@ import {
   calculateAntVelocity,
   calculateAntStealVelocity,
   shouldTiltAffectAnt,
+  shouldTiltAffectCaterpillar,
   calculateWaveExtraAnts,
   getLevelConfig,
   isFinalWaveTriggered,
@@ -251,9 +252,15 @@ describe("ant food stealing rules", () => {
     assert.ok(velRight.x > 0);
   });
 
-  it("does not allow tray tilt or gravity to affect ants carrying food", () => {
+  it("does not allow tray tilt or gravity to affect ants carrying food or in levels with tilt disabled", () => {
     assert.equal(shouldTiltAffectAnt(false), true);
     assert.equal(shouldTiltAffectAnt(true), false);
+    assert.equal(shouldTiltAffectAnt(false, true), true);
+    assert.equal(shouldTiltAffectAnt(true, true), false);
+    assert.equal(shouldTiltAffectAnt(false, false), false);
+    assert.equal(shouldTiltAffectAnt(true, false), false);
+    assert.equal(shouldTiltAffectCaterpillar(true), true);
+    assert.equal(shouldTiltAffectCaterpillar(false), false);
 
     // Steal velocity must be unaffected by board tilt / gravity parameters
     const velWithoutTilt = calculateAntStealVelocity(70, 150, tray, 50, 0, 0, 0);

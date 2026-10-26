@@ -323,7 +323,7 @@ export class GameScene extends MyScene {
         this.resetTouchTilt();
         return;
       }
-      if (this.deviceTilt || this.hasMotionInput) {
+      if (this.deviceTilt || this.hasMotionInput || !this.isTiltEnabled) {
         return;
       }
       this.touchDragOrigin = { x: pointer.x, y: pointer.y };
@@ -344,7 +344,7 @@ export class GameScene extends MyScene {
         draggedFood.moveDrag(px - draggedFood.dragOffsetX, py - draggedFood.dragOffsetY, pointer.event?.timeStamp);
         return;
       }
-      if (!this.touchDragOrigin || this.gameOver || this.deviceTilt || this.hasMotionInput) {
+      if (!this.touchDragOrigin || this.gameOver || this.deviceTilt || this.hasMotionInput || !this.isTiltEnabled) {
         return;
       }
       if (!pointer.isDown) {
@@ -435,6 +435,11 @@ export class GameScene extends MyScene {
       if (this.deviceTilt) {
         return;
       }
+      if (!this.isTiltEnabled) {
+        this.gravity.x = 0;
+        this.gravity.y = 0;
+        return;
+      }
       const acceleration = event.accelerationIncludingGravity;
       if (!acceleration || acceleration.x === null || acceleration.y === null) {
         return;
@@ -458,9 +463,6 @@ export class GameScene extends MyScene {
         return;
       }
       this.latestOrientation = { beta: event.beta, gamma: event.gamma };
-      if (this.sensorRecenterButton) {
-        this.sensorRecenterButton.style.display = "block";
-      }
       // Treat the first valid reading as level to avoid an initial jump in gravity.
       if (!this.sensorBaseline) {
         this.sensorBaseline = { beta: event.beta, gamma: event.gamma };
@@ -468,6 +470,20 @@ export class GameScene extends MyScene {
         this.gravity.x = 0;
         this.gravity.y = 0;
         return;
+      }
+
+      if (!this.isTiltEnabled) {
+        this.deviceTilt = null;
+        this.gravity.x = 0;
+        this.gravity.y = 0;
+        if (this.sensorRecenterButton) {
+          this.sensorRecenterButton.style.display = "none";
+        }
+        return;
+      }
+
+      if (this.sensorRecenterButton) {
+        this.sensorRecenterButton.style.display = "block";
       }
 
       const screenAngle = getScreenOrientationAngle(
@@ -614,7 +630,7 @@ export class GameScene extends MyScene {
   }
 
   private recenterDeviceTilt() {
-    if (!this.latestOrientation) {
+    if (!this.latestOrientation || !this.isTiltEnabled) {
       return;
     }
 
@@ -1874,7 +1890,12 @@ export class GameScene extends MyScene {
     if (!this.currentLevelConfig.tiltEnabled) {
       this.gravity.x = 0;
       this.gravity.y = 0;
+      this.deviceTilt = null;
+      this.touchTilt = null;
       this.applyBoardTilt(0, 0);
+      if (this.sensorRecenterButton) {
+        this.sensorRecenterButton.style.display = "none";
+      }
     }
 
     this.refillFoods();

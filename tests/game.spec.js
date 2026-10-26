@@ -1618,6 +1618,7 @@ test("tray tilt does not affect ants carrying food", async ({ page }) => {
   await page.goto("/");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
 
   const tiltImmunityResult = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
@@ -2673,4 +2674,75 @@ test("level intro modal displays before each level with confirmation button to r
   await expect(banner).toBeHidden();
   expect(await page.evaluate(() => window.__gameSceneForTest.isLevelIntroActive)).toBe(false);
   expect(await page.evaluate(() => window.__gameSceneForTest.physics.world.isPaused)).toBe(false);
+});
+
+
+test("levels with tilt disabled do not apply tilt physics or phone orientation to moving ants", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/?level=1");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+  await page.locator("#level-banner-confirm").click();
+  await expect(page.locator("#level-banner")).toBeHidden();
+
+  // Baseline calibration
+  await page.evaluate(() => {
+    window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", {
+      beta: 0,
+      gamma: 0
+    }));
+  });
+
+  // 1. Tilt phone while in Level 1 (tiltEnabled: false)
+  await page.evaluate(() => {
+    window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", {
+      beta: 30,
+      gamma: 30
+    }));
+  });
+
+  // Gravity must remain 0 and board un-tilted
+  const level1State = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const ant = scene.ants.getChildren()[0];
+    ant.setVelocity(100, 0);
+    return {
+      gravity: { x: scene.gravity.x, y: scene.gravity.y },
+      antVx: ant.body.velocity.x,
+      isTiltEnabled: scene.isTiltEnabled,
+      transform: document.querySelector("#tilting-board").style.transform
+    };
+  });
+
+  expect(level1State.isTiltEnabled).toBe(false);
+  expect(level1State.gravity).toEqual({ x: 0, y: 0 });
+  expect(level1State.transform).toBe("perspective(900px) rotateX(0deg) rotateY(0deg)");
+  // Pure pursuit velocity without gravity acceleration (-45 along x axis for level 1 antSpeed)
+  expect(level1State.antVx).toBe(-45);
+
+  // 2. Switch to Level 3 (tiltEnabled: true)
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", {
+      beta: 30,
+      gamma: 30
+    }));
+  });
+
+  const level3State = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const ant = scene.ants.getChildren()[0];
+    ant.setVelocity(100, 0);
+    return {
+      gravity: { x: scene.gravity.x, y: scene.gravity.y },
+      antVx: ant.body.velocity.x,
+      isTiltEnabled: scene.isTiltEnabled
+    };
+  });
+
+  expect(level3State.isTiltEnabled).toBe(true);
+  expect(level3State.gravity.x).not.toBe(0);
+  // In Level 3, tilt physics applies gravity to ant velocity
+  expect(level3State.antVx).not.toBe(-55);
 });

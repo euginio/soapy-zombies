@@ -220,8 +220,12 @@ export function calculateCarrierAntOffset(
   };
 }
 
-export function shouldTiltAffectAnt(isCarryingFood: boolean): boolean {
-  return !isCarryingFood;
+export function shouldTiltAffectAnt(isCarryingFood: boolean, tiltEnabled = true): boolean {
+  return !isCarryingFood && tiltEnabled;
+}
+
+export function shouldTiltAffectCaterpillar(tiltEnabled = true): boolean {
+  return tiltEnabled;
 }
 
 export function calculateAntStealVelocity(

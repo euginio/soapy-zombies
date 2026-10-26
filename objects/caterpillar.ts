@@ -6,7 +6,8 @@ import {
     insetHorizontalTrayBounds,
     isWormTouchingFood,
     pickNearestTarget,
-    rectanglesOverlap
+    rectanglesOverlap,
+    shouldTiltAffectCaterpillar
 } from "../game-rules";
 import { GameScene } from "../scenes/game-scene";
 import { Food } from "./food";
@@ -162,13 +163,15 @@ export class Caterpillar extends MySprite {
     }
 
     setVelocity(xDistance: number, yDistance?: number) {
+        const isTiltEnabled = this.scene.isTiltEnabled;
+        const gravityFactor = shouldTiltAffectCaterpillar(isTiltEnabled) ? this.gravityFactor : 0;
         const velocity = calculateAntVelocity(
             xDistance,
             yDistance ?? 0,
             this.CATERPILLAR_SPEED,
             this.scene.gravity.x,
             this.scene.gravity.y,
-            this.gravityFactor
+            gravityFactor
         );
         this.setVelocityX(velocity.x);
         this.setVelocityY(velocity.y);
