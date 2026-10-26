@@ -942,3 +942,14 @@ export function calculateWaveExtraAnts(level: number): number {
   }
   return 3;
 }
+
+export function canPauseGame(gameOver: boolean): boolean {
+  return !gameOver;
+}
+
+export function togglePauseState(currentPaused: boolean, gameOver: boolean): boolean {
+  if (!canPauseGame(gameOver)) {
+    return false;
+  }
+  return !currentPaused;
+}

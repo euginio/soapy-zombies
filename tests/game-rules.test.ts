@@ -51,7 +51,9 @@ import {
   shouldKeepScreenAwake,
   isScreenWakeLockSupported,
   isWormTouchingFood,
-  shouldWormContinueEating
+  shouldWormContinueEating,
+  canPauseGame,
+  togglePauseState
 } from "../game-rules";
 import { ScreenWakeLock, WakeLockSentinelLike } from "../services/wake-lock";
 
@@ -937,5 +939,25 @@ describe("level progression rules", () => {
     assert.equal(canFoodBeDragged(false, false, true, false, false), false);
     // When dragEnabled is true, standard rules apply
     assert.equal(canFoodBeDragged(false, false, true, false, true), true);
+  });
+});
+
+describe("pause rules", () => {
+  it("allows pausing when the game is actively playing", () => {
+    assert.equal(canPauseGame(false), true);
+  });
+
+  it("does not allow pausing when game over has occurred", () => {
+    assert.equal(canPauseGame(true), false);
+  });
+
+  it("toggles pause state when game is active", () => {
+    assert.equal(togglePauseState(false, false), true);
+    assert.equal(togglePauseState(true, false), false);
+  });
+
+  it("forces unpaused (false) when game is over", () => {
+    assert.equal(togglePauseState(false, true), false);
+    assert.equal(togglePauseState(true, true), false);
   });
 });

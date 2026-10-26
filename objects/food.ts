@@ -261,6 +261,9 @@ export class Food extends MySprite {
     }
 
     update(_time?: number, delta: number = 16) {
+        if (this.scene?.gameOver || this.scene?.isPaused) {
+            return;
+        }
         if (this.isBeingCarried && this.carrierAnts.length > 0 && this.scene?.tray) {
             if (this.isBeingEaten) {
                 this.releaseAllCarriers(false);

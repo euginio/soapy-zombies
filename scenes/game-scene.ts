@@ -13,6 +13,7 @@ import {
   calculateDeviceTilt,
   calculateVisualLayerLayout,
   calculateWaveExtraAnts,
+  canPauseGame,
   debugColorToTint,
   formatLevelObjective,
   getLevelConfig,
@@ -26,7 +27,8 @@ import {
   parseStoredHighScore,
   resolveAntEscape,
   resolveCaterpillarEscape,
-  resolveFoodLoss
+  resolveFoodLoss,
+  togglePauseState
 } from "../game-rules";
 import { Ant } from "../objects/ant";
 import { Caterpillar } from "../objects/caterpillar";
@@ -53,6 +55,9 @@ export class GameScene extends MyScene {
   private deviceMotionHandler: (event: DeviceMotionEvent) => void;
   private sensorRecenterButton: HTMLButtonElement | null = null;
   private soundToggleButton: HTMLButtonElement | null = null;
+  private pauseToggleButton: HTMLButtonElement | null = null;
+  private pauseOverlay: HTMLDivElement | null = null;
+  isPaused: boolean = false;
   private audio: GameAudio;
   private stationaryBackground: HTMLDivElement | null = null;
   private gameOverOverlay: HTMLDivElement | null = null;
@@ -126,6 +131,7 @@ export class GameScene extends MyScene {
     super.init();
     this.score = 0;
     this.gameOver = false;
+    this.isPaused = false;
   }
 
   antDied(outAnt: Ant) {
@@ -169,6 +175,16 @@ export class GameScene extends MyScene {
     }
     // Set this first so later collisions or updates cannot process the ending twice.
     this.gameOver = true;
+    if (this.isPaused) {
+      this.isPaused = false;
+      if (this.pauseOverlay) {
+        this.pauseOverlay.style.display = "none";
+        this.pauseOverlay.setAttribute("aria-hidden", "true");
+      }
+    }
+    if (this.pauseToggleButton) {
+      this.pauseToggleButton.style.display = "none";
+    }
     if (isNewHighScore(this.score, this.currentHighScore)) {
       this.currentHighScore = this.score;
       this.saveHighScore(this.currentHighScore);
@@ -207,12 +223,14 @@ export class GameScene extends MyScene {
   }
 
   restart() {
+    this.isPaused = false;
     this.destroyVisualLayers();
     this.removeMotionListeners();
     this.scene.restart();
   }
 
   private returnToTitle() {
+    this.isPaused = false;
     this.destroyVisualLayers();
     this.removeMotionListeners();
     this.scene.start("TitleScene");
@@ -252,6 +270,10 @@ export class GameScene extends MyScene {
 
     //  Input Events
     this.cursors = this.input.keyboard.createCursorKeys();
+    const pKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
+    pKey.on("down", () => this.togglePause());
+    const escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    escKey.on("down", () => this.togglePause());
     this.wasdKeys = this.input.keyboard.addKeys({
       up: Phaser.Input.Keyboard.KeyCodes.W,
       down: Phaser.Input.Keyboard.KeyCodes.S,
@@ -261,7 +283,7 @@ export class GameScene extends MyScene {
 
     // Touch / pointer drag tilt fallback when device motion is unavailable or denied
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (this.gameOver) {
+      if (this.gameOver || this.isPaused) {
         return;
       }
       if (this.isAnyFoodDragging() || this.tryStartFoodDragAtPointer(pointer)) {
@@ -274,6 +296,9 @@ export class GameScene extends MyScene {
       this.touchDragOrigin = { x: pointer.x, y: pointer.y };
     });
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
+      if (this.gameOver || this.isPaused) {
+        return;
+      }
       const draggedFood = this.getDraggedFood();
       if (draggedFood) {
         this.resetTouchTilt();
@@ -497,8 +522,10 @@ export class GameScene extends MyScene {
   }
 
   update(_time?: number, delta: number = 16): void {
-    if (this.gameOver) {
-      this.applyBoardTilt(0, 0);
+    if (this.gameOver || this.isPaused) {
+      if (this.gameOver) {
+        this.applyBoardTilt(0, 0);
+      }
       return;
     }
 
@@ -637,6 +664,174 @@ export class GameScene extends MyScene {
     this.visualLayerParent.appendChild(button);
   }
 
+
+  private createPauseToggleButton() {
+    const button = document.createElement("button");
+    button.id = "pause-toggle";
+    button.type = "button";
+    Object.assign(button.style, {
+      position: "absolute",
+      zIndex: "10001",
+      padding: "0.25em 0.45em",
+      border: "0",
+      borderRadius: "0.4em",
+      color: "#201",
+      background: "rgba(255, 255, 255, 0.9)",
+      font: "bold 18px sans-serif",
+      lineHeight: "1.2",
+      cursor: "pointer",
+      pointerEvents: "auto"
+    });
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.togglePause();
+    });
+    this.pauseToggleButton = button;
+    this.refreshPauseToggleButton();
+    this.visualLayerParent.appendChild(button);
+  }
+
+  private refreshPauseToggleButton() {
+    if (!this.pauseToggleButton) {
+      return;
+    }
+    const paused = this.isPaused;
+    this.pauseToggleButton.textContent = paused ? "▶" : "⏸";
+    this.pauseToggleButton.setAttribute("aria-label", paused ? "Resume game" : "Pause game");
+    this.pauseToggleButton.setAttribute("aria-pressed", paused ? "true" : "false");
+  }
+
+  private createPauseOverlay() {
+    const overlay = document.createElement("div");
+    overlay.id = "pause-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-labelledby", "pause-title");
+    overlay.setAttribute("aria-hidden", "true");
+    Object.assign(overlay.style, {
+      position: "absolute",
+      left: "0",
+      top: "0",
+      width: "100%",
+      height: "100%",
+      display: "none",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: "90",
+      background: "rgba(15, 32, 12, 0.65)",
+      color: "#172312",
+      fontFamily: "system-ui, sans-serif",
+      textAlign: "center",
+      pointerEvents: "auto",
+      boxSizing: "border-box",
+      padding: "8px"
+    });
+
+    const panel = document.createElement("div");
+    Object.assign(panel.style, {
+      width: "min(92%, 22em)",
+      maxHeight: "min(90%, 90vh)",
+      overflowY: "auto",
+      boxSizing: "border-box",
+      padding: "0.8em 1.2em",
+      borderRadius: "0.8em",
+      background: "#fffdf4",
+      boxShadow: "0 0.5em 1.5em rgba(0, 0, 0, 0.3)"
+    });
+
+    const title = document.createElement("h2");
+    title.id = "pause-title";
+    title.textContent = "Partida pausada";
+    Object.assign(title.style, { margin: "0 0 0.6em", fontSize: "1.3em" });
+
+    const actions = document.createElement("div");
+    Object.assign(actions.style, {
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: "0.5em"
+    });
+
+    const createButton = (id: string, label: string, background: string, onClick: () => void) => {
+      const button = document.createElement("button");
+      button.id = id;
+      button.type = "button";
+      button.textContent = label;
+      Object.assign(button.style, {
+        flex: "1 1 7em",
+        minHeight: "2.3em",
+        padding: "0.45em 0.7em",
+        border: "0",
+        borderRadius: "0.45em",
+        background,
+        color: "white",
+        font: "inherit",
+        fontSize: "0.9em",
+        fontWeight: "700",
+        cursor: "pointer",
+        whiteSpace: "nowrap"
+      });
+      button.addEventListener("click", onClick);
+      return button;
+    };
+
+    actions.append(
+      createButton("pause-resume", "Reanudar", "#26733a", () => this.togglePause(false)),
+      createButton("pause-restart", "Reiniciar", "#a25b12", () => {
+        this.togglePause(false);
+        this.restart();
+      }),
+      createButton("pause-home", "Inicio", "#4b5948", () => {
+        this.togglePause(false);
+        this.returnToTitle();
+      })
+    );
+
+    panel.append(title, actions);
+    overlay.appendChild(panel);
+    this.pauseOverlay = overlay;
+    this.visualLayerParent.appendChild(overlay);
+  }
+
+  togglePause(forceState?: boolean) {
+    if (this.gameOver) {
+      return;
+    }
+    const nextState = typeof forceState === "boolean" ? forceState : togglePauseState(this.isPaused, this.gameOver);
+    if (this.isPaused === nextState) {
+      return;
+    }
+    this.isPaused = nextState;
+
+    if (this.isPaused) {
+      this.physics.pause();
+      this.anims.pauseAll();
+      this.time.paused = true;
+      this.audio.pauseMusic();
+      this.audio.play(AUDIO_KEYS.uiToggle);
+      this.stopAllFoodDragging();
+      this.resetTouchTilt();
+      if (this.pauseOverlay) {
+        this.pauseOverlay.style.display = "flex";
+        this.pauseOverlay.setAttribute("aria-hidden", "false");
+        this.pauseOverlay.querySelector("button")?.focus();
+      }
+    } else {
+      this.physics.resume();
+      this.anims.resumeAll();
+      this.time.paused = false;
+      this.audio.startMusic();
+      this.audio.play(AUDIO_KEYS.uiToggle);
+      if (this.pauseOverlay) {
+        this.pauseOverlay.style.display = "none";
+        this.pauseOverlay.setAttribute("aria-hidden", "true");
+      }
+    }
+    this.refreshPauseToggleButton();
+  }
+
   private refreshSoundToggleButton() {
     if (!this.soundToggleButton) {
       return;
@@ -688,7 +883,9 @@ export class GameScene extends MyScene {
     this.hudOverlay.append(this.scoreLabel, this.highScoreLabel);
     this.visualLayerParent.appendChild(this.hudOverlay);
     this.createGameOverOverlay();
+    this.createPauseOverlay();
     this.createSoundToggleButton();
+    this.createPauseToggleButton();
     this.createFullscreenToggleButton();
     this.createFullscreenPromptOverlay();
     this.createRotatePromptOverlay();
@@ -984,8 +1181,21 @@ export class GameScene extends MyScene {
       this.fullscreenPromptOverlay.style.transform = "translateX(-50%)";
       this.fullscreenPromptOverlay.style.top = `${Math.max(6, layout.top + 6)}px`;
     }
+    if (this.pauseOverlay) {
+      this.pauseOverlay.style.left = "0px";
+      this.pauseOverlay.style.top = "0px";
+      this.pauseOverlay.style.width = "100%";
+      this.pauseOverlay.style.height = "100%";
+      this.pauseOverlay.style.fontSize = `${modalFontSize}px`;
+    }
+    if (this.pauseToggleButton) {
+      this.pauseToggleButton.style.fontSize = `${18 * layout.scaleX}px`;
+      this.pauseToggleButton.style.left = `${layout.left + layout.width - this.pauseToggleButton.offsetWidth - 8}px`;
+      this.pauseToggleButton.style.top = `${layout.top + 8}px`;
+    }
     if (this.sensorRecenterButton) {
-      this.sensorRecenterButton.style.left = `${layout.left + layout.width - this.sensorRecenterButton.offsetWidth - 8}px`;
+      const pauseOffset = this.pauseToggleButton ? this.pauseToggleButton.offsetWidth + 8 : 0;
+      this.sensorRecenterButton.style.left = `${layout.left + layout.width - this.sensorRecenterButton.offsetWidth - 8 - pauseOffset}px`;
       this.sensorRecenterButton.style.top = `${layout.top + 8}px`;
       this.sensorRecenterButton.style.right = "auto";
     }
@@ -1037,7 +1247,9 @@ export class GameScene extends MyScene {
       this.levelBanner,
       this.sensorRecenterButton,
       this.soundToggleButton,
+      this.pauseToggleButton,
       this.gameOverOverlay,
+      this.pauseOverlay,
       this.fullscreenToggleButton,
       this.fullscreenPromptOverlay
     ]) {
@@ -1274,6 +1486,10 @@ export class GameScene extends MyScene {
     this.sensorRecenterButton = null;
     this.soundToggleButton?.remove();
     this.soundToggleButton = null;
+    this.pauseToggleButton?.remove();
+    this.pauseToggleButton = null;
+    this.pauseOverlay?.remove();
+    this.pauseOverlay = null;
     this.fullscreenToggleButton?.remove();
     this.fullscreenToggleButton = null;
     this.fullscreenPromptOverlay?.remove();
@@ -1360,6 +1576,9 @@ export class GameScene extends MyScene {
     }
 
     this.refillFoods();
+    if (this.pauseToggleButton) {
+      this.pauseToggleButton.style.display = "block";
+    }
     this.syncAntsToLevel();
     this.syncCaterpillarsToLevel();
     this.updateLevelHud();

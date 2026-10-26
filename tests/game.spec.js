@@ -2376,3 +2376,106 @@ test("food destroy cleanly removes sprite from foods group without leaking", asy
   const afterCount = await page.evaluate(() => window.__gameSceneForTest.foods.getChildren().length);
   expect(afterCount).toBe(beforeCount - 1);
 });
+
+test("pause button toggles pause state, pauses physics and music, and shows pause overlay", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const pauseToggle = page.locator("#pause-toggle");
+  await expect(pauseToggle).toBeVisible();
+  await expect(pauseToggle).toHaveText("⏸");
+
+  const pauseOverlay = page.locator("#pause-overlay");
+  await expect(pauseOverlay).toBeHidden();
+
+  // 1. Click pause button
+  await pauseToggle.click();
+  await expect(pauseOverlay).toBeVisible();
+  await expect(pauseOverlay).toContainText("Partida pausada");
+  await expect(pauseToggle).toHaveText("▶");
+
+  const isPausedState = await page.evaluate(() => ({
+    isPaused: window.__gameSceneForTest.isPaused,
+    physicsPaused: window.__gameSceneForTest.physics.world.isPaused
+  }));
+  expect(isPausedState.isPaused).toBe(true);
+  expect(isPausedState.physicsPaused).toBe(true);
+
+  // 2. Click resume inside the overlay
+  await page.locator("#pause-resume").click();
+  await expect(pauseOverlay).toBeHidden();
+  await expect(pauseToggle).toHaveText("⏸");
+
+  const isResumedState = await page.evaluate(() => ({
+    isPaused: window.__gameSceneForTest.isPaused,
+    physicsPaused: window.__gameSceneForTest.physics.world.isPaused
+  }));
+  expect(isResumedState.isPaused).toBe(false);
+  expect(isResumedState.physicsPaused).toBe(false);
+
+  // 3. Toggle via keyboard 'P'
+  await page.keyboard.press("KeyP");
+  await expect(pauseOverlay).toBeVisible();
+  expect(await page.evaluate(() => window.__gameSceneForTest.isPaused)).toBe(true);
+
+  // Toggle back via keyboard 'P'
+  await page.keyboard.press("KeyP");
+  await expect(pauseOverlay).toBeHidden();
+  expect(await page.evaluate(() => window.__gameSceneForTest.isPaused)).toBe(false);
+
+  // 4. Toggle via 'Escape'
+  await page.keyboard.press("Escape");
+  await expect(pauseOverlay).toBeVisible();
+  expect(await page.evaluate(() => window.__gameSceneForTest.isPaused)).toBe(true);
+
+  // Click restart inside pause overlay
+  await page.locator("#pause-restart").click();
+  await waitForGameScene(page);
+  await expect(pauseOverlay).toBeHidden();
+  expect(await page.evaluate(() => window.__gameSceneForTest.isPaused)).toBe(false);
+
+  // 5. Click home inside pause overlay
+  await pauseToggle.click();
+  await expect(pauseOverlay).toBeVisible();
+  await page.locator("#pause-home").click();
+  await expect.poll(() => page.evaluate(() => Boolean(window.__titleSceneForTest?.sys.isActive()))).toBe(true);
+});
+
+test("pause overlay modal fits completely within screen bounds on short landscape (600x320)", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.setViewportSize({ width: 600, height: 320 });
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  await page.locator("#pause-toggle").click();
+  await expect(page.locator("#pause-overlay")).toBeVisible();
+
+  const pauseBounds = await page.evaluate(() => {
+    const panel = document.querySelector("#pause-overlay > div");
+    const resume = document.querySelector("#pause-resume");
+    const restart = document.querySelector("#pause-restart");
+    const home = document.querySelector("#pause-home");
+    const pRect = panel.getBoundingClientRect();
+    return {
+      panelTop: pRect.top,
+      panelBottom: pRect.bottom,
+      panelLeft: pRect.left,
+      panelRight: pRect.right,
+      resumeBottom: resume.getBoundingClientRect().bottom,
+      restartBottom: restart.getBoundingClientRect().bottom,
+      homeBottom: home.getBoundingClientRect().bottom,
+      windowWidth: window.innerWidth,
+      windowHeight: window.innerHeight
+    };
+  });
+  expect(pauseBounds.panelLeft).toBeGreaterThanOrEqual(0);
+  expect(pauseBounds.panelTop).toBeGreaterThanOrEqual(0);
+  expect(pauseBounds.panelRight).toBeLessThanOrEqual(pauseBounds.windowWidth);
+  expect(pauseBounds.panelBottom).toBeLessThanOrEqual(pauseBounds.windowHeight);
+  expect(pauseBounds.resumeBottom).toBeLessThanOrEqual(pauseBounds.windowHeight);
+  expect(pauseBounds.restartBottom).toBeLessThanOrEqual(pauseBounds.windowHeight);
+  expect(pauseBounds.homeBottom).toBeLessThanOrEqual(pauseBounds.windowHeight);
+});

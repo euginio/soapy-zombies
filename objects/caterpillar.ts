@@ -84,7 +84,7 @@ export class Caterpillar extends MySprite {
     }
 
     update(_time?: number, delta: number = 16) {
-        if (this.scene.gameOver || !this.isAlive || this.isClimbing) {
+        if (this.scene.gameOver || this.scene.isPaused || !this.isAlive || this.isClimbing) {
             return;
         }
 
