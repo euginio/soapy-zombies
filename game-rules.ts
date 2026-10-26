@@ -126,11 +126,20 @@ export function canFoodBeDragged(
   bodyEnabled = true,
   gameOver = false,
   dragEnabled = true,
-  isLevelTransitioning = false
+  isLevelTransitioning = false,
+  isLevelIntroActive = false
 ): boolean {
   // Food can only be picked up when active, not being eaten, not on drag cooldown, while live,
-  // not transitioning between levels, and when dragging is enabled for the level.
-  return bodyEnabled && !isBeingEaten && !isDragCooldown && !gameOver && dragEnabled && !isLevelTransitioning;
+  // not transitioning between levels, not waiting in level intro modal, and when dragging is enabled for the level.
+  return (
+    bodyEnabled &&
+    !isBeingEaten &&
+    !isDragCooldown &&
+    !gameOver &&
+    dragEnabled &&
+    !isLevelTransitioning &&
+    !isLevelIntroActive
+  );
 }
 
 export function canFoodBeEaten(
@@ -994,13 +1003,42 @@ export function formatPauseMenuSummary(
   };
 }
 
-export function canPauseGame(gameOver: boolean, isLevelCompleteActive = false): boolean {
-  return !gameOver && !isLevelCompleteActive;
+export function canPauseGame(
+  gameOver: boolean,
+  isLevelCompleteActive = false,
+  isLevelIntroActive = false
+): boolean {
+  return !gameOver && !isLevelCompleteActive && !isLevelIntroActive;
 }
 
-export function togglePauseState(currentPaused: boolean, gameOver: boolean, isLevelCompleteActive = false): boolean {
-  if (!canPauseGame(gameOver, isLevelCompleteActive)) {
+export function togglePauseState(
+  currentPaused: boolean,
+  gameOver: boolean,
+  isLevelCompleteActive = false,
+  isLevelIntroActive = false
+): boolean {
+  if (!canPauseGame(gameOver, isLevelCompleteActive, isLevelIntroActive)) {
     return false;
   }
   return !currentPaused;
+}
+
+export interface LevelIntroModalInfo {
+  title: string;
+  subtitle: string;
+  instruction: string;
+  confirmLabel: string;
+}
+
+export function formatLevelIntroModal(config: LevelConfig): LevelIntroModalInfo {
+  return {
+    title: config.title,
+    subtitle: config.subtitle,
+    instruction: config.instruction,
+    confirmLabel: "¡A jugar!"
+  };
+}
+
+export function canStartLevelGameplay(isLevelIntroActive: boolean, gameOver: boolean): boolean {
+  return !isLevelIntroActive && !gameOver;
 }

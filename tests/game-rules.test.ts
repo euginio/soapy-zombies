@@ -56,7 +56,9 @@ import {
   togglePauseState,
   formatPauseMenuSummary,
   formatLevelCompleteSummary,
-  canShowLevelComplete
+  canShowLevelComplete,
+  canStartLevelGameplay,
+  formatLevelIntroModal
 } from "../game-rules";
 import { ScreenWakeLock, WakeLockSentinelLike } from "../services/wake-lock";
 
@@ -1004,5 +1006,28 @@ describe("level complete screen rules", () => {
     assert.equal(canShowLevelComplete(true, false), false);
     assert.equal(canShowLevelComplete(false, true), false);
     assert.equal(canShowLevelComplete(true, true), false);
+  });
+});
+describe("level intro confirmation modal rules", () => {
+  it("formats level intro modal data with title, subtitle, instructions, and confirmation button label", () => {
+    const lvl1 = getLevelConfig(1);
+    const modal1 = formatLevelIntroModal(lvl1);
+    assert.equal(modal1.title, "Nivel 1");
+    assert.equal(modal1.subtitle, "¡Sacude la fruta!");
+    assert.equal(modal1.instruction, "¡Arrastra y sacude las frutas para soltar las hormigas!");
+    assert.equal(modal1.confirmLabel, "¡A jugar!");
+
+    const lvl2 = getLevelConfig(2);
+    const modal2 = formatLevelIntroModal(lvl2);
+    assert.equal(modal2.title, "Nivel 2");
+    assert.equal(modal2.subtitle, "¡Defiende la comida!");
+    assert.equal(modal2.confirmLabel, "¡A jugar!");
+  });
+
+  it("evaluates whether level gameplay can begin", () => {
+    assert.equal(canStartLevelGameplay(true, false), false);
+    assert.equal(canStartLevelGameplay(false, true), false);
+    assert.equal(canStartLevelGameplay(true, true), false);
+    assert.equal(canStartLevelGameplay(false, false), true);
   });
 });

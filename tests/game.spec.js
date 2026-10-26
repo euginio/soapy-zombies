@@ -1028,6 +1028,8 @@ test("food can be dragged for up to 3 seconds, cannot be eaten while dragging, a
   await page.goto("/");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
+  await page.locator("#level-banner-confirm").click();
+  await expect(page.locator("#level-banner")).toBeHidden();
 
   // Freeze living bugs so they do not collide with test foods while dragging is evaluated
   await page.evaluate(() => {
@@ -1296,6 +1298,8 @@ test("Vite dev server supports PC mouse food dragging and window release", async
   await page.goto(DEVELOPMENT_URL);
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
+  await page.locator("#level-banner-confirm").click();
+  await expect(page.locator("#level-banner")).toBeHidden();
 
   const canvasBox = await page.locator("#tilting-board").boundingBox();
   expect(canvasBox).toBeTruthy();
@@ -1949,6 +1953,12 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(initialLevelState.hudText).toContain("SACUDIDAS: 0/10");
   expect(initialLevelState.bannerTitle).toBe("Nivel 1");
 
+  // Click confirmation button to start Level 1 gameplay
+  await expect(page.locator("#level-banner-confirm")).toBeVisible();
+  await page.locator("#level-banner-confirm").click();
+  await expect(page.locator("#level-banner")).toBeHidden();
+  expect(await page.evaluate(() => window.__gameSceneForTest.isLevelIntroActive)).toBe(false);
+
   // 2. In Level 1, tray tilt controls do NOT tilt the board
   await page.keyboard.down("ArrowRight");
   const tiltTransform = await page.locator("#tilting-board").evaluate((el) => el.style.transform);
@@ -2004,6 +2014,14 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   await page.locator("#level-complete-continue").click();
   await expect(levelCompleteOverlay).toBeHidden();
   expect(await page.evaluate(() => window.__gameSceneForTest.currentLevel)).toBe(2);
+
+  // Before starting Level 2, the confirmation modal is shown with Level 2 rules!
+  await expect(page.locator("#level-banner")).toBeVisible();
+  await expect(page.locator("#level-banner-title")).toHaveText("Nivel 2");
+  await expect(page.locator("#level-banner-confirm")).toBeVisible();
+  await page.locator("#level-banner-confirm").click();
+  await expect(page.locator("#level-banner")).toBeHidden();
+  expect(await page.evaluate(() => window.__gameSceneForTest.isLevelIntroActive)).toBe(false);
 
   // 5. Level 2 has survive_time goal and tilt disabled
   const level2State = await page.evaluate(() => {
@@ -2390,6 +2408,8 @@ test("pause button toggles pause state, pauses physics and music, and shows paus
   await page.goto("/");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
+  await page.locator("#level-banner-confirm").click();
+  await expect(page.locator("#level-banner")).toBeHidden();
 
   const pauseToggle = page.locator("#pause-toggle");
   await expect(pauseToggle).toBeVisible();
@@ -2452,6 +2472,8 @@ test("pause button toggles pause state, pauses physics and music, and shows paus
   await waitForGameScene(page);
   await expect(pauseOverlay).toBeHidden();
   expect(await page.evaluate(() => window.__gameSceneForTest.isPaused)).toBe(false);
+  await page.locator("#level-banner-confirm").click();
+  await expect(page.locator("#level-banner")).toBeHidden();
 
   // Test restart game inside pause overlay
   await pauseToggle.click();
@@ -2460,6 +2482,8 @@ test("pause button toggles pause state, pauses physics and music, and shows paus
   await waitForGameScene(page);
   await expect(pauseOverlay).toBeHidden();
   expect(await page.evaluate(() => window.__gameSceneForTest.score)).toBe(0);
+  await page.locator("#level-banner-confirm").click();
+  await expect(page.locator("#level-banner")).toBeHidden();
 
   // 5. Click home inside pause overlay
   await pauseToggle.click();
@@ -2474,6 +2498,8 @@ test("pause overlay modal fits completely within screen bounds on short landscap
   await page.goto("/");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
+  await page.locator("#level-banner-confirm").click();
+  await expect(page.locator("#level-banner")).toBeHidden();
 
   await page.locator("#pause-toggle").click();
   await expect(page.locator("#pause-overlay")).toBeVisible();
@@ -2517,6 +2543,8 @@ test("level complete overlay displays when level goal is met, pauses physics, hi
   await page.goto("/?level=1");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
+  await page.locator("#level-banner-confirm").click();
+  await expect(page.locator("#level-banner")).toBeHidden();
 
   const pauseToggle = page.locator("#pause-toggle");
   await expect(pauseToggle).toBeVisible();
@@ -2546,6 +2574,13 @@ test("level complete overlay displays when level goal is met, pauses physics, hi
   await page.keyboard.press("Enter");
   await expect(levelCompleteOverlay).toBeHidden();
   expect(await page.evaluate(() => window.__gameSceneForTest.currentLevel)).toBe(2);
+
+  // Level 2 intro modal displays before level 2 starts with confirmation button
+  await expect(page.locator("#level-banner")).toBeVisible();
+  await expect(page.locator("#level-banner-title")).toHaveText("Nivel 2");
+  await expect(page.locator("#level-banner-confirm")).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#level-banner")).toBeHidden();
 
   // Physics resumes and pause button reappears
   expect(await page.evaluate(() => window.__gameSceneForTest.physics.world.isPaused)).toBe(false);
@@ -2588,4 +2623,54 @@ test("level complete overlay modal fits completely within screen bounds on short
   expect(bounds.panelRight).toBeLessThanOrEqual(bounds.windowWidth);
   expect(bounds.panelBottom).toBeLessThanOrEqual(bounds.windowHeight);
   expect(bounds.btnBottom).toBeLessThanOrEqual(bounds.windowHeight);
+});
+
+test("level intro modal displays before each level with confirmation button to read rules, pauses gameplay until confirmed", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/?level=1");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const banner = page.locator("#level-banner");
+  const confirmBtn = page.locator("#level-banner-confirm");
+  const title = page.locator("#level-banner-title");
+  const instruction = page.locator("#level-banner-instruction");
+
+  // 1. Intro modal is visible on start with level rules and confirmation button
+  await expect(banner).toBeVisible();
+  await expect(confirmBtn).toBeVisible();
+  await expect(confirmBtn).toHaveText("¡A jugar!");
+  await expect(title).toHaveText("Nivel 1");
+  await expect(instruction).toContainText("frutas");
+
+  // 2. Physics is paused while reading the rules
+  const isPhysicsPaused = await page.evaluate(() => window.__gameSceneForTest.physics.world.isPaused);
+  const isIntroActive = await page.evaluate(() => window.__gameSceneForTest.isLevelIntroActive);
+  expect(isPhysicsPaused).toBe(true);
+  expect(isIntroActive).toBe(true);
+
+  // 3. Confirming begins Level 1 gameplay and resumes physics
+  await confirmBtn.click();
+  await expect(banner).toBeHidden();
+  const isRunning = await page.evaluate(() => ({
+    introActive: window.__gameSceneForTest.isLevelIntroActive,
+    physicsPaused: window.__gameSceneForTest.physics.world.isPaused
+  }));
+  expect(isRunning.introActive).toBe(false);
+  expect(isRunning.physicsPaused).toBe(false);
+
+  // 4. Advancing to Level 2 brings up Level 2 rules modal with confirmation button
+  await page.evaluate(() => window.__gameSceneForTest.completeLevel());
+  await page.locator("#level-complete-continue").click();
+
+  await expect(banner).toBeVisible();
+  await expect(title).toHaveText("Nivel 2");
+  await expect(confirmBtn).toBeVisible();
+  expect(await page.evaluate(() => window.__gameSceneForTest.isLevelIntroActive)).toBe(true);
+
+  // 5. Pressing Enter confirms and begins Level 2
+  await page.keyboard.press("Enter");
+  await expect(banner).toBeHidden();
+  expect(await page.evaluate(() => window.__gameSceneForTest.isLevelIntroActive)).toBe(false);
+  expect(await page.evaluate(() => window.__gameSceneForTest.physics.world.isPaused)).toBe(false);
 });

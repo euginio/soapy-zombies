@@ -89,7 +89,7 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
     `SceneManager.start` inside the tests).
   - DOM ids `#tilting-board`, `#stationary-hud`, `#high-score-label`, `#game-over-overlay`,
     `#game-over-restart`, `#game-over-home`, `#recenter-device-tilt`, `#sound-toggle`,
-    `#fullscreen-toggle`, `#fullscreen-prompt-overlay`, `#pause-toggle`, `#pause-overlay`, `#pause-resume`, `#pause-restart`, `#pause-restart-game`, `#pause-sound`, `#pause-home`, `#level-complete-overlay`, `#level-complete-continue`.
+    `#fullscreen-toggle`, `#fullscreen-prompt-overlay`, `#pause-toggle`, `#pause-overlay`, `#pause-resume`, `#pause-restart`, `#pause-restart-game`, `#pause-sound`, `#pause-home`, `#level-complete-overlay`, `#level-complete-continue`, `#level-banner-confirm`.
   - The `highScore` localStorage key.
 - UI text is in Spanish (game-over overlay, pause menu, level complete overlay, banners, HUD,
   instructions, buttons). Keep all UI messages in Spanish.

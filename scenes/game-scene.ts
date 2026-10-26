@@ -108,6 +108,8 @@ export class GameScene extends MyScene {
   private levelBannerTitle: HTMLDivElement | null = null;
   private levelBannerSubtitle: HTMLDivElement | null = null;
   private levelBannerInstruction: HTMLDivElement | null = null;
+  private levelBannerConfirmButton: HTMLButtonElement | null = null;
+  isLevelIntroActive: boolean = false;
   private levelBannerTimeout: any = null;
   private levelBannerFadeTimeout: any = null;
   private finalLevelValue: HTMLSpanElement | null = null;
@@ -189,6 +191,7 @@ export class GameScene extends MyScene {
     }
     // Set this first so later collisions or updates cannot process the ending twice.
     this.gameOver = true;
+    this.hideLevelBanner();
     if (this.isPaused) {
       this.isPaused = false;
       if (this.pauseOverlay) {
@@ -292,12 +295,16 @@ export class GameScene extends MyScene {
     enterKey.on("down", () => {
       if (this.isLevelCompleteActive) {
         this.continueToNextLevel();
+      } else if (this.isLevelIntroActive) {
+        this.confirmLevelStart();
       }
     });
     const spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     spaceKey.on("down", () => {
       if (this.isLevelCompleteActive) {
         this.continueToNextLevel();
+      } else if (this.isLevelIntroActive) {
+        this.confirmLevelStart();
       }
     });
     this.wasdKeys = this.input.keyboard.addKeys({
@@ -309,7 +316,7 @@ export class GameScene extends MyScene {
 
     // Touch / pointer drag tilt fallback when device motion is unavailable or denied
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (this.gameOver || this.isPaused) {
+      if (this.gameOver || this.isPaused || this.isLevelIntroActive) {
         return;
       }
       if (this.isAnyFoodDragging() || this.tryStartFoodDragAtPointer(pointer)) {
@@ -322,7 +329,7 @@ export class GameScene extends MyScene {
       this.touchDragOrigin = { x: pointer.x, y: pointer.y };
     });
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
-      if (this.gameOver || this.isPaused) {
+      if (this.gameOver || this.isPaused || this.isLevelIntroActive) {
         return;
       }
       const draggedFood = this.getDraggedFood();
@@ -548,8 +555,8 @@ export class GameScene extends MyScene {
   }
 
   update(_time?: number, delta: number = 16): void {
-    if (this.gameOver || this.isPaused || this.isLevelCompleteActive) {
-      if (this.gameOver || this.isLevelCompleteActive) {
+    if (this.gameOver || this.isPaused || this.isLevelCompleteActive || this.isLevelIntroActive) {
+      if (this.gameOver || this.isLevelCompleteActive || this.isLevelIntroActive) {
         this.applyBoardTilt(0, 0);
       }
       return;
@@ -898,7 +905,7 @@ export class GameScene extends MyScene {
   }
 
   togglePause(forceState?: boolean) {
-    if (this.gameOver || this.isLevelCompleteActive) {
+    if (this.gameOver || this.isLevelCompleteActive || this.isLevelIntroActive) {
       return;
     }
     const nextState = typeof forceState === "boolean" ? forceState : togglePauseState(this.isPaused, this.gameOver, this.isLevelCompleteActive);
@@ -1763,6 +1770,7 @@ export class GameScene extends MyScene {
     this.hudOverlay = null;
     this.levelHud = null;
     this.levelBanner = null;
+    this.levelBannerConfirmButton = null;
     this.gameOverOverlay = null;
     this.stationaryBackground = null;
     this.rotateOverlay = null;
@@ -1856,9 +1864,7 @@ export class GameScene extends MyScene {
     this.hideLevelCompleteOverlay();
     this.isLevelCompleteActive = false;
     this.isLevelTransitioning = false;
-    this.physics.resume();
-    this.anims.resumeAll();
-    this.time.paused = false;
+    this.isLevelIntroActive = false;
 
     this.currentLevel = levelNumber;
     this.currentLevelConfig = getLevelConfig(levelNumber);
@@ -1880,12 +1886,17 @@ export class GameScene extends MyScene {
     this.updateLevelHud();
 
     if (showIntroBanner) {
-      this.showLevelBanner(
+      this.showLevelIntroBanner(
         this.currentLevelConfig.title,
         this.currentLevelConfig.subtitle,
-        this.currentLevelConfig.instruction,
-        2500
+        this.currentLevelConfig.instruction
       );
+    } else {
+      this.isLevelIntroActive = false;
+      this.hideLevelBanner(true);
+      this.physics.resume();
+      this.anims.resumeAll();
+      this.time.paused = false;
     }
   }
 
@@ -1920,6 +1931,8 @@ export class GameScene extends MyScene {
   completeLevel() {
     this.isLevelTransitioning = true;
     this.isLevelCompleteActive = true;
+    this.isLevelIntroActive = false;
+    this.hideLevelBanner(true);
     const completedLevel = this.currentLevel;
     const nextLevel = completedLevel + 1;
     this.pendingNextLevel = nextLevel;
@@ -1948,7 +1961,31 @@ export class GameScene extends MyScene {
     this.objectiveLabel.textContent = formatLevelObjective(this.currentLevelConfig, this.levelProgress);
   }
 
-  showLevelBanner(title: string, subtitle: string, instruction: string, durationMs = 2000) {
+  showLevelIntroBanner(title: string, subtitle: string, instruction: string) {
+    this.clearLevelBannerTimer();
+    this.isLevelIntroActive = true;
+    this.physics.pause();
+    this.anims.pauseAll();
+    this.time.paused = true;
+    if (!this.levelBanner || !this.levelBannerTitle || !this.levelBannerSubtitle || !this.levelBannerInstruction) {
+      return;
+    }
+    if (this.gameCanvas) {
+      this.syncVisualLayerBounds(this.gameCanvas);
+    }
+    this.levelBannerTitle.textContent = title;
+    this.levelBannerSubtitle.textContent = subtitle;
+    this.levelBannerInstruction.textContent = instruction;
+    if (this.levelBannerConfirmButton) {
+      this.levelBannerConfirmButton.style.display = "inline-block";
+    }
+    this.levelBanner.style.pointerEvents = "auto";
+    this.levelBanner.style.display = "flex";
+    this.levelBanner.style.opacity = "1";
+    this.levelBannerConfirmButton?.focus();
+  }
+
+  showAnnouncementBanner(title: string, subtitle: string, instruction: string, durationMs = 1600) {
     this.clearLevelBannerTimer();
     if (!this.levelBanner || !this.levelBannerTitle || !this.levelBannerSubtitle || !this.levelBannerInstruction) {
       return;
@@ -1959,6 +1996,10 @@ export class GameScene extends MyScene {
     this.levelBannerTitle.textContent = title;
     this.levelBannerSubtitle.textContent = subtitle;
     this.levelBannerInstruction.textContent = instruction;
+    if (this.levelBannerConfirmButton) {
+      this.levelBannerConfirmButton.style.display = "none";
+    }
+    this.levelBanner.style.pointerEvents = "none";
     this.levelBanner.style.display = "flex";
     this.levelBanner.style.opacity = "1";
 
@@ -1969,16 +2010,46 @@ export class GameScene extends MyScene {
     }
   }
 
-  hideLevelBanner() {
+  showLevelBanner(title: string, subtitle: string, instruction: string, durationMs = 2000) {
+    if (durationMs <= 0) {
+      this.showLevelIntroBanner(title, subtitle, instruction);
+    } else {
+      this.showAnnouncementBanner(title, subtitle, instruction, durationMs);
+    }
+  }
+
+  confirmLevelStart() {
+    if (!this.isLevelIntroActive) {
+      return;
+    }
+    this.isLevelIntroActive = false;
+    this.audio.play(AUDIO_KEYS.uiTap);
+    this.hideLevelBanner(true);
+    this.physics.resume();
+    this.anims.resumeAll();
+    this.time.paused = false;
+  }
+
+  hideLevelBanner(immediate = false) {
     this.clearLevelBannerTimer();
     if (this.levelBanner) {
-      this.levelBanner.style.opacity = "0";
-      this.levelBannerFadeTimeout = setTimeout(() => {
-        this.levelBannerFadeTimeout = null;
-        if (this.levelBanner && this.levelBanner.style.opacity === "0") {
-          this.levelBanner.style.display = "none";
+      this.levelBanner.style.pointerEvents = "none";
+      if (immediate) {
+        if (this.levelBannerFadeTimeout) {
+          clearTimeout(this.levelBannerFadeTimeout);
+          this.levelBannerFadeTimeout = null;
         }
-      }, 300);
+        this.levelBanner.style.opacity = "0";
+        this.levelBanner.style.display = "none";
+      } else {
+        this.levelBanner.style.opacity = "0";
+        this.levelBannerFadeTimeout = setTimeout(() => {
+          this.levelBannerFadeTimeout = null;
+          if (this.levelBanner && this.levelBanner.style.opacity === "0") {
+            this.levelBanner.style.display = "none";
+          }
+        }, 300);
+      }
     }
   }
 
@@ -2159,8 +2230,32 @@ export class GameScene extends MyScene {
     instruction.style.color = "#e0e0e0";
     instruction.style.lineHeight = "1.25";
 
-    banner.append(title, subtitle, instruction);
+    const confirmBtn = document.createElement("button");
+    confirmBtn.id = "level-banner-confirm";
+    confirmBtn.type = "button";
+    confirmBtn.textContent = "¡A jugar!";
+    confirmBtn.setAttribute("aria-label", "Comenzar nivel");
+    Object.assign(confirmBtn.style, {
+      marginTop: "6px",
+      minHeight: "2.3em",
+      padding: "0.45em 1.4em",
+      border: "0",
+      borderRadius: "0.45em",
+      background: "#26733a",
+      color: "white",
+      font: "inherit",
+      fontSize: "0.92em",
+      fontWeight: "700",
+      cursor: "pointer",
+      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.25)"
+    });
+    confirmBtn.addEventListener("click", () => {
+      this.confirmLevelStart();
+    });
+
+    banner.append(title, subtitle, instruction, confirmBtn);
     this.levelBanner = banner;
+    this.levelBannerConfirmButton = confirmBtn;
     this.levelBannerTitle = title;
     this.levelBannerSubtitle = subtitle;
     this.levelBannerInstruction = instruction;
