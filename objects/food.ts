@@ -149,8 +149,10 @@ export class Food extends MySprite {
         );
         const trayCenter = { x: this.scene.width / 2, y: this.scene.height / 2 };
         const maxAttempts = 30;
+        const spawnWidth = trayB.width - margin * 2;
+        const spawnHeight = trayB.height - margin * 4;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
-            this.setRandomPosition(trayB.left+margin, trayB.top+margin*2, trayB.right-trayB.left-margin*2, trayB.bottom-margin*4);
+            this.setRandomPosition(trayB.left + margin, trayB.top + margin * 2, spawnWidth, spawnHeight);
             const overlapsExisting = existingFoods.some((other) =>
                 areFoodsOverlapping(this, other)
             );
@@ -183,16 +185,16 @@ export class Food extends MySprite {
         this.eatingBug = null;
         this.eatTween = null;
 
-        if (fromScene) {
-            super.destroy(fromScene);
-            return;
-        }
-
-        // Count food only when an active piece is eaten, not during scene cleanup.
-        if (this.body && this.body.enable) {
+        // Count food only when an active piece is eaten/stolen during gameplay, not during scene cleanup.
+        if (!fromScene && this.body && this.body.enable) {
             this.scene.destroyFood(this);
             this.disableBody(true, true);
         }
+
+        if (this.scene?.foods) {
+            this.scene.foods.remove(this, false, false);
+        }
+        super.destroy(fromScene);
     }
     stealFoodAndDestroy() {
         if (!this.active || !this.body) {
@@ -211,7 +213,7 @@ export class Food extends MySprite {
         this.destroy();
 
         carriers.forEach((ant) => {
-            ant.kill();
+            ant.stealSuccess();
         });
     }
 
@@ -518,7 +520,8 @@ export class Food extends MySprite {
                 this.isDragCooldown,
                 this.body?.enable ?? false,
                 Boolean(this.scene?.gameOver),
-                Boolean((this.scene as any)?.isDragEnabled ?? true)
+                Boolean((this.scene as any)?.isDragEnabled ?? true),
+                Boolean((this.scene as any)?.isLevelTransitioning)
             )
         ) {
             this.resetInputDragState(pointer);
@@ -527,15 +530,6 @@ export class Food extends MySprite {
         if (this.scene?.isAnyFoodDragging()) {
             this.resetInputDragState(pointer);
             return false;
-        }
-        if (this.isBeingEaten) {
-            this.isBeingEaten = false;
-            if (this.eatTween && !this.eatTween.isDestroyed()) {
-                this.eatTween.pause();
-            }
-            this.setAngle(0);
-            this.setScale(1.5);
-            this.eatingBug = null;
         }
         this.isBeingDragged = true;
         const now = pointer?.downTime ?? this.scene?.time?.now ?? Date.now();

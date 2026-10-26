@@ -91,6 +91,7 @@ export class GameScene extends MyScene {
   private levelBannerSubtitle: HTMLDivElement | null = null;
   private levelBannerInstruction: HTMLDivElement | null = null;
   private levelBannerTimeout: any = null;
+  private levelBannerFadeTimeout: any = null;
   private finalLevelValue: HTMLSpanElement | null = null;
   gravity: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 };
   
@@ -173,6 +174,9 @@ export class GameScene extends MyScene {
       this.saveHighScore(this.currentHighScore);
     }
     this.highScoreLabel.textContent = `HI ${this.currentHighScore}`;
+    if (this.finalLevelValue) {
+      this.finalLevelValue.textContent = this.currentLevel.toString();
+    }
     this.finalScoreValue.textContent = this.score.toString();
     this.finalHighScoreValue.textContent = this.currentHighScore.toString();
     this.gameOverOverlay!.style.display = "flex";
@@ -811,6 +815,13 @@ export class GameScene extends MyScene {
     title.textContent = "¡Fin de la partida!";
     Object.assign(title.style, { margin: "0 0 0.75em", fontSize: "1.45em" });
 
+    const levelP = document.createElement("p");
+    levelP.style.margin = "0.4em 0";
+    levelP.append("Nivel: ");
+    this.finalLevelValue = document.createElement("span");
+    this.finalLevelValue.id = "game-over-level";
+    levelP.appendChild(this.finalLevelValue);
+
     const score = document.createElement("p");
     score.style.margin = "0.4em 0";
     score.append("Puntaje: ");
@@ -858,7 +869,7 @@ export class GameScene extends MyScene {
       createButton("game-over-restart", "Volver a jugar", "#26733a", () => this.restart()),
       createButton("game-over-home", "Volver al inicio", "#4b5948", () => this.returnToTitle())
     );
-    panel.append(title, score, highScore, actions);
+    panel.append(title, levelP, score, highScore, actions);
     overlay.appendChild(panel);
     this.gameOverOverlay = overlay;
     this.visualLayerParent.appendChild(overlay);
@@ -1209,6 +1220,7 @@ export class GameScene extends MyScene {
 
   private destroyVisualLayers() {
     // A restarted scene reuses the canvas, so remove observers, transforms, and DOM layers first.
+    this.clearLevelBannerTimer();
     this.events.off(Phaser.Scenes.Events.POST_UPDATE, this.syncVisualLayerBoundsWhenNeeded, this);
     this.visualLayerResizeObserver?.disconnect();
     this.visualLayerResizeObserver = null;
@@ -1423,7 +1435,8 @@ export class GameScene extends MyScene {
     this.clearLevelBannerTimer();
     if (this.levelBanner) {
       this.levelBanner.style.opacity = "0";
-      setTimeout(() => {
+      this.levelBannerFadeTimeout = setTimeout(() => {
+        this.levelBannerFadeTimeout = null;
         if (this.levelBanner && this.levelBanner.style.opacity === "0") {
           this.levelBanner.style.display = "none";
         }
@@ -1435,6 +1448,10 @@ export class GameScene extends MyScene {
     if (this.levelBannerTimeout) {
       clearTimeout(this.levelBannerTimeout);
       this.levelBannerTimeout = null;
+    }
+    if (this.levelBannerFadeTimeout) {
+      clearTimeout(this.levelBannerFadeTimeout);
+      this.levelBannerFadeTimeout = null;
     }
   }
 

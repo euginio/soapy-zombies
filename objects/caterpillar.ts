@@ -26,6 +26,7 @@ export class Caterpillar extends MySprite {
     isClimbing: boolean = false;
     isTouchingTray: boolean = false;
     private inchCycle: number = 0;
+    private climbTimer: Phaser.Time.TimerEvent | null = null;
 
     constructor(scene: GameScene) {
         super(scene, 0, 0, 'caterpillar');
@@ -47,9 +48,14 @@ export class Caterpillar extends MySprite {
     }
 
     private climb() {
+        if (this.climbTimer) {
+            this.climbTimer.remove(false);
+            this.climbTimer = null;
+        }
         this.isClimbing = true;
-        this.scene.time.delayedCall(2000, () => {
-            if (this.scene && !this.scene.gameOver) {
+        this.climbTimer = this.scene.time.delayedCall(2000, () => {
+            this.climbTimer = null;
+            if (this.scene && !this.scene.gameOver && this.active && this.isAlive) {
                 this.isClimbing = false;
             }
         });
@@ -137,7 +143,7 @@ export class Caterpillar extends MySprite {
                 this.disableBody(false, true);
             },
             onComplete: () => {
-                if (this.scene && !this.scene.gameOver) {
+                if (this.scene && !this.scene.gameOver && this.active) {
                     this.init();
                 }
             }
@@ -147,6 +153,10 @@ export class Caterpillar extends MySprite {
     destroy(fromScene?: boolean) {
         if (this.scene?.tweens) {
             this.scene.tweens.killTweensOf(this);
+        }
+        if (this.climbTimer) {
+            this.climbTimer.remove(false);
+            this.climbTimer = null;
         }
         super.destroy(fromScene);
     }

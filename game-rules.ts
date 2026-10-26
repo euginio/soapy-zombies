@@ -125,10 +125,12 @@ export function canFoodBeDragged(
   isDragCooldown: boolean,
   bodyEnabled = true,
   gameOver = false,
-  dragEnabled = true
+  dragEnabled = true,
+  isLevelTransitioning = false
 ): boolean {
-  // Food can only be picked up when active, not being eaten, not on drag cooldown, while live, and when dragging is enabled for the level.
-  return bodyEnabled && !isBeingEaten && !isDragCooldown && !gameOver && dragEnabled;
+  // Food can only be picked up when active, not being eaten, not on drag cooldown, while live,
+  // not transitioning between levels, and when dragging is enabled for the level.
+  return bodyEnabled && !isBeingEaten && !isDragCooldown && !gameOver && dragEnabled && !isLevelTransitioning;
 }
 
 export function canFoodBeEaten(

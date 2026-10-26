@@ -2230,3 +2230,84 @@ test("modal boxes (level banner, level HUD, and game over overlay) remain within
   expect(gameOverPanelBounds.right).toBeLessThanOrEqual(gameOverPanelBounds.windowWidth);
   expect(gameOverPanelBounds.bottom).toBeLessThanOrEqual(gameOverPanelBounds.windowHeight);
 });
+
+test("game over overlay displays the reached level", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/?level=3");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    scene.foods.getChildren().slice().forEach((food) => food.destroy());
+  });
+
+  await expect(page.locator("#game-over-overlay")).toBeVisible();
+  const levelText = await page.locator("#game-over-level").textContent();
+  expect(levelText).toBe("3");
+});
+
+test("carrier ants stealing food does not award defeat score or level progress", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/?level=4");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const initialScore = await page.evaluate(() => window.__gameSceneForTest.score);
+  const initialProgress = await page.evaluate(() => window.__gameSceneForTest.levelProgress);
+
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren().find((f) => f.active && f.body?.enable);
+    const ant = scene.ants.getChildren().find((a) => a.active && a.isAlive);
+    if (food && ant) {
+      ant.stealFood(food);
+      food.stealFoodAndDestroy();
+    }
+  });
+
+  const finalScore = await page.evaluate(() => window.__gameSceneForTest.score);
+  const finalProgress = await page.evaluate(() => window.__gameSceneForTest.levelProgress);
+
+  expect(finalScore).toBe(initialScore);
+  expect(finalProgress).toBe(initialProgress);
+});
+
+test("food dragging is blocked while level transition banner is active", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/?level=1");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    scene.completeLevel();
+  });
+
+  const isTransitioning = await page.evaluate(() => window.__gameSceneForTest.isLevelTransitioning);
+  expect(isTransitioning).toBe(true);
+
+  const dragResult = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren().find((f) => f.active && f.body?.enable);
+    return food ? food.startDrag() : null;
+  });
+
+  expect(dragResult).toBe(false);
+});
+
+test("food destroy cleanly removes sprite from foods group without leaking", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const beforeCount = await page.evaluate(() => window.__gameSceneForTest.foods.getChildren().length);
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    food.destroy();
+  });
+  const afterCount = await page.evaluate(() => window.__gameSceneForTest.foods.getChildren().length);
+  expect(afterCount).toBe(beforeCount - 1);
+});

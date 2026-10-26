@@ -470,6 +470,8 @@ describe("food drag and interaction", () => {
     assert.equal(canFoodBeDragged(false, true, true, false), false);
     assert.equal(canFoodBeDragged(false, false, false, false), false);
     assert.equal(canFoodBeDragged(false, false, true, true), false);
+    assert.equal(canFoodBeDragged(false, false, true, false, true, true), false);
+    assert.equal(canFoodBeDragged(false, false, true, false, true, false), true);
   });
 
   it("determines whether food can be eaten based on dragged and eaten states", () => {

@@ -29,6 +29,7 @@ export class Ant extends MySprite {
     isAlive: boolean;
     isClimbing: boolean;
     isTouchingTray: boolean;
+    private climbTimer: Phaser.Time.TimerEvent | null = null;
 
     constructor(scene: GameScene) {
         super(scene, 0, 0, 'ant_sheet');
@@ -55,6 +56,18 @@ export class Ant extends MySprite {
 
         this.climb();
         // this.setScale(1)
+    }
+
+    stealSuccess() {
+        this.carriedFood = null;
+        if (this.scene && !this.scene.gameOver && this.active) {
+            this.isAlive = true;
+            this.isClimbing = false;
+            if (this.body) {
+                this.setImmovable(false);
+            }
+            this.init();
+        }
     }
 
     stealFood(food: Food): boolean {
@@ -141,9 +154,14 @@ export class Ant extends MySprite {
     }
 
     private climb() {
+        if (this.climbTimer) {
+            this.climbTimer.remove(false);
+            this.climbTimer = null;
+        }
         this.isClimbing = true;
-        this.scene.time.delayedCall(1500, () => {
-            if (this.scene && !this.scene.gameOver) {
+        this.climbTimer = this.scene.time.delayedCall(1500, () => {
+            this.climbTimer = null;
+            if (this.scene && !this.scene.gameOver && this.active && this.isAlive) {
                 this.isClimbing = false;
             }
         });
@@ -184,6 +202,10 @@ export class Ant extends MySprite {
         if (this.carriedFood) {
             if (!this.carriedFood.active || this.carriedFood.isBeingEaten) {
                 this.dropFood(false);
+                return;
+            }
+            // Do not steal or destroy food while player is actively dragging it
+            if (this.carriedFood.isBeingDragged) {
                 return;
             }
             const trayOverlapBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
@@ -268,7 +290,7 @@ export class Ant extends MySprite {
                 this.disableBody(false, true);
             },
             onComplete: () => {
-                if (this.scene && !this.scene.gameOver) {
+                if (this.scene && !this.scene.gameOver && this.active) {
                     this.init();
                 }
             }
@@ -276,12 +298,16 @@ export class Ant extends MySprite {
     }
 
     destroy(fromScene?: boolean) {
+        if (this.scene?.tweens) {
+            this.scene.tweens.killTweensOf(this);
+        }
+        if (this.climbTimer) {
+            this.climbTimer.remove(false);
+            this.climbTimer = null;
+        }
         if (this.carriedFood) {
             this.carriedFood.removeCarrier(this);
             this.carriedFood = null;
-        }
-        if (this.scene?.tweens) {
-            this.scene.tweens.killTweensOf(this);
         }
         super.destroy(fromScene);
     }
