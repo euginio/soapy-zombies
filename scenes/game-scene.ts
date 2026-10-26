@@ -150,7 +150,7 @@ export class GameScene extends MyScene {
   }
 
   destroyFood(food: Food) {
-    if (this.gameOver) {
+    if (this.gameOver || this.isLevelTransitioning) {
       return;
     }
     const outcome = resolveFoodLoss(this.foodCount);
@@ -478,14 +478,14 @@ export class GameScene extends MyScene {
   }
 
   antHitFood(ant: Ant, food: Food) {
-    if (food.isBeingDragged || food.isBeingEaten || food.carrierCount >= MAX_CARRIER_ANTS) {
+    if (this.isLevelTransitioning || food.isBeingDragged || food.isBeingEaten || food.carrierCount >= MAX_CARRIER_ANTS) {
       return;
     }
     ant.stealFood(food);
   }
 
   eatFood(ant: Ant | Caterpillar, food: Food) {
-    if (food.isBeingDragged || food.isBeingCarried) {
+    if (this.isLevelTransitioning || food.isBeingDragged || food.isBeingCarried) {
       return;
     }
     food.beingEat(ant);
@@ -797,6 +797,8 @@ export class GameScene extends MyScene {
     const panel = document.createElement("div");
     Object.assign(panel.style, {
       width: "min(90%, 22em)",
+      maxHeight: "90%",
+      overflowY: "auto",
       boxSizing: "border-box",
       padding: "1.15em",
       borderRadius: "0.8em",
@@ -891,11 +893,28 @@ export class GameScene extends MyScene {
       width: `${layout.width}px`,
       height: `${layout.height}px`
     });
+    const modalScale = Math.min(layout.scaleX, layout.scaleY);
+    const modalFontSize = Math.max(11, Math.min(18, 15 * modalScale));
     this.gameOverOverlay!.style.left = `${layout.left}px`;
     this.gameOverOverlay!.style.top = `${layout.top}px`;
     this.gameOverOverlay!.style.width = `${layout.width}px`;
     this.gameOverOverlay!.style.height = `${layout.height}px`;
-    this.gameOverOverlay!.style.fontSize = `${16 * layout.scaleX}px`;
+    this.gameOverOverlay!.style.fontSize = `${modalFontSize}px`;
+
+    if (this.levelHud) {
+      this.levelHud.style.left = `${layout.left + layout.width / 2}px`;
+      this.levelHud.style.top = `${layout.top + Math.max(6, 12 * layout.scaleY)}px`;
+      this.levelHud.style.fontSize = `${Math.max(11, Math.min(18, 15 * modalScale))}px`;
+      this.levelHud.style.maxWidth = `${layout.width * 0.9}px`;
+    }
+
+    if (this.levelBanner) {
+      this.levelBanner.style.left = `${layout.left + layout.width / 2}px`;
+      this.levelBanner.style.top = `${layout.top + layout.height / 2}px`;
+      this.levelBanner.style.fontSize = `${Math.max(11, Math.min(18, 15 * modalScale))}px`;
+      this.levelBanner.style.maxWidth = `min(90%, ${layout.width * 0.88}px)`;
+      this.levelBanner.style.maxHeight = `min(85%, ${layout.height * 0.85}px)`;
+    }
     const grass = this.textures.get("grass").getSourceImage() as HTMLImageElement;
     const overscanX = 60 * layout.scaleX;
     const overscanY = 60 * layout.scaleY;
@@ -939,13 +958,21 @@ export class GameScene extends MyScene {
       this.sensorRecenterButton.style.right = "auto";
     }
     if (this.rotateOverlay) {
-      this.rotateOverlay.style.left = `${layout.left}px`;
-      this.rotateOverlay.style.top = `${layout.top}px`;
-      this.rotateOverlay.style.width = `${layout.width}px`;
-      this.rotateOverlay.style.height = `${layout.height}px`;
       const isMobile = navigator.maxTouchPoints > 0 || Boolean((navigator as any).userAgentData?.mobile);
       const isPortrait = window.innerHeight > window.innerWidth;
-      this.rotateOverlay.style.display = isMobile && isPortrait ? "flex" : "none";
+      if (isMobile && isPortrait) {
+        this.rotateOverlay.style.left = "0px";
+        this.rotateOverlay.style.top = "0px";
+        this.rotateOverlay.style.width = "100%";
+        this.rotateOverlay.style.height = "100%";
+        this.rotateOverlay.style.display = "flex";
+      } else {
+        this.rotateOverlay.style.left = `${layout.left}px`;
+        this.rotateOverlay.style.top = `${layout.top}px`;
+        this.rotateOverlay.style.width = `${layout.width}px`;
+        this.rotateOverlay.style.height = `${layout.height}px`;
+        this.rotateOverlay.style.display = "none";
+      }
     }
     this.scale.updateBounds();
     if (this.scale.canvasBounds.width > 0 && this.scale.canvasBounds.height > 0) {
@@ -972,7 +999,16 @@ export class GameScene extends MyScene {
     }
     this.visualLayerParent = parent;
 
-    for (const layer of [this.hudOverlay, this.sensorRecenterButton, this.soundToggleButton, this.gameOverOverlay, this.fullscreenToggleButton, this.fullscreenPromptOverlay]) {
+    for (const layer of [
+      this.hudOverlay,
+      this.levelHud,
+      this.levelBanner,
+      this.sensorRecenterButton,
+      this.soundToggleButton,
+      this.gameOverOverlay,
+      this.fullscreenToggleButton,
+      this.fullscreenPromptOverlay
+    ]) {
       if (layer && layer.parentElement !== parent) {
         parent.appendChild(layer);
       }
@@ -1185,10 +1221,14 @@ export class GameScene extends MyScene {
       this.originalScaleUpdateCenter = null;
     }
     this.hudOverlay?.remove();
+    this.levelHud?.remove();
+    this.levelBanner?.remove();
     this.gameOverOverlay?.remove();
     this.stationaryBackground?.remove();
     this.rotateOverlay?.remove();
     this.hudOverlay = null;
+    this.levelHud = null;
+    this.levelBanner = null;
     this.gameOverOverlay = null;
     this.stationaryBackground = null;
     this.rotateOverlay = null;
@@ -1333,6 +1373,7 @@ export class GameScene extends MyScene {
     const nextConfig = getLevelConfig(nextLevel);
 
     this.audio.play(AUDIO_KEYS.antFall);
+    this.foods?.getChildren().forEach((f: any) => (f as Food).releaseAllCarriers?.(false));
 
     this.showLevelBanner(
       `Level ${completedLevel} Complete!`,
@@ -1361,6 +1402,9 @@ export class GameScene extends MyScene {
     this.clearLevelBannerTimer();
     if (!this.levelBanner || !this.levelBannerTitle || !this.levelBannerSubtitle || !this.levelBannerInstruction) {
       return;
+    }
+    if (this.gameCanvas) {
+      this.syncVisualLayerBounds(this.gameCanvas);
     }
     this.levelBannerTitle.textContent = title;
     this.levelBannerSubtitle.textContent = subtitle;
@@ -1481,6 +1525,8 @@ export class GameScene extends MyScene {
     hud.id = "level-hud";
     Object.assign(hud.style, {
       position: "absolute",
+      left: "50%",
+      top: "12px",
       zIndex: "15",
       pointerEvents: "none",
       display: "flex",
@@ -1491,6 +1537,8 @@ export class GameScene extends MyScene {
       fontWeight: "bold",
       color: "#201",
       whiteSpace: "pre",
+      maxWidth: "90%",
+      boxSizing: "border-box",
       transform: "translateX(-50%)"
     });
 
@@ -1510,6 +1558,8 @@ export class GameScene extends MyScene {
     banner.id = "level-banner";
     Object.assign(banner.style, {
       position: "absolute",
+      left: "50%",
+      top: "50%",
       display: "none",
       flexDirection: "column",
       alignItems: "center",
@@ -1524,7 +1574,11 @@ export class GameScene extends MyScene {
       boxShadow: "0 6px 22px rgba(0, 0, 0, 0.5)",
       color: "#fff",
       fontFamily: "Courier, monospace",
-      padding: "14px 26px",
+      padding: "12px 20px",
+      maxWidth: "90%",
+      maxHeight: "85%",
+      boxSizing: "border-box",
+      overflowY: "auto",
       transform: "translate(-50%, -50%)"
     });
 
