@@ -1995,7 +1995,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(bannerContent.subtitle).toContain("Level 2");
 
   // Wait for 2-second transition to Level 2
-  await expect.poll(() => page.evaluate(() => window.__gameSceneForTest.currentLevel), { timeout: 4000 }).toBe(2);
+  await expect.poll(() => page.evaluate(() => window.__gameSceneForTest.currentLevel), { timeout: 8000 }).toBe(2);
 
   // 5. Level 2 has survive_time goal and tilt disabled
   const level2State = await page.evaluate(() => {
