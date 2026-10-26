@@ -901,16 +901,16 @@ describe("level progression rules", () => {
 
   it("formats level objective HUD strings accurately", () => {
     const lvl1 = getLevelConfig(1);
-    assert.equal(formatLevelObjective(lvl1, 2), "SHAKES: 2/10");
+    assert.equal(formatLevelObjective(lvl1, 2), "SACUDIDAS: 2/10");
 
     const lvl2 = getLevelConfig(2);
-    assert.equal(formatLevelObjective(lvl2, 6.2), "SURVIVE: 39s");
+    assert.equal(formatLevelObjective(lvl2, 6.2), "SOBREVIVE: 39s");
 
     const lvl3 = getLevelConfig(3);
-    assert.equal(formatLevelObjective(lvl3, 5), "ANTS: 5/15");
+    assert.equal(formatLevelObjective(lvl3, 5), "HORMIGAS: 5/15");
 
     const lvl5 = getLevelConfig(5);
-    assert.equal(formatLevelObjective(lvl5, 4), "ANTS: 4/25");
+    assert.equal(formatLevelObjective(lvl5, 4), "HORMIGAS: 4/25");
   });
 
   it("determines whether the final ant wave is triggered near the end of the level", () => {
@@ -972,15 +972,15 @@ describe("pause rules", () => {
   it("formats pause menu summary with level info, scores, and mute state", () => {
     const summary = formatPauseMenuSummary(2, 18, 50, false);
     assert.equal(summary.levelNumber, 2);
-    assert.equal(summary.levelTitle, "Level 2");
-    assert.equal(summary.levelSubtitle, "Defend the Food!");
+    assert.equal(summary.levelTitle, "Nivel 2");
+    assert.equal(summary.levelSubtitle, "¡Defiende la comida!");
     assert.equal(summary.score, 18);
     assert.equal(summary.highScore, 50);
     assert.equal(summary.isMuted, false);
 
     const mutedSummary = formatPauseMenuSummary(3, 0, 10, true);
     assert.equal(mutedSummary.isMuted, true);
-    assert.equal(mutedSummary.levelTitle, "Level 3");
+    assert.equal(mutedSummary.levelTitle, "Nivel 3");
   });
 });
 
@@ -989,14 +989,14 @@ describe("level complete screen rules", () => {
     const summary1 = formatLevelCompleteSummary(1);
     assert.equal(summary1.completedLevel, 1);
     assert.equal(summary1.nextLevel, 2);
-    assert.equal(summary1.nextTitle, "Level 2");
-    assert.equal(summary1.nextSubtitle, "Defend the Food!");
-    assert.equal(summary1.nextInstruction, "Drag fruits away from approaching ants!");
+    assert.equal(summary1.nextTitle, "Nivel 2");
+    assert.equal(summary1.nextSubtitle, "¡Defiende la comida!");
+    assert.equal(summary1.nextInstruction, "¡Aleja las frutas de las hormigas que se acercan!");
 
     const summary2 = formatLevelCompleteSummary(2);
     assert.equal(summary2.completedLevel, 2);
     assert.equal(summary2.nextLevel, 3);
-    assert.equal(summary2.nextTitle, "Level 3");
+    assert.equal(summary2.nextTitle, "Nivel 3");
   });
 
   it("determines whether the level complete screen can be shown", () => {

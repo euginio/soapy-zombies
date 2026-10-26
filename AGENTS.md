@@ -69,6 +69,9 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
    minutes. If a command or test run takes longer than 2-3 minutes, it indicates an unconstrained
    command, an orphaned process holding ports, or a hang: kill it immediately and investigate
    rather than waiting passively.
+10. **For the UI, only use Spanish messages.** Per the owner's instruction, all in-game
+    user-facing UI text, menus, overlays, banners, HUD, instructions, button labels, and
+    accessibility labels must be in Spanish.
 
 ## Conventions and gotchas
 
@@ -88,8 +91,8 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
     `#game-over-restart`, `#game-over-home`, `#recenter-device-tilt`, `#sound-toggle`,
     `#fullscreen-toggle`, `#fullscreen-prompt-overlay`, `#pause-toggle`, `#pause-overlay`, `#pause-resume`, `#pause-restart`, `#pause-restart-game`, `#pause-sound`, `#pause-home`, `#level-complete-overlay`, `#level-complete-continue`.
   - The `highScore` localStorage key.
-- UI text is currently mixed Spanish/English (the game-over overlay is Spanish). Keep it
-  consistent with the surrounding text until i18n is done.
+- UI text is in Spanish (game-over overlay, pause menu, level complete overlay, banners, HUD,
+  instructions, buttons). Keep all UI messages in Spanish.
 
 ## Known open improvements
 

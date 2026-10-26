@@ -40,7 +40,7 @@ export class TitleScene extends MyScene {
     // this.explanation.setOrigin(.5,.5)
     // this.explanation.setVisible(false);
 
-    this.startTxt = this.add.text(this.width/2, this.height*0.75, 'Touch screen to start', {fontSize: '29px', fontStyle: 'bold', color: '#32F'});
+    this.startTxt = this.add.text(this.width/2, this.height*0.75, 'Toca la pantalla para comenzar', {fontSize: '29px', fontStyle: 'bold', color: '#32F'});
     this.startTxt.setOrigin(.5,.5)
 
     this.input.on('pointerup', () => this.start());

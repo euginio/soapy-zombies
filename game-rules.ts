@@ -734,9 +734,9 @@ export interface LevelConfig {
 export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
   1: {
     level: 1,
-    title: "Level 1",
-    subtitle: "Shake the Fruit!",
-    instruction: "Drag & shake fruits to drop carrier ants!",
+    title: "Nivel 1",
+    subtitle: "¡Sacude la fruta!",
+    instruction: "¡Arrastra y sacude las frutas para soltar las hormigas!",
     tiltEnabled: false,
     dragEnabled: true,
     caterpillarsEnabled: false,
@@ -748,9 +748,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
   },
   2: {
     level: 2,
-    title: "Level 2",
-    subtitle: "Defend the Food!",
-    instruction: "Drag fruits away from approaching ants!",
+    title: "Nivel 2",
+    subtitle: "¡Defiende la comida!",
+    instruction: "¡Aleja las frutas de las hormigas que se acercan!",
     tiltEnabled: false,
     dragEnabled: true,
     caterpillarsEnabled: false,
@@ -762,9 +762,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
   },
   3: {
     level: 3,
-    title: "Level 3",
-    subtitle: "Tilt the Tray!",
-    instruction: "Tilt your device or use arrow keys to slide ants off!",
+    title: "Nivel 3",
+    subtitle: "¡Inclina la bandeja!",
+    instruction: "¡Inclina tu dispositivo o usa las flechas para tirar a las hormigas!",
     tiltEnabled: true,
     dragEnabled: false,
     caterpillarsEnabled: false,
@@ -776,9 +776,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
   },
   4: {
     level: 4,
-    title: "Level 4",
-    subtitle: "Full Defense!",
-    instruction: "Use tray tilt and fruit dragging together!",
+    title: "Nivel 4",
+    subtitle: "¡Defensa total!",
+    instruction: "¡Combina la inclinación de la bandeja y el arrastre de frutas!",
     tiltEnabled: true,
     dragEnabled: true,
     caterpillarsEnabled: false,
@@ -790,9 +790,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
   },
   5: {
     level: 5,
-    title: "Level 5",
-    subtitle: "Beware of Worms!",
-    instruction: "Hungry caterpillars have arrived! Slide 25 ants off the tray!",
+    title: "Nivel 5",
+    subtitle: "¡Cuidado con las orugas!",
+    instruction: "¡Llegaron orugas hambrientas! ¡Tira 25 hormigas de la bandeja!",
     tiltEnabled: true,
     dragEnabled: true,
     caterpillarsEnabled: true,
@@ -804,9 +804,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
   },
   6: {
     level: 6,
-    title: "Level 6",
-    subtitle: "Ant Swarm!",
-    instruction: "The ants are speeding up! Drop 30 ants from the tray!",
+    title: "Nivel 6",
+    subtitle: "¡Enjambre de hormigas!",
+    instruction: "¡Las hormigas son más rápidas! ¡Tira 30 hormigas de la bandeja!",
     tiltEnabled: true,
     dragEnabled: true,
     caterpillarsEnabled: true,
@@ -818,9 +818,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
   },
   7: {
     level: 7,
-    title: "Level 7",
-    subtitle: "Sugar Rush!",
-    instruction: "Fast ants are rushing the picnic! Slide 35 ants off!",
+    title: "Nivel 7",
+    subtitle: "¡Ataque veloz!",
+    instruction: "¡Hormigas veloces invaden el picnic! ¡Tira 35 hormigas!",
     tiltEnabled: true,
     dragEnabled: true,
     caterpillarsEnabled: true,
@@ -832,9 +832,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
   },
   8: {
     level: 8,
-    title: "Level 8",
-    subtitle: "Double Trouble!",
-    instruction: "Two caterpillars joined the feast! Drop 40 ants!",
+    title: "Nivel 8",
+    subtitle: "¡Doble problema!",
+    instruction: "¡Dos orugas se unen al festín! ¡Tira 40 hormigas!",
     tiltEnabled: true,
     dragEnabled: true,
     caterpillarsEnabled: true,
@@ -846,9 +846,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
   },
   9: {
     level: 9,
-    title: "Level 9",
-    subtitle: "Picnic Panic!",
-    instruction: "Ant swarm at high speed! Slide 45 ants off the tray!",
+    title: "Nivel 9",
+    subtitle: "¡Pánico en el picnic!",
+    instruction: "¡Enjambre a máxima velocidad! ¡Tira 45 hormigas de la bandeja!",
     tiltEnabled: true,
     dragEnabled: true,
     caterpillarsEnabled: true,
@@ -860,9 +860,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
   },
   10: {
     level: 10,
-    title: "Level 10",
-    subtitle: "Grand Feast!",
-    instruction: "Grand picnic challenge! Drop 50 ants to conquer the feast!",
+    title: "Nivel 10",
+    subtitle: "¡Gran festín!",
+    instruction: "¡Desafío final del picnic! ¡Tira 50 hormigas para ganar el festín!",
     tiltEnabled: true,
     dragEnabled: true,
     caterpillarsEnabled: true,
@@ -883,9 +883,9 @@ export function getLevelConfig(level: number): LevelConfig {
   return {
     ...base,
     level,
-    title: `Level ${level}`,
-    subtitle: "Endless Picnic Mayhem!",
-    instruction: `Endless challenge! Slide ${50 + extraLevels * 10} ants off the tray!`,
+    title: `Nivel ${level}`,
+    subtitle: "¡Caos infinito en el picnic!",
+    instruction: `¡Desafío infinito! ¡Tira ${50 + extraLevels * 10} hormigas de la bandeja!`,
     goalType: "defeat_ants",
     goalTarget: 50 + extraLevels * 10,
     antSpeed: Math.min(95, base.antSpeed + extraLevels * 2),
@@ -911,15 +911,15 @@ export function formatLevelObjective(
 ): string {
   switch (config.goalType) {
     case "shake_ants":
-      return `SHAKES: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;
+      return `SACUDIDAS: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;
     case "survive_time": {
       const remaining = Math.max(0, Math.ceil(config.goalTarget - currentProgress));
-      return `SURVIVE: ${remaining}s`;
+      return `SOBREVIVE: ${remaining}s`;
     }
     case "defeat_ants":
-      return `ANTS: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;
+      return `HORMIGAS: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;
     case "endless":
-      return "ENDLESS";
+      return "INFINITO";
   }
 }
 

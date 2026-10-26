@@ -636,8 +636,8 @@ export class GameScene extends MyScene {
     this.sensorRecenterButton = document.createElement("button");
     this.sensorRecenterButton.id = "recenter-device-tilt";
     this.sensorRecenterButton.type = "button";
-    this.sensorRecenterButton.textContent = "Re-center";
-    this.sensorRecenterButton.setAttribute("aria-label", "Re-center tray tilt");
+    this.sensorRecenterButton.textContent = "Recentrar";
+    this.sensorRecenterButton.setAttribute("aria-label", "Recentrar inclinación");
     Object.assign(this.sensorRecenterButton.style, {
       position: "absolute",
       top: "8px",
@@ -724,7 +724,7 @@ export class GameScene extends MyScene {
     }
     const paused = this.isPaused;
     this.pauseToggleButton.textContent = paused ? "▶" : "⏸";
-    this.pauseToggleButton.setAttribute("aria-label", paused ? "Resume game" : "Pause game");
+    this.pauseToggleButton.setAttribute("aria-label", paused ? "Reanudar juego" : "Pausar juego");
     this.pauseToggleButton.setAttribute("aria-pressed", paused ? "true" : "false");
   }
 
@@ -768,7 +768,7 @@ export class GameScene extends MyScene {
 
     const title = document.createElement("h2");
     title.id = "pause-title";
-    title.textContent = "Partida pausada / Game Paused";
+    title.textContent = "Partida pausada";
     Object.assign(title.style, { margin: "0 0 0.35em", fontSize: "1.25em", color: "#172312" });
 
     const infoContainer = document.createElement("div");
@@ -830,19 +830,19 @@ export class GameScene extends MyScene {
       return button;
     };
 
-    const resumeBtn = createButton("pause-resume", "▶ Reanudar / Resume", "#26733a", () => this.togglePause(false));
-    const restartLevelBtn = createButton("pause-restart", "🔄 Reiniciar nivel / Restart Level", "#a25b12", () => {
+    const resumeBtn = createButton("pause-resume", "▶ Reanudar", "#26733a", () => this.togglePause(false));
+    const restartLevelBtn = createButton("pause-restart", "🔄 Reiniciar nivel", "#a25b12", () => {
       this.restartCurrentLevel();
     });
-    const restartGameBtn = createButton("pause-restart-game", "⏮ Reiniciar juego / Restart Game", "#b33a2b", () => {
+    const restartGameBtn = createButton("pause-restart-game", "⏮ Reiniciar juego", "#b33a2b", () => {
       this.restartWholeGame();
     });
-    const soundBtn = createButton("pause-sound", "🔊 Sound: ON", "#3a6b88", () => {
+    const soundBtn = createButton("pause-sound", "🔊 Sonido: Sí", "#3a6b88", () => {
       this.togglePauseSound();
     });
     this.pauseSoundButton = soundBtn;
 
-    const homeBtn = createButton("pause-home", "🏠 Inicio / Main Menu", "#4b5948", () => {
+    const homeBtn = createButton("pause-home", "🏠 Menú principal", "#4b5948", () => {
       this.togglePause(false);
       this.returnToTitle();
     });
@@ -883,16 +883,16 @@ export class GameScene extends MyScene {
       return;
     }
     const muted = this.audio.muted;
-    this.pauseSoundButton.textContent = muted ? "🔇 Sound: OFF" : "🔊 Sound: ON";
-    this.pauseSoundButton.setAttribute("aria-label", muted ? "Unmute sound" : "Mute sound");
+    this.pauseSoundButton.textContent = muted ? "🔇 Sonido: No" : "🔊 Sonido: Sí";
+    this.pauseSoundButton.setAttribute("aria-label", muted ? "Activar sonido" : "Silenciar sonido");
   }
 
   private refreshPauseOverlayInfo() {
     if (this.pauseLevelLabel && this.currentLevelConfig) {
-      this.pauseLevelLabel.textContent = `Level ${this.currentLevel}: ${this.currentLevelConfig.title} - ${this.currentLevelConfig.subtitle}`;
+      this.pauseLevelLabel.textContent = `${this.currentLevelConfig.title}: ${this.currentLevelConfig.subtitle}`;
     }
     if (this.pauseStatsLabel) {
-      this.pauseStatsLabel.textContent = `Puntaje / Score: ${this.score}  •  Récord / Best: ${this.currentHighScore}`;
+      this.pauseStatsLabel.textContent = `Puntaje: ${this.score}  •  Récord: ${this.currentHighScore}`;
     }
     this.refreshPauseSoundButton();
   }
@@ -941,7 +941,7 @@ export class GameScene extends MyScene {
     }
     const muted = this.audio.muted;
     this.soundToggleButton.textContent = muted ? "🔇" : "🔊";
-    this.soundToggleButton.setAttribute("aria-label", muted ? "Unmute sound" : "Mute sound");
+    this.soundToggleButton.setAttribute("aria-label", muted ? "Activar sonido" : "Silenciar sonido");
     this.soundToggleButton.setAttribute("aria-pressed", muted ? "true" : "false");
   }
 
@@ -1576,7 +1576,7 @@ export class GameScene extends MyScene {
     icon.style.fontSize = "2.5em";
 
     const text = document.createElement("p");
-    text.textContent = "Gira tu dispositivo a horizontal\nPlease rotate your device to landscape";
+    text.textContent = "Gira tu dispositivo a modo horizontal";
     Object.assign(text.style, {
       margin: "0",
       fontSize: "1.1em",
@@ -1644,7 +1644,7 @@ export class GameScene extends MyScene {
     }
     const isFull = this.scale.isFullscreen;
     this.fullscreenToggleButton.textContent = isFull ? "🗗" : "⛶";
-    this.fullscreenToggleButton.setAttribute("aria-label", isFull ? "Exit fullscreen" : "Enter fullscreen");
+    this.fullscreenToggleButton.setAttribute("aria-label", isFull ? "Salir de pantalla completa" : "Pantalla completa");
     this.fullscreenToggleButton.setAttribute("aria-pressed", isFull ? "true" : "false");
   }
 
@@ -1674,7 +1674,7 @@ export class GameScene extends MyScene {
     });
 
     const label = document.createElement("span");
-    label.textContent = "⛶ Toca para volver a pantalla completa / Tap to restore fullscreen";
+    label.textContent = "⛶ Toca para volver a pantalla completa";
     Object.assign(label.style, {
       marginRight: "8px",
       userSelect: "none",
@@ -1686,7 +1686,7 @@ export class GameScene extends MyScene {
     const closeBtn = document.createElement("button");
     closeBtn.textContent = "✕";
     closeBtn.type = "button";
-    closeBtn.setAttribute("aria-label", "Dismiss");
+    closeBtn.setAttribute("aria-label", "Cerrar");
     Object.assign(closeBtn.style, {
       background: "transparent",
       border: "0",
@@ -1905,7 +1905,7 @@ export class GameScene extends MyScene {
       this.addNewAnt();
     }
     this.audio.play(AUDIO_KEYS.antFall);
-    this.showLevelBanner("⚠️ FINAL WAVE!", "Ants incoming!", "Defend the picnic!", 1600);
+    this.showLevelBanner("⚠️ ¡OLEADA FINAL!", "¡Vienen más hormigas!", "¡Defiende la comida!", 1600);
   }
 
   checkLevelCompletion() {
@@ -1944,7 +1944,7 @@ export class GameScene extends MyScene {
     if (!this.levelLabel || !this.objectiveLabel || !this.currentLevelConfig) {
       return;
     }
-    this.levelLabel.textContent = `LVL ${this.currentLevel}`;
+    this.levelLabel.textContent = `NIVEL ${this.currentLevel}`;
     this.objectiveLabel.textContent = formatLevelObjective(this.currentLevelConfig, this.levelProgress);
   }
 

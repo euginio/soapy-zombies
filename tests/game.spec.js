@@ -1945,9 +1945,9 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(initialLevelState.isDragEnabled).toBe(true);
   expect(initialLevelState.goalType).toBe("shake_ants");
   expect(initialLevelState.goalTarget).toBe(10);
-  expect(initialLevelState.hudText).toContain("LVL 1");
-  expect(initialLevelState.hudText).toContain("SHAKES: 0/10");
-  expect(initialLevelState.bannerTitle).toBe("Level 1");
+  expect(initialLevelState.hudText).toContain("NIVEL 1");
+  expect(initialLevelState.hudText).toContain("SACUDIDAS: 0/10");
+  expect(initialLevelState.bannerTitle).toBe("Nivel 1");
 
   // 2. In Level 1, tray tilt controls do NOT tilt the board
   await page.keyboard.down("ArrowRight");
@@ -1974,7 +1974,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   });
 
   expect(shakeProgress.levelProgress).toBeGreaterThanOrEqual(1);
-  expect(shakeProgress.hudText).toContain(`SHAKES: ${shakeProgress.levelProgress}/10`);
+  expect(shakeProgress.hudText).toContain(`SACUDIDAS: ${shakeProgress.levelProgress}/10`);
 
   // 4. Completing Level 1 triggers the level complete screen and requires pressing continue
   await page.evaluate(() => {
@@ -1994,7 +1994,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
     };
   });
   expect(completeContent.title).toContain("Nivel 1");
-  expect(completeContent.subtitle).toContain("Level 2");
+  expect(completeContent.subtitle).toContain("Nivel 2");
   expect(completeContent.hasContinueBtn).toBe(true);
 
   // Level does NOT advance automatically while waiting for user
@@ -2020,7 +2020,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(level2State.isTiltEnabled).toBe(false);
   expect(level2State.isDragEnabled).toBe(true);
   expect(level2State.goalType).toBe("survive_time");
-  expect(level2State.hudText).toContain("SURVIVE:");
+  expect(level2State.hudText).toContain("SOBREVIVE:");
 
   // 6. Level 3 has fruit drag disabled and tray tilt enabled
   await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
@@ -2043,7 +2043,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(level3State.isDragEnabled).toBe(false);
   expect(level3State.dragSuccess).toBe(false);
   expect(level3State.goalType).toBe("defeat_ants");
-  expect(level3State.hudText).toContain("ANTS: 0/15");
+  expect(level3State.hudText).toContain("HORMIGAS: 0/15");
 
   // Arrow key tilts the board in Level 3
   await page.keyboard.down("ArrowRight");
@@ -2083,7 +2083,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(waveStateAfter.progress).toBe(11);
   expect(waveStateAfter.hasTriggeredFinalWave).toBe(true);
   expect(waveStateAfter.antsCount).toBe(7); // 5 current + 2 extra wave ants
-  expect(waveStateAfter.bannerText).toContain("FINAL WAVE!");
+  expect(waveStateAfter.bannerText).toContain("¡OLEADA FINAL!");
 
   // 7. Level 4 has full combined controls
   await page.evaluate(() => window.__gameSceneForTest.startLevel(4, false));
@@ -2121,7 +2121,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(level5State.caterpillarsCount).toBeGreaterThanOrEqual(1);
   expect(level5State.goalType).toBe("defeat_ants");
   expect(level5State.goalTarget).toBe(25);
-  expect(level5State.hudText).toContain("ANTS: 0/25");
+  expect(level5State.hudText).toContain("HORMIGAS: 0/25");
 
   // Ant falling from tray increments defeat_ants progress in Level 5
   const antProgress = await page.evaluate(() => {
@@ -2134,7 +2134,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
     };
   });
   expect(antProgress.levelProgress).toBe(1);
-  expect(antProgress.hudText).toContain("ANTS: 1/25");
+  expect(antProgress.hudText).toContain("HORMIGAS: 1/25");
 
   // 9. Level 8 has 2 caterpillars and 22 ant target
   await page.evaluate(() => window.__gameSceneForTest.startLevel(8, false));

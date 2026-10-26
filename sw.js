@@ -3,7 +3,7 @@
  * Provides offline caching, app installability, and instant loading.
  */
 
-const CACHE_NAME = "ants-feast-v9";
+const CACHE_NAME = "ants-feast-v10";
 
 const PRECACHE_ASSETS = [
   "./",
