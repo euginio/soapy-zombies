@@ -53,7 +53,9 @@ import {
   isWormTouchingFood,
   shouldWormContinueEating,
   canPauseGame,
-  togglePauseState
+  togglePauseState,
+  formatLevelCompleteSummary,
+  canShowLevelComplete
 } from "../game-rules";
 import { ScreenWakeLock, WakeLockSentinelLike } from "../services/wake-lock";
 
@@ -959,5 +961,33 @@ describe("pause rules", () => {
   it("forces unpaused (false) when game is over", () => {
     assert.equal(togglePauseState(false, true), false);
     assert.equal(togglePauseState(true, true), false);
+  });
+
+  it("does not allow pausing when level complete overlay is active", () => {
+    assert.equal(canPauseGame(false, true), false);
+    assert.equal(togglePauseState(false, false, true), false);
+  });
+});
+
+describe("level complete screen rules", () => {
+  it("formats level completion summary with next level title and instructions", () => {
+    const summary1 = formatLevelCompleteSummary(1);
+    assert.equal(summary1.completedLevel, 1);
+    assert.equal(summary1.nextLevel, 2);
+    assert.equal(summary1.nextTitle, "Level 2");
+    assert.equal(summary1.nextSubtitle, "Defend the Food!");
+    assert.equal(summary1.nextInstruction, "Drag fruits away from approaching ants!");
+
+    const summary2 = formatLevelCompleteSummary(2);
+    assert.equal(summary2.completedLevel, 2);
+    assert.equal(summary2.nextLevel, 3);
+    assert.equal(summary2.nextTitle, "Level 3");
+  });
+
+  it("determines whether the level complete screen can be shown", () => {
+    assert.equal(canShowLevelComplete(false, false), true);
+    assert.equal(canShowLevelComplete(true, false), false);
+    assert.equal(canShowLevelComplete(false, true), false);
+    assert.equal(canShowLevelComplete(true, true), false);
   });
 });

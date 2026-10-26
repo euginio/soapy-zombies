@@ -16,6 +16,7 @@ import {
   canPauseGame,
   debugColorToTint,
   formatLevelObjective,
+  formatLevelCompleteSummary,
   getLevelConfig,
   isFinalWaveTriggered,
   isLevelGoalMet,
@@ -88,6 +89,14 @@ export class GameScene extends MyScene {
   get isDragEnabled(): boolean {
     return Boolean(this.currentLevelConfig?.dragEnabled);
   }
+  isLevelCompleteActive: boolean = false;
+  pendingNextLevel: number = 2;
+  private levelCompleteOverlay: HTMLDivElement | null = null;
+  private levelCompleteTitle: HTMLHeadingElement | null = null;
+  private levelCompleteSubtitle: HTMLDivElement | null = null;
+  private levelCompleteInstruction: HTMLDivElement | null = null;
+  private levelCompleteScore: HTMLSpanElement | null = null;
+  private levelCompleteContinueButton: HTMLButtonElement | null = null;
   private levelHud: HTMLDivElement | null = null;
   private levelLabel: HTMLSpanElement | null = null;
   private objectiveLabel: HTMLSpanElement | null = null;
@@ -132,6 +141,7 @@ export class GameScene extends MyScene {
     this.score = 0;
     this.gameOver = false;
     this.isPaused = false;
+    this.isLevelCompleteActive = false;
   }
 
   antDied(outAnt: Ant) {
@@ -274,6 +284,18 @@ export class GameScene extends MyScene {
     pKey.on("down", () => this.togglePause());
     const escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     escKey.on("down", () => this.togglePause());
+    const enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+    enterKey.on("down", () => {
+      if (this.isLevelCompleteActive) {
+        this.continueToNextLevel();
+      }
+    });
+    const spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    spaceKey.on("down", () => {
+      if (this.isLevelCompleteActive) {
+        this.continueToNextLevel();
+      }
+    });
     this.wasdKeys = this.input.keyboard.addKeys({
       up: Phaser.Input.Keyboard.KeyCodes.W,
       down: Phaser.Input.Keyboard.KeyCodes.S,
@@ -522,8 +544,8 @@ export class GameScene extends MyScene {
   }
 
   update(_time?: number, delta: number = 16): void {
-    if (this.gameOver || this.isPaused) {
-      if (this.gameOver) {
+    if (this.gameOver || this.isPaused || this.isLevelCompleteActive) {
+      if (this.gameOver || this.isLevelCompleteActive) {
         this.applyBoardTilt(0, 0);
       }
       return;
@@ -796,10 +818,10 @@ export class GameScene extends MyScene {
   }
 
   togglePause(forceState?: boolean) {
-    if (this.gameOver) {
+    if (this.gameOver || this.isLevelCompleteActive) {
       return;
     }
-    const nextState = typeof forceState === "boolean" ? forceState : togglePauseState(this.isPaused, this.gameOver);
+    const nextState = typeof forceState === "boolean" ? forceState : togglePauseState(this.isPaused, this.gameOver, this.isLevelCompleteActive);
     if (this.isPaused === nextState) {
       return;
     }
@@ -840,6 +862,180 @@ export class GameScene extends MyScene {
     this.soundToggleButton.textContent = muted ? "🔇" : "🔊";
     this.soundToggleButton.setAttribute("aria-label", muted ? "Unmute sound" : "Mute sound");
     this.soundToggleButton.setAttribute("aria-pressed", muted ? "true" : "false");
+  }
+
+  private createLevelCompleteOverlay() {
+    const overlay = document.createElement("div");
+    overlay.id = "level-complete-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-labelledby", "level-complete-title");
+    overlay.setAttribute("aria-hidden", "true");
+    Object.assign(overlay.style, {
+      position: "absolute",
+      left: "0",
+      top: "0",
+      width: "100%",
+      height: "100%",
+      display: "none",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: "95",
+      background: "rgba(15, 32, 12, 0.65)",
+      color: "#172312",
+      fontFamily: "system-ui, sans-serif",
+      textAlign: "center",
+      pointerEvents: "auto",
+      boxSizing: "border-box",
+      padding: "8px"
+    });
+
+    const panel = document.createElement("div");
+    Object.assign(panel.style, {
+      width: "min(92%, 24em)",
+      maxHeight: "min(90%, 90vh)",
+      overflowY: "auto",
+      boxSizing: "border-box",
+      padding: "0.8em 1.2em",
+      borderRadius: "0.8em",
+      background: "#fffdf4",
+      boxShadow: "0 0.5em 1.5em rgba(0, 0, 0, 0.3)"
+    });
+
+    const title = document.createElement("h2");
+    title.id = "level-complete-title";
+    title.textContent = "¡Nivel completado!";
+    Object.assign(title.style, { margin: "0 0 0.4em", fontSize: "1.3em", color: "#172312" });
+
+    const scoreContainer = document.createElement("div");
+    scoreContainer.style.fontSize = "0.95em";
+    scoreContainer.style.fontWeight = "bold";
+    scoreContainer.style.marginBottom = "0.6em";
+    scoreContainer.append("Puntaje actual: ");
+    const scoreVal = document.createElement("span");
+    scoreVal.id = "level-complete-score";
+    scoreVal.textContent = "0";
+    scoreContainer.appendChild(scoreVal);
+
+    const nextContainer = document.createElement("div");
+    nextContainer.id = "level-complete-next-container";
+    Object.assign(nextContainer.style, {
+      background: "rgba(46, 117, 43, 0.08)",
+      border: "1px solid rgba(46, 117, 43, 0.2)",
+      borderRadius: "0.5em",
+      padding: "0.6em 0.8em",
+      margin: "0.5em 0 0.8em",
+      textAlign: "center"
+    });
+
+    const subtitle = document.createElement("div");
+    subtitle.id = "level-complete-subtitle";
+    Object.assign(subtitle.style, {
+      fontWeight: "bold",
+      fontSize: "1.02em",
+      color: "#214d23",
+      lineHeight: "1.3"
+    });
+
+    const instruction = document.createElement("div");
+    instruction.id = "level-complete-instruction";
+    Object.assign(instruction.style, {
+      fontSize: "0.88em",
+      color: "#4b5948",
+      marginTop: "0.3em",
+      lineHeight: "1.25"
+    });
+
+    nextContainer.append(subtitle, instruction);
+
+    const actions = document.createElement("div");
+    Object.assign(actions.style, {
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      gap: "0.5em",
+      marginTop: "0.4em"
+    });
+
+    const continueBtn = document.createElement("button");
+    continueBtn.id = "level-complete-continue";
+    continueBtn.type = "button";
+    continueBtn.textContent = "Continuar";
+    Object.assign(continueBtn.style, {
+      flex: "1 1 10em",
+      minHeight: "2.4em",
+      padding: "0.5em 1.2em",
+      border: "0",
+      borderRadius: "0.45em",
+      background: "#26733a",
+      color: "white",
+      font: "inherit",
+      fontSize: "0.95em",
+      fontWeight: "700",
+      cursor: "pointer",
+      boxShadow: "0 2px 6px rgba(0, 0, 0, 0.2)"
+    });
+    continueBtn.addEventListener("click", () => {
+      this.continueToNextLevel();
+    });
+
+    actions.appendChild(continueBtn);
+
+    panel.append(title, scoreContainer, nextContainer, actions);
+    overlay.appendChild(panel);
+
+    this.levelCompleteOverlay = overlay;
+    this.levelCompleteTitle = title;
+    this.levelCompleteSubtitle = subtitle;
+    this.levelCompleteInstruction = instruction;
+    this.levelCompleteScore = scoreVal;
+    this.levelCompleteContinueButton = continueBtn;
+    this.visualLayerParent.appendChild(overlay);
+  }
+
+  showLevelCompleteOverlay(completedLevel: number, nextLevel: number) {
+    if (!this.levelCompleteOverlay) {
+      return;
+    }
+    const summary = formatLevelCompleteSummary(completedLevel);
+    if (this.levelCompleteTitle) {
+      this.levelCompleteTitle.textContent = `¡Nivel ${completedLevel} completado!`;
+    }
+    if (this.levelCompleteScore) {
+      this.levelCompleteScore.textContent = this.score.toString();
+    }
+    if (this.levelCompleteSubtitle) {
+      this.levelCompleteSubtitle.textContent = `Siguiente: ${summary.nextTitle} - ${summary.nextSubtitle}`;
+    }
+    if (this.levelCompleteInstruction) {
+      this.levelCompleteInstruction.textContent = summary.nextInstruction;
+    }
+    this.levelCompleteOverlay.style.display = "flex";
+    this.levelCompleteOverlay.setAttribute("aria-hidden", "false");
+    this.levelCompleteContinueButton?.focus();
+    if (this.gameCanvas) {
+      this.syncVisualLayerBounds(this.gameCanvas);
+    }
+  }
+
+  hideLevelCompleteOverlay() {
+    if (this.levelCompleteOverlay) {
+      this.levelCompleteOverlay.style.display = "none";
+      this.levelCompleteOverlay.setAttribute("aria-hidden", "true");
+    }
+  }
+
+  continueToNextLevel() {
+    if (!this.isLevelCompleteActive || this.gameOver) {
+      return;
+    }
+    this.isLevelCompleteActive = false;
+    this.hideLevelCompleteOverlay();
+    this.physics.resume();
+    this.anims.resumeAll();
+    this.time.paused = false;
+    const next = this.pendingNextLevel || (this.currentLevel + 1);
+    this.startLevel(next);
   }
 
   private createVisualLayers(gameCanvas: HTMLCanvasElement) {
@@ -884,6 +1080,7 @@ export class GameScene extends MyScene {
     this.visualLayerParent.appendChild(this.hudOverlay);
     this.createGameOverOverlay();
     this.createPauseOverlay();
+    this.createLevelCompleteOverlay();
     this.createSoundToggleButton();
     this.createPauseToggleButton();
     this.createFullscreenToggleButton();
@@ -933,7 +1130,7 @@ export class GameScene extends MyScene {
   }
 
   private tryStartFoodDragAtPointer(pointer: Phaser.Input.Pointer): boolean {
-    if (!this.foods) {
+    if (!this.foods || this.gameOver || this.isPaused || this.isLevelCompleteActive || this.isLevelTransitioning) {
       return false;
     }
     const px = pointer.x;
@@ -1188,6 +1385,13 @@ export class GameScene extends MyScene {
       this.pauseOverlay.style.height = "100%";
       this.pauseOverlay.style.fontSize = `${modalFontSize}px`;
     }
+    if (this.levelCompleteOverlay) {
+      this.levelCompleteOverlay.style.left = "0px";
+      this.levelCompleteOverlay.style.top = "0px";
+      this.levelCompleteOverlay.style.width = "100%";
+      this.levelCompleteOverlay.style.height = "100%";
+      this.levelCompleteOverlay.style.fontSize = `${modalFontSize}px`;
+    }
     if (this.pauseToggleButton) {
       this.pauseToggleButton.style.fontSize = `${18 * layout.scaleX}px`;
       this.pauseToggleButton.style.left = `${layout.left + layout.width - this.pauseToggleButton.offsetWidth - 8}px`;
@@ -1250,6 +1454,7 @@ export class GameScene extends MyScene {
       this.pauseToggleButton,
       this.gameOverOverlay,
       this.pauseOverlay,
+      this.levelCompleteOverlay,
       this.fullscreenToggleButton,
       this.fullscreenPromptOverlay
     ]) {
@@ -1563,11 +1768,17 @@ export class GameScene extends MyScene {
   }
 
   startLevel(levelNumber: number, showIntroBanner = true) {
+    this.hideLevelCompleteOverlay();
+    this.isLevelCompleteActive = false;
+    this.isLevelTransitioning = false;
+    this.physics.resume();
+    this.anims.resumeAll();
+    this.time.paused = false;
+
     this.currentLevel = levelNumber;
     this.currentLevelConfig = getLevelConfig(levelNumber);
     this.levelProgress = 0;
     this.hasTriggeredFinalWave = false;
-    this.isLevelTransitioning = false;
 
     if (!this.currentLevelConfig.tiltEnabled) {
       this.gravity.x = 0;
@@ -1623,26 +1834,25 @@ export class GameScene extends MyScene {
 
   completeLevel() {
     this.isLevelTransitioning = true;
+    this.isLevelCompleteActive = true;
     const completedLevel = this.currentLevel;
     const nextLevel = completedLevel + 1;
-    const nextConfig = getLevelConfig(nextLevel);
+    this.pendingNextLevel = nextLevel;
+
+    this.physics.pause();
+    this.anims.pauseAll();
+    this.stopAllFoodDragging();
+    this.resetTouchTilt();
+    this.applyBoardTilt(0, 0);
+
+    if (this.pauseToggleButton) {
+      this.pauseToggleButton.style.display = "none";
+    }
 
     this.audio.play(AUDIO_KEYS.antFall);
     this.foods?.getChildren().forEach((f: any) => (f as Food).releaseAllCarriers?.(false));
 
-    this.showLevelBanner(
-      `Level ${completedLevel} Complete!`,
-      `Next: ${nextConfig.title} - ${nextConfig.subtitle}`,
-      nextConfig.instruction,
-      2000
-    );
-
-    this.time.delayedCall(2000, () => {
-      if (this.gameOver) {
-        return;
-      }
-      this.startLevel(nextLevel);
-    });
+    this.showLevelCompleteOverlay(completedLevel, nextLevel);
   }
 
   updateLevelHud() {

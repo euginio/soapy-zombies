@@ -943,12 +943,37 @@ export function calculateWaveExtraAnts(level: number): number {
   return 3;
 }
 
-export function canPauseGame(gameOver: boolean): boolean {
-  return !gameOver;
+export interface LevelCompleteSummary {
+  completedLevel: number;
+  nextLevel: number;
+  nextTitle: string;
+  nextSubtitle: string;
+  nextInstruction: string;
 }
 
-export function togglePauseState(currentPaused: boolean, gameOver: boolean): boolean {
-  if (!canPauseGame(gameOver)) {
+export function formatLevelCompleteSummary(currentLevel: number): LevelCompleteSummary {
+  const completedLevel = currentLevel;
+  const nextLevel = completedLevel + 1;
+  const nextConfig = getLevelConfig(nextLevel);
+  return {
+    completedLevel,
+    nextLevel,
+    nextTitle: nextConfig.title,
+    nextSubtitle: nextConfig.subtitle,
+    nextInstruction: nextConfig.instruction
+  };
+}
+
+export function canShowLevelComplete(gameOver: boolean, isLevelCompleteActive: boolean): boolean {
+  return !gameOver && !isLevelCompleteActive;
+}
+
+export function canPauseGame(gameOver: boolean, isLevelCompleteActive = false): boolean {
+  return !gameOver && !isLevelCompleteActive;
+}
+
+export function togglePauseState(currentPaused: boolean, gameOver: boolean, isLevelCompleteActive = false): boolean {
+  if (!canPauseGame(gameOver, isLevelCompleteActive)) {
     return false;
   }
   return !currentPaused;

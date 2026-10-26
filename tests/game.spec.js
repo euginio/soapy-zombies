@@ -1976,26 +1976,34 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(shakeProgress.levelProgress).toBeGreaterThanOrEqual(1);
   expect(shakeProgress.hudText).toContain(`SHAKES: ${shakeProgress.levelProgress}/5`);
 
-  // 4. Completing Level 1 triggers the dynamic banner and transitions to Level 2
+  // 4. Completing Level 1 triggers the level complete screen and requires pressing continue
   await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     scene.onAntsShaken(5);
   });
 
-  const bannerContent = await page.evaluate(() => {
-    const banner = document.querySelector("#level-banner");
+  const levelCompleteOverlay = page.locator("#level-complete-overlay");
+  await expect(levelCompleteOverlay).toBeVisible();
+
+  const completeContent = await page.evaluate(() => {
     return {
-      display: banner?.style.display,
-      title: document.querySelector("#level-banner-title")?.textContent,
-      subtitle: document.querySelector("#level-banner-subtitle")?.textContent
+      title: document.querySelector("#level-complete-title")?.textContent,
+      subtitle: document.querySelector("#level-complete-subtitle")?.textContent,
+      instruction: document.querySelector("#level-complete-instruction")?.textContent,
+      hasContinueBtn: Boolean(document.querySelector("#level-complete-continue"))
     };
   });
-  expect(bannerContent.display).toBe("flex");
-  expect(bannerContent.title).toContain("Level 1 Complete!");
-  expect(bannerContent.subtitle).toContain("Level 2");
+  expect(completeContent.title).toContain("Nivel 1");
+  expect(completeContent.subtitle).toContain("Level 2");
+  expect(completeContent.hasContinueBtn).toBe(true);
 
-  // Wait for 2-second transition to Level 2
-  await expect.poll(() => page.evaluate(() => window.__gameSceneForTest.currentLevel), { timeout: 8000 }).toBe(2);
+  // Level does NOT advance automatically while waiting for user
+  expect(await page.evaluate(() => window.__gameSceneForTest.currentLevel)).toBe(1);
+
+  // Click continue button to advance to Level 2
+  await page.locator("#level-complete-continue").click();
+  await expect(levelCompleteOverlay).toBeHidden();
+  expect(await page.evaluate(() => window.__gameSceneForTest.currentLevel)).toBe(2);
 
   // 5. Level 2 has survive_time goal and tilt disabled
   const level2State = await page.evaluate(() => {
@@ -2478,4 +2486,83 @@ test("pause overlay modal fits completely within screen bounds on short landscap
   expect(pauseBounds.resumeBottom).toBeLessThanOrEqual(pauseBounds.windowHeight);
   expect(pauseBounds.restartBottom).toBeLessThanOrEqual(pauseBounds.windowHeight);
   expect(pauseBounds.homeBottom).toBeLessThanOrEqual(pauseBounds.windowHeight);
+});
+
+
+test("level complete overlay displays when level goal is met, pauses physics, hides pause button, and advances on continue", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/?level=1");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const pauseToggle = page.locator("#pause-toggle");
+  await expect(pauseToggle).toBeVisible();
+
+  // Complete level
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    scene.completeLevel();
+  });
+
+  const levelCompleteOverlay = page.locator("#level-complete-overlay");
+  await expect(levelCompleteOverlay).toBeVisible();
+
+  // Pause toggle button is hidden while level complete overlay is open
+  await expect(pauseToggle).toBeHidden();
+
+  // Physics is paused while waiting for continue
+  const isPhysicsPaused = await page.evaluate(() => window.__gameSceneForTest.physics.world.isPaused);
+  expect(isPhysicsPaused).toBe(true);
+
+  // Calling togglePause does not open pause overlay while level complete is active
+  await page.evaluate(() => window.__gameSceneForTest.togglePause());
+  await expect(page.locator("#pause-overlay")).toBeHidden();
+  expect(await page.evaluate(() => window.__gameSceneForTest.isPaused)).toBe(false);
+
+  // Pressing Enter continues to next level
+  await page.keyboard.press("Enter");
+  await expect(levelCompleteOverlay).toBeHidden();
+  expect(await page.evaluate(() => window.__gameSceneForTest.currentLevel)).toBe(2);
+
+  // Physics resumes and pause button reappears
+  expect(await page.evaluate(() => window.__gameSceneForTest.physics.world.isPaused)).toBe(false);
+  await expect(pauseToggle).toBeVisible();
+});
+
+test("level complete overlay modal fits completely within screen bounds on short landscape (600x320)", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.setViewportSize({ width: 600, height: 320 });
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    scene.completeLevel();
+  });
+
+  const levelCompleteOverlay = page.locator("#level-complete-overlay");
+  await expect(levelCompleteOverlay).toBeVisible();
+
+  const bounds = await page.evaluate(() => {
+    const panel = document.querySelector("#level-complete-overlay > div");
+    const continueBtn = document.querySelector("#level-complete-continue");
+    const pRect = panel.getBoundingClientRect();
+    const btnRect = continueBtn.getBoundingClientRect();
+    return {
+      panelTop: pRect.top,
+      panelBottom: pRect.bottom,
+      panelLeft: pRect.left,
+      panelRight: pRect.right,
+      btnBottom: btnRect.bottom,
+      windowWidth: window.innerWidth,
+      windowHeight: window.innerHeight
+    };
+  });
+
+  expect(bounds.panelLeft).toBeGreaterThanOrEqual(0);
+  expect(bounds.panelTop).toBeGreaterThanOrEqual(0);
+  expect(bounds.panelRight).toBeLessThanOrEqual(bounds.windowWidth);
+  expect(bounds.panelBottom).toBeLessThanOrEqual(bounds.windowHeight);
+  expect(bounds.btnBottom).toBeLessThanOrEqual(bounds.windowHeight);
 });
