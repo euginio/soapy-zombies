@@ -97,6 +97,10 @@ export class GameScene extends MyScene {
   private levelCompleteInstruction: HTMLDivElement | null = null;
   private levelCompleteScore: HTMLSpanElement | null = null;
   private levelCompleteContinueButton: HTMLButtonElement | null = null;
+  private pauseSoundButton: HTMLButtonElement | null = null;
+  private pauseInfoContainer: HTMLDivElement | null = null;
+  private pauseLevelLabel: HTMLDivElement | null = null;
+  private pauseStatsLabel: HTMLDivElement | null = null;
   private levelHud: HTMLDivElement | null = null;
   private levelLabel: HTMLSpanElement | null = null;
   private objectiveLabel: HTMLSpanElement | null = null;
@@ -752,7 +756,7 @@ export class GameScene extends MyScene {
 
     const panel = document.createElement("div");
     Object.assign(panel.style, {
-      width: "min(92%, 22em)",
+      width: "min(92%, 24em)",
       maxHeight: "min(90%, 90vh)",
       overflowY: "auto",
       boxSizing: "border-box",
@@ -764,16 +768,43 @@ export class GameScene extends MyScene {
 
     const title = document.createElement("h2");
     title.id = "pause-title";
-    title.textContent = "Partida pausada";
-    Object.assign(title.style, { margin: "0 0 0.6em", fontSize: "1.3em" });
+    title.textContent = "Partida pausada / Game Paused";
+    Object.assign(title.style, { margin: "0 0 0.35em", fontSize: "1.25em", color: "#172312" });
+
+    const infoContainer = document.createElement("div");
+    Object.assign(infoContainer.style, {
+      background: "rgba(46, 117, 43, 0.08)",
+      border: "1px solid rgba(46, 117, 43, 0.2)",
+      borderRadius: "0.5em",
+      padding: "0.45em 0.7em",
+      margin: "0.2em 0 0.6em",
+      textAlign: "center"
+    });
+
+    const levelLabel = document.createElement("div");
+    levelLabel.id = "pause-level-info";
+    Object.assign(levelLabel.style, {
+      fontWeight: "bold",
+      fontSize: "0.95em",
+      color: "#214d23"
+    });
+
+    const statsLabel = document.createElement("div");
+    statsLabel.id = "pause-stats-info";
+    Object.assign(statsLabel.style, {
+      fontSize: "0.85em",
+      color: "#4b5948",
+      marginTop: "0.2em"
+    });
+
+    infoContainer.append(levelLabel, statsLabel);
 
     const actions = document.createElement("div");
     Object.assign(actions.style, {
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      flexWrap: "wrap",
-      gap: "0.5em"
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(9.5em, 1fr))",
+      gap: "0.45em",
+      marginTop: "0.5em"
     });
 
     const createButton = (id: string, label: string, background: string, onClick: () => void) => {
@@ -782,7 +813,6 @@ export class GameScene extends MyScene {
       button.type = "button";
       button.textContent = label;
       Object.assign(button.style, {
-        flex: "1 1 7em",
         minHeight: "2.3em",
         padding: "0.45em 0.7em",
         border: "0",
@@ -790,31 +820,81 @@ export class GameScene extends MyScene {
         background,
         color: "white",
         font: "inherit",
-        fontSize: "0.9em",
+        fontSize: "0.88em",
         fontWeight: "700",
         cursor: "pointer",
-        whiteSpace: "nowrap"
+        whiteSpace: "nowrap",
+        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.15)"
       });
       button.addEventListener("click", onClick);
       return button;
     };
 
-    actions.append(
-      createButton("pause-resume", "Reanudar", "#26733a", () => this.togglePause(false)),
-      createButton("pause-restart", "Reiniciar", "#a25b12", () => {
-        this.togglePause(false);
-        this.restart();
-      }),
-      createButton("pause-home", "Inicio", "#4b5948", () => {
-        this.togglePause(false);
-        this.returnToTitle();
-      })
-    );
+    const resumeBtn = createButton("pause-resume", "▶ Reanudar / Resume", "#26733a", () => this.togglePause(false));
+    const restartLevelBtn = createButton("pause-restart", "🔄 Reiniciar nivel / Restart Level", "#a25b12", () => {
+      this.restartCurrentLevel();
+    });
+    const restartGameBtn = createButton("pause-restart-game", "⏮ Reiniciar juego / Restart Game", "#b33a2b", () => {
+      this.restartWholeGame();
+    });
+    const soundBtn = createButton("pause-sound", "🔊 Sound: ON", "#3a6b88", () => {
+      this.togglePauseSound();
+    });
+    this.pauseSoundButton = soundBtn;
 
-    panel.append(title, actions);
+    const homeBtn = createButton("pause-home", "🏠 Inicio / Main Menu", "#4b5948", () => {
+      this.togglePause(false);
+      this.returnToTitle();
+    });
+
+    actions.append(resumeBtn, restartLevelBtn, restartGameBtn, soundBtn, homeBtn);
+
+    panel.append(title, infoContainer, actions);
     overlay.appendChild(panel);
+
     this.pauseOverlay = overlay;
+    this.pauseInfoContainer = infoContainer;
+    this.pauseLevelLabel = levelLabel;
+    this.pauseStatsLabel = statsLabel;
     this.visualLayerParent.appendChild(overlay);
+  }
+
+  restartCurrentLevel() {
+    this.togglePause(false);
+    this.startLevel(this.currentLevel, true);
+  }
+
+  restartWholeGame() {
+    this.togglePause(false);
+    this.score = 0;
+    this.scoreText.setText("0");
+    this.scoreLabel.textContent = "0";
+    this.startLevel(1, true);
+  }
+
+  togglePauseSound() {
+    this.audio.toggleMute();
+    this.refreshSoundToggleButton();
+    this.refreshPauseSoundButton();
+  }
+
+  private refreshPauseSoundButton() {
+    if (!this.pauseSoundButton) {
+      return;
+    }
+    const muted = this.audio.muted;
+    this.pauseSoundButton.textContent = muted ? "🔇 Sound: OFF" : "🔊 Sound: ON";
+    this.pauseSoundButton.setAttribute("aria-label", muted ? "Unmute sound" : "Mute sound");
+  }
+
+  private refreshPauseOverlayInfo() {
+    if (this.pauseLevelLabel && this.currentLevelConfig) {
+      this.pauseLevelLabel.textContent = `Level ${this.currentLevel}: ${this.currentLevelConfig.title} - ${this.currentLevelConfig.subtitle}`;
+    }
+    if (this.pauseStatsLabel) {
+      this.pauseStatsLabel.textContent = `Puntaje / Score: ${this.score}  •  Récord / Best: ${this.currentHighScore}`;
+    }
+    this.refreshPauseSoundButton();
   }
 
   togglePause(forceState?: boolean) {
@@ -835,6 +915,7 @@ export class GameScene extends MyScene {
       this.audio.play(AUDIO_KEYS.uiToggle);
       this.stopAllFoodDragging();
       this.resetTouchTilt();
+      this.refreshPauseOverlayInfo();
       if (this.pauseOverlay) {
         this.pauseOverlay.style.display = "flex";
         this.pauseOverlay.setAttribute("aria-hidden", "false");
@@ -1695,6 +1776,10 @@ export class GameScene extends MyScene {
     this.pauseToggleButton = null;
     this.pauseOverlay?.remove();
     this.pauseOverlay = null;
+    this.pauseSoundButton = null;
+    this.pauseInfoContainer = null;
+    this.pauseLevelLabel = null;
+    this.pauseStatsLabel = null;
     this.fullscreenToggleButton?.remove();
     this.fullscreenToggleButton = null;
     this.fullscreenPromptOverlay?.remove();

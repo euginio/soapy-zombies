@@ -2438,11 +2438,28 @@ test("pause button toggles pause state, pauses physics and music, and shows paus
   await expect(pauseOverlay).toBeVisible();
   expect(await page.evaluate(() => window.__gameSceneForTest.isPaused)).toBe(true);
 
-  // Click restart inside pause overlay
+  // Test pause sound toggle button
+  const pauseSoundBtn = page.locator("#pause-sound");
+  await expect(pauseSoundBtn).toBeVisible();
+  const initialMuted = await page.evaluate(() => window.__gameSceneForTest.audio.muted);
+  await pauseSoundBtn.click();
+  expect(await page.evaluate(() => window.__gameSceneForTest.audio.muted)).toBe(!initialMuted);
+  await pauseSoundBtn.click();
+  expect(await page.evaluate(() => window.__gameSceneForTest.audio.muted)).toBe(initialMuted);
+
+  // Test restart level inside pause overlay
   await page.locator("#pause-restart").click();
   await waitForGameScene(page);
   await expect(pauseOverlay).toBeHidden();
   expect(await page.evaluate(() => window.__gameSceneForTest.isPaused)).toBe(false);
+
+  // Test restart game inside pause overlay
+  await pauseToggle.click();
+  await expect(pauseOverlay).toBeVisible();
+  await page.locator("#pause-restart-game").click();
+  await waitForGameScene(page);
+  await expect(pauseOverlay).toBeHidden();
+  expect(await page.evaluate(() => window.__gameSceneForTest.score)).toBe(0);
 
   // 5. Click home inside pause overlay
   await pauseToggle.click();
@@ -2466,6 +2483,8 @@ test("pause overlay modal fits completely within screen bounds on short landscap
     const resume = document.querySelector("#pause-resume");
     const restart = document.querySelector("#pause-restart");
     const home = document.querySelector("#pause-home");
+    const restartGame = document.querySelector("#pause-restart-game");
+    const sound = document.querySelector("#pause-sound");
     const pRect = panel.getBoundingClientRect();
     return {
       panelTop: pRect.top,
@@ -2474,6 +2493,8 @@ test("pause overlay modal fits completely within screen bounds on short landscap
       panelRight: pRect.right,
       resumeBottom: resume.getBoundingClientRect().bottom,
       restartBottom: restart.getBoundingClientRect().bottom,
+      restartGameBottom: restartGame.getBoundingClientRect().bottom,
+      soundBottom: sound.getBoundingClientRect().bottom,
       homeBottom: home.getBoundingClientRect().bottom,
       windowWidth: window.innerWidth,
       windowHeight: window.innerHeight
@@ -2485,6 +2506,8 @@ test("pause overlay modal fits completely within screen bounds on short landscap
   expect(pauseBounds.panelBottom).toBeLessThanOrEqual(pauseBounds.windowHeight);
   expect(pauseBounds.resumeBottom).toBeLessThanOrEqual(pauseBounds.windowHeight);
   expect(pauseBounds.restartBottom).toBeLessThanOrEqual(pauseBounds.windowHeight);
+  expect(pauseBounds.restartGameBottom).toBeLessThanOrEqual(pauseBounds.windowHeight);
+  expect(pauseBounds.soundBottom).toBeLessThanOrEqual(pauseBounds.windowHeight);
   expect(pauseBounds.homeBottom).toBeLessThanOrEqual(pauseBounds.windowHeight);
 });
 

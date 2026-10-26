@@ -968,6 +968,32 @@ export function canShowLevelComplete(gameOver: boolean, isLevelCompleteActive: b
   return !gameOver && !isLevelCompleteActive;
 }
 
+export interface PauseMenuSummary {
+  levelNumber: number;
+  levelTitle: string;
+  levelSubtitle: string;
+  score: number;
+  highScore: number;
+  isMuted: boolean;
+}
+
+export function formatPauseMenuSummary(
+  levelNumber: number,
+  score: number,
+  highScore: number,
+  isMuted: boolean
+): PauseMenuSummary {
+  const config = getLevelConfig(levelNumber);
+  return {
+    levelNumber,
+    levelTitle: config.title,
+    levelSubtitle: config.subtitle,
+    score,
+    highScore,
+    isMuted
+  };
+}
+
 export function canPauseGame(gameOver: boolean, isLevelCompleteActive = false): boolean {
   return !gameOver && !isLevelCompleteActive;
 }

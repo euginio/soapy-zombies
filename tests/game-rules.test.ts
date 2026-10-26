@@ -54,6 +54,7 @@ import {
   shouldWormContinueEating,
   canPauseGame,
   togglePauseState,
+  formatPauseMenuSummary,
   formatLevelCompleteSummary,
   canShowLevelComplete
 } from "../game-rules";
@@ -966,6 +967,20 @@ describe("pause rules", () => {
   it("does not allow pausing when level complete overlay is active", () => {
     assert.equal(canPauseGame(false, true), false);
     assert.equal(togglePauseState(false, false, true), false);
+  });
+
+  it("formats pause menu summary with level info, scores, and mute state", () => {
+    const summary = formatPauseMenuSummary(2, 18, 50, false);
+    assert.equal(summary.levelNumber, 2);
+    assert.equal(summary.levelTitle, "Level 2");
+    assert.equal(summary.levelSubtitle, "Defend the Food!");
+    assert.equal(summary.score, 18);
+    assert.equal(summary.highScore, 50);
+    assert.equal(summary.isMuted, false);
+
+    const mutedSummary = formatPauseMenuSummary(3, 0, 10, true);
+    assert.equal(mutedSummary.isMuted, true);
+    assert.equal(mutedSummary.levelTitle, "Level 3");
   });
 });
 
