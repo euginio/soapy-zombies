@@ -2229,6 +2229,71 @@ test("modal boxes (level banner, level HUD, and game over overlay) remain within
   expect(gameOverPanelBounds.top).toBeGreaterThanOrEqual(0);
   expect(gameOverPanelBounds.right).toBeLessThanOrEqual(gameOverPanelBounds.windowWidth);
   expect(gameOverPanelBounds.bottom).toBeLessThanOrEqual(gameOverPanelBounds.windowHeight);
+
+  const actionButtonsBounds = await page.evaluate(() => {
+    const restart = document.querySelector("#game-over-restart").getBoundingClientRect();
+    const home = document.querySelector("#game-over-home").getBoundingClientRect();
+    return {
+      restartBottom: restart.bottom,
+      homeBottom: home.bottom,
+      windowHeight: window.innerHeight
+    };
+  });
+  expect(actionButtonsBounds.restartBottom).toBeLessThanOrEqual(actionButtonsBounds.windowHeight);
+  expect(actionButtonsBounds.homeBottom).toBeLessThanOrEqual(actionButtonsBounds.windowHeight);
+});
+
+test("modal popups fit completely on short narrow landscape viewport (600x320)", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.setViewportSize({ width: 600, height: 320 });
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  // 1. Level banner is fully within bounds
+  const bannerBounds = await page.evaluate(() => {
+    const banner = document.querySelector("#level-banner");
+    const rect = banner.getBoundingClientRect();
+    return {
+      left: rect.left,
+      top: rect.top,
+      right: rect.right,
+      bottom: rect.bottom,
+      windowWidth: window.innerWidth,
+      windowHeight: window.innerHeight
+    };
+  });
+  expect(bannerBounds.left).toBeGreaterThanOrEqual(0);
+  expect(bannerBounds.top).toBeGreaterThanOrEqual(0);
+  expect(bannerBounds.right).toBeLessThanOrEqual(bannerBounds.windowWidth);
+  expect(bannerBounds.bottom).toBeLessThanOrEqual(bannerBounds.windowHeight);
+
+  // 2. Trigger Game Over overlay
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    scene.foods.getChildren().slice().forEach((food) => food.destroy());
+  });
+  await expect(page.locator("#game-over-overlay")).toBeVisible();
+
+  const gameOverBounds = await page.evaluate(() => {
+    const panel = document.querySelector("#game-over-overlay > div");
+    const restart = document.querySelector("#game-over-restart");
+    const home = document.querySelector("#game-over-home");
+    const pRect = panel.getBoundingClientRect();
+    const rRect = restart.getBoundingClientRect();
+    const hRect = home.getBoundingClientRect();
+    return {
+      panelTop: pRect.top,
+      panelBottom: pRect.bottom,
+      restartBottom: rRect.bottom,
+      homeBottom: hRect.bottom,
+      windowHeight: window.innerHeight
+    };
+  });
+  expect(gameOverBounds.panelTop).toBeGreaterThanOrEqual(0);
+  expect(gameOverBounds.panelBottom).toBeLessThanOrEqual(gameOverBounds.windowHeight);
+  expect(gameOverBounds.restartBottom).toBeLessThanOrEqual(gameOverBounds.windowHeight);
+  expect(gameOverBounds.homeBottom).toBeLessThanOrEqual(gameOverBounds.windowHeight);
 });
 
 test("game over overlay displays the reached level", async ({ page }) => {

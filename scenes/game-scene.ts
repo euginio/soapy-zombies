@@ -786,25 +786,30 @@ export class GameScene extends MyScene {
     overlay.setAttribute("aria-hidden", "true");
     Object.assign(overlay.style, {
       position: "absolute",
+      left: "0",
+      top: "0",
+      width: "100%",
+      height: "100%",
       display: "none",
       alignItems: "center",
       justifyContent: "center",
-      zIndex: "12",
-      background: "rgba(15, 32, 12, 0.58)",
+      zIndex: "100",
+      background: "rgba(15, 32, 12, 0.65)",
       color: "#172312",
       fontFamily: "system-ui, sans-serif",
       textAlign: "center",
       pointerEvents: "auto",
-      boxSizing: "border-box"
+      boxSizing: "border-box",
+      padding: "8px"
     });
 
     const panel = document.createElement("div");
     Object.assign(panel.style, {
-      width: "min(90%, 22em)",
-      maxHeight: "90%",
+      width: "min(92%, 24em)",
+      maxHeight: "min(90%, 90vh)",
       overflowY: "auto",
       boxSizing: "border-box",
-      padding: "1.15em",
+      padding: "0.8em 1.2em",
       borderRadius: "0.8em",
       background: "#fffdf4",
       boxShadow: "0 0.5em 1.5em rgba(0, 0, 0, 0.3)"
@@ -813,35 +818,46 @@ export class GameScene extends MyScene {
     const title = document.createElement("h2");
     title.id = "game-over-title";
     title.textContent = "¡Fin de la partida!";
-    Object.assign(title.style, { margin: "0 0 0.75em", fontSize: "1.45em" });
+    Object.assign(title.style, { margin: "0 0 0.35em", fontSize: "1.3em" });
 
-    const levelP = document.createElement("p");
-    levelP.style.margin = "0.4em 0";
+    const statsContainer = document.createElement("div");
+    Object.assign(statsContainer.style, {
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: "0.3em 0.8em",
+      margin: "0.2em 0 0.7em",
+      fontSize: "0.95em",
+      fontWeight: "bold"
+    });
+
+    const levelP = document.createElement("span");
     levelP.append("Nivel: ");
     this.finalLevelValue = document.createElement("span");
     this.finalLevelValue.id = "game-over-level";
     levelP.appendChild(this.finalLevelValue);
 
-    const score = document.createElement("p");
-    score.style.margin = "0.4em 0";
+    const score = document.createElement("span");
     score.append("Puntaje: ");
     this.finalScoreValue = document.createElement("span");
     this.finalScoreValue.id = "game-over-score";
     score.appendChild(this.finalScoreValue);
 
-    const highScore = document.createElement("p");
-    highScore.style.margin = "0.4em 0 1em";
+    const highScore = document.createElement("span");
     highScore.append("Récord: ");
     this.finalHighScoreValue = document.createElement("span");
     this.finalHighScoreValue.id = "game-over-record";
     highScore.appendChild(this.finalHighScoreValue);
+
+    statsContainer.append(levelP, score, highScore);
 
     const actions = document.createElement("div");
     Object.assign(actions.style, {
       display: "flex",
       justifyContent: "center",
       flexWrap: "wrap",
-      gap: "0.55em"
+      gap: "0.5em"
     });
 
     const createButton = (id: string, label: string, background: string, onClick: () => void) => {
@@ -850,16 +866,18 @@ export class GameScene extends MyScene {
       button.type = "button";
       button.textContent = label;
       Object.assign(button.style, {
-        flex: "1 1 9em",
-        minHeight: "2.7em",
-        padding: "0.6em 0.8em",
+        flex: "1 1 8em",
+        minHeight: "2.3em",
+        padding: "0.45em 0.7em",
         border: "0",
         borderRadius: "0.45em",
         background,
         color: "white",
         font: "inherit",
+        fontSize: "0.9em",
         fontWeight: "700",
-        cursor: "pointer"
+        cursor: "pointer",
+        whiteSpace: "nowrap"
       });
       button.addEventListener("click", onClick);
       return button;
@@ -869,7 +887,7 @@ export class GameScene extends MyScene {
       createButton("game-over-restart", "Volver a jugar", "#26733a", () => this.restart()),
       createButton("game-over-home", "Volver al inicio", "#4b5948", () => this.returnToTitle())
     );
-    panel.append(title, levelP, score, highScore, actions);
+    panel.append(title, statsContainer, actions);
     overlay.appendChild(panel);
     this.gameOverOverlay = overlay;
     this.visualLayerParent.appendChild(overlay);
@@ -905,26 +923,26 @@ export class GameScene extends MyScene {
       height: `${layout.height}px`
     });
     const modalScale = Math.min(layout.scaleX, layout.scaleY);
-    const modalFontSize = Math.max(11, Math.min(18, 15 * modalScale));
-    this.gameOverOverlay!.style.left = `${layout.left}px`;
-    this.gameOverOverlay!.style.top = `${layout.top}px`;
-    this.gameOverOverlay!.style.width = `${layout.width}px`;
-    this.gameOverOverlay!.style.height = `${layout.height}px`;
+    const modalFontSize = Math.max(11, Math.min(16, 14 * modalScale));
+    this.gameOverOverlay!.style.left = "0px";
+    this.gameOverOverlay!.style.top = "0px";
+    this.gameOverOverlay!.style.width = "100%";
+    this.gameOverOverlay!.style.height = "100%";
     this.gameOverOverlay!.style.fontSize = `${modalFontSize}px`;
 
     if (this.levelHud) {
       this.levelHud.style.left = `${layout.left + layout.width / 2}px`;
-      this.levelHud.style.top = `${layout.top + Math.max(6, 12 * layout.scaleY)}px`;
-      this.levelHud.style.fontSize = `${Math.max(11, Math.min(18, 15 * modalScale))}px`;
-      this.levelHud.style.maxWidth = `${layout.width * 0.9}px`;
+      this.levelHud.style.top = `${layout.top + Math.max(6, 10 * layout.scaleY)}px`;
+      this.levelHud.style.fontSize = `${Math.max(11, Math.min(16, 14 * modalScale))}px`;
+      this.levelHud.style.maxWidth = `${Math.min(layout.width * 0.75, 420)}px`;
     }
 
     if (this.levelBanner) {
-      this.levelBanner.style.left = `${layout.left + layout.width / 2}px`;
-      this.levelBanner.style.top = `${layout.top + layout.height / 2}px`;
-      this.levelBanner.style.fontSize = `${Math.max(11, Math.min(18, 15 * modalScale))}px`;
-      this.levelBanner.style.maxWidth = `min(90%, ${layout.width * 0.88}px)`;
-      this.levelBanner.style.maxHeight = `min(85%, ${layout.height * 0.85}px)`;
+      this.levelBanner.style.left = "50%";
+      this.levelBanner.style.top = "50%";
+      this.levelBanner.style.fontSize = `${Math.max(11, Math.min(16, 14 * modalScale))}px`;
+      this.levelBanner.style.maxWidth = `min(90vw, ${Math.max(280, layout.width * 0.85)}px, 460px)`;
+      this.levelBanner.style.maxHeight = `min(80vh, ${Math.max(200, layout.height * 0.8)}px, 260px)`;
     }
     const grass = this.textures.get("grass").getSourceImage() as HTMLImageElement;
     const overscanX = 60 * layout.scaleX;
@@ -957,11 +975,14 @@ export class GameScene extends MyScene {
       this.fullscreenToggleButton.style.top = `${layout.top + layout.height - this.fullscreenToggleButton.offsetHeight - 8}px`;
     }
     if (this.fullscreenPromptOverlay) {
-      this.fullscreenPromptOverlay.style.fontSize = `${13 * layout.scaleX}px`;
-      const promptWidth = Math.min(layout.width * 0.9, 440 * layout.scaleX);
-      this.fullscreenPromptOverlay.style.width = `${promptWidth}px`;
-      this.fullscreenPromptOverlay.style.left = `${layout.left + (layout.width - promptWidth) / 2}px`;
-      this.fullscreenPromptOverlay.style.top = `${layout.top + 8 * layout.scaleY}px`;
+      const promptScale = Math.min(layout.scaleX, layout.scaleY);
+      this.fullscreenPromptOverlay.style.fontSize = `${Math.max(10, Math.min(13, 12 * promptScale))}px`;
+      const promptWidth = Math.min(layout.width * 0.9, 420);
+      this.fullscreenPromptOverlay.style.width = "auto";
+      this.fullscreenPromptOverlay.style.maxWidth = `${promptWidth}px`;
+      this.fullscreenPromptOverlay.style.left = "50%";
+      this.fullscreenPromptOverlay.style.transform = "translateX(-50%)";
+      this.fullscreenPromptOverlay.style.top = `${Math.max(6, layout.top + 6)}px`;
     }
     if (this.sensorRecenterButton) {
       this.sensorRecenterButton.style.left = `${layout.left + layout.width - this.sensorRecenterButton.offsetWidth - 8}px`;
@@ -1140,7 +1161,7 @@ export class GameScene extends MyScene {
       alignItems: "center",
       justifyContent: "space-between",
       zIndex: "10002",
-      background: "rgba(23, 35, 18, 0.92)",
+      background: "rgba(23, 35, 18, 0.94)",
       color: "#fff",
       boxShadow: "0 4px 16px rgba(0, 0, 0, 0.45)",
       fontFamily: "system-ui, sans-serif",
@@ -1148,17 +1169,20 @@ export class GameScene extends MyScene {
       boxSizing: "border-box",
       cursor: "pointer",
       pointerEvents: "auto",
-      padding: "8px 14px",
-      borderRadius: "20px",
-      border: "1px solid rgba(255, 255, 255, 0.3)"
+      padding: "6px 12px",
+      borderRadius: "18px",
+      border: "1px solid rgba(255, 255, 255, 0.3)",
+      maxWidth: "min(92vw, 420px)"
     });
 
     const label = document.createElement("span");
     label.textContent = "⛶ Toca para volver a pantalla completa / Tap to restore fullscreen";
     Object.assign(label.style, {
-      marginRight: "10px",
+      marginRight: "8px",
       userSelect: "none",
-      webkitUserSelect: "none"
+      webkitUserSelect: "none",
+      fontSize: "0.85em",
+      lineHeight: "1.2"
     });
 
     const closeBtn = document.createElement("button");
@@ -1169,7 +1193,7 @@ export class GameScene extends MyScene {
       background: "transparent",
       border: "0",
       color: "#fff",
-      fontSize: "16px",
+      fontSize: "14px",
       cursor: "pointer",
       padding: "2px 6px",
       borderRadius: "4px"
@@ -1543,18 +1567,18 @@ export class GameScene extends MyScene {
     Object.assign(hud.style, {
       position: "absolute",
       left: "50%",
-      top: "12px",
+      top: "10px",
       zIndex: "15",
       pointerEvents: "none",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      gap: "14px",
+      gap: "10px",
       fontFamily: "Courier, monospace",
       fontWeight: "bold",
       color: "#201",
-      whiteSpace: "pre",
-      maxWidth: "90%",
+      whiteSpace: "nowrap",
+      maxWidth: "min(85%, 440px)",
       boxSizing: "border-box",
       transform: "translateX(-50%)"
     });
@@ -1585,15 +1609,15 @@ export class GameScene extends MyScene {
       zIndex: "25",
       pointerEvents: "none",
       transition: "opacity 0.3s ease",
-      backgroundColor: "rgba(23, 35, 18, 0.92)",
+      backgroundColor: "rgba(23, 35, 18, 0.94)",
       border: "2px solid rgba(255, 255, 255, 0.3)",
-      borderRadius: "14px",
-      boxShadow: "0 6px 22px rgba(0, 0, 0, 0.5)",
+      borderRadius: "12px",
+      boxShadow: "0 4px 20px rgba(0, 0, 0, 0.5)",
       color: "#fff",
       fontFamily: "Courier, monospace",
-      padding: "12px 20px",
-      maxWidth: "90%",
-      maxHeight: "85%",
+      padding: "8px 16px",
+      maxWidth: "min(92%, 460px)",
+      maxHeight: "min(80%, 260px)",
       boxSizing: "border-box",
       overflowY: "auto",
       transform: "translate(-50%, -50%)"
@@ -1602,21 +1626,24 @@ export class GameScene extends MyScene {
     const title = document.createElement("div");
     title.id = "level-banner-title";
     title.style.fontWeight = "bold";
-    title.style.fontSize = "1.3em";
+    title.style.fontSize = "1.2em";
     title.style.color = "#ffbe0b";
-    title.style.marginBottom = "4px";
+    title.style.marginBottom = "2px";
+    title.style.lineHeight = "1.2";
 
     const subtitle = document.createElement("div");
     subtitle.id = "level-banner-subtitle";
     subtitle.style.fontWeight = "bold";
-    subtitle.style.fontSize = "1.05em";
+    subtitle.style.fontSize = "0.95em";
     subtitle.style.color = "#ffffff";
-    subtitle.style.marginBottom = "6px";
+    subtitle.style.marginBottom = "4px";
+    subtitle.style.lineHeight = "1.2";
 
     const instruction = document.createElement("div");
     instruction.id = "level-banner-instruction";
-    instruction.style.fontSize = "0.85em";
+    instruction.style.fontSize = "0.82em";
     instruction.style.color = "#e0e0e0";
+    instruction.style.lineHeight = "1.25";
 
     banner.append(title, subtitle, instruction);
     this.levelBanner = banner;
