@@ -137,6 +137,12 @@ export class GameScene extends MyScene {
     if (outcome.spawnAnt) {
       this.addNewAnt();
     }
+
+    if (!this.isLevelTransitioning && this.currentLevelConfig?.goalType === "defeat_ants") {
+      this.levelProgress += 1;
+      this.updateLevelHud();
+      this.checkLevelCompletion();
+    }
   }
 
   destroyFood(food: Food) {

@@ -42,6 +42,9 @@ export class Ant extends MySprite {
         if (this.scene.gameOver) {
             return;
         }
+        if (this.scene.currentLevelConfig) {
+            this.ANT_SPEED = this.scene.currentLevelConfig.antSpeed;
+        }
         this.isAlive = true;
         this.setScale(0.2);
         this.enableBody(false, this.x, this.y, false, true);

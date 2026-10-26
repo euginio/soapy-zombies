@@ -853,12 +853,27 @@ describe("level progression rules", () => {
     assert.equal(lvl5.tiltEnabled, true);
     assert.equal(lvl5.dragEnabled, true);
     assert.equal(lvl5.caterpillarsEnabled, true);
-    assert.equal(lvl5.goalType, "endless");
+    assert.equal(lvl5.goalType, "defeat_ants");
+    assert.equal(lvl5.goalTarget, 12);
+    assert.equal(lvl5.initialCaterpillars, 1);
+    assert.equal(lvl5.antSpeed, 62);
 
-    // Level 6 escalates from level 5 base
-    const lvl6 = getLevelConfig(6);
-    assert.ok(lvl6.antSpeed > lvl5.antSpeed);
-    assert.equal(lvl6.level, 6);
+    const lvl8 = getLevelConfig(8);
+    assert.equal(lvl8.initialCaterpillars, 2);
+    assert.equal(lvl8.goalTarget, 22);
+    assert.equal(lvl8.antSpeed, 74);
+
+    const lvl10 = getLevelConfig(10);
+    assert.equal(lvl10.initialAnts, 8);
+    assert.equal(lvl10.initialCaterpillars, 2);
+    assert.equal(lvl10.goalTarget, 30);
+    assert.equal(lvl10.antSpeed, 82);
+
+    // Level 11 escalates dynamically
+    const lvl11 = getLevelConfig(11);
+    assert.ok(lvl11.antSpeed > lvl10.antSpeed);
+    assert.equal(lvl11.level, 11);
+    assert.equal(lvl11.goalTarget, 35);
   });
 
   it("evaluates whether level completion goals are met", () => {
@@ -886,7 +901,7 @@ describe("level progression rules", () => {
     assert.equal(formatLevelObjective(lvl3, 5), "ANTS: 5/7");
 
     const lvl5 = getLevelConfig(5);
-    assert.equal(formatLevelObjective(lvl5, 0), "ENDLESS");
+    assert.equal(formatLevelObjective(lvl5, 4), "ANTS: 4/12");
   });
 
   it("respects dragEnabled parameter in canFoodBeDragged", () => {

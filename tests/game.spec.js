@@ -2059,7 +2059,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(level4State.isDragEnabled).toBe(true);
   expect(level4State.caterpillarsEnabled).toBe(false);
 
-  // 8. Level 5 introduces caterpillars
+  // 8. Level 5 introduces caterpillars and defeat_ants goal of 12 ants
   await page.evaluate(() => window.__gameSceneForTest.startLevel(5, false));
   const level5State = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
@@ -2070,6 +2070,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
       caterpillarsEnabled: scene.currentLevelConfig.caterpillarsEnabled,
       caterpillarsCount: scene.caterpillars.getChildren().length,
       goalType: scene.currentLevelConfig.goalType,
+      goalTarget: scene.currentLevelConfig.goalTarget,
       hudText: document.querySelector("#level-hud")?.textContent ?? ""
     };
   });
@@ -2077,6 +2078,54 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(level5State.isDragEnabled).toBe(true);
   expect(level5State.caterpillarsEnabled).toBe(true);
   expect(level5State.caterpillarsCount).toBeGreaterThanOrEqual(1);
-  expect(level5State.goalType).toBe("endless");
-  expect(level5State.hudText).toContain("ENDLESS");
+  expect(level5State.goalType).toBe("defeat_ants");
+  expect(level5State.goalTarget).toBe(12);
+  expect(level5State.hudText).toContain("ANTS: 0/12");
+
+  // Ant falling from tray increments defeat_ants progress in Level 5
+  const antProgress = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const ant = scene.ants.getChildren()[0];
+    scene.antDied(ant);
+    return {
+      levelProgress: scene.levelProgress,
+      hudText: document.querySelector("#level-hud")?.textContent ?? ""
+    };
+  });
+  expect(antProgress.levelProgress).toBe(1);
+  expect(antProgress.hudText).toContain("ANTS: 1/12");
+
+  // 9. Level 8 has 2 caterpillars and 22 ant target
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(8, false));
+  const level8State = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    return {
+      currentLevel: scene.currentLevel,
+      caterpillarsCount: scene.caterpillars.getChildren().length,
+      goalTarget: scene.currentLevelConfig.goalTarget,
+      antSpeed: scene.currentLevelConfig.antSpeed
+    };
+  });
+  expect(level8State.currentLevel).toBe(8);
+  expect(level8State.caterpillarsCount).toBe(2);
+  expect(level8State.goalTarget).toBe(22);
+  expect(level8State.antSpeed).toBe(74);
+
+  // 10. Level 10 has 8 ants, 2 caterpillars, and 30 ant target
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(10, false));
+  const level10State = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    return {
+      currentLevel: scene.currentLevel,
+      antsCount: scene.ants.getChildren().length,
+      caterpillarsCount: scene.caterpillars.getChildren().length,
+      goalTarget: scene.currentLevelConfig.goalTarget,
+      antSpeed: scene.currentLevelConfig.antSpeed
+    };
+  });
+  expect(level10State.currentLevel).toBe(10);
+  expect(level10State.antsCount).toBe(8);
+  expect(level10State.caterpillarsCount).toBe(2);
+  expect(level10State.goalTarget).toBe(30);
+  expect(level10State.antSpeed).toBe(82);
 });

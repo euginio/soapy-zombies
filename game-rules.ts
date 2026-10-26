@@ -790,15 +790,85 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     level: 5,
     title: "Level 5",
     subtitle: "Beware of Worms!",
-    instruction: "Hungry caterpillars have arrived! Protect the picnic!",
+    instruction: "Hungry caterpillars have arrived! Slide 12 ants off the tray!",
     tiltEnabled: true,
     dragEnabled: true,
     caterpillarsEnabled: true,
     initialAnts: 5,
     initialCaterpillars: 1,
-    antSpeed: 60,
-    goalType: "endless",
-    goalTarget: 0
+    antSpeed: 62,
+    goalType: "defeat_ants",
+    goalTarget: 12
+  },
+  6: {
+    level: 6,
+    title: "Level 6",
+    subtitle: "Ant Swarm!",
+    instruction: "The ants are speeding up! Drop 15 ants from the tray!",
+    tiltEnabled: true,
+    dragEnabled: true,
+    caterpillarsEnabled: true,
+    initialAnts: 6,
+    initialCaterpillars: 1,
+    antSpeed: 66,
+    goalType: "defeat_ants",
+    goalTarget: 15
+  },
+  7: {
+    level: 7,
+    title: "Level 7",
+    subtitle: "Sugar Rush!",
+    instruction: "Fast ants are rushing the picnic! Slide 18 ants off!",
+    tiltEnabled: true,
+    dragEnabled: true,
+    caterpillarsEnabled: true,
+    initialAnts: 6,
+    initialCaterpillars: 1,
+    antSpeed: 70,
+    goalType: "defeat_ants",
+    goalTarget: 18
+  },
+  8: {
+    level: 8,
+    title: "Level 8",
+    subtitle: "Double Trouble!",
+    instruction: "Two caterpillars joined the feast! Drop 22 ants!",
+    tiltEnabled: true,
+    dragEnabled: true,
+    caterpillarsEnabled: true,
+    initialAnts: 7,
+    initialCaterpillars: 2,
+    antSpeed: 74,
+    goalType: "defeat_ants",
+    goalTarget: 22
+  },
+  9: {
+    level: 9,
+    title: "Level 9",
+    subtitle: "Picnic Panic!",
+    instruction: "Ant swarm at high speed! Slide 25 ants off the tray!",
+    tiltEnabled: true,
+    dragEnabled: true,
+    caterpillarsEnabled: true,
+    initialAnts: 7,
+    initialCaterpillars: 2,
+    antSpeed: 78,
+    goalType: "defeat_ants",
+    goalTarget: 25
+  },
+  10: {
+    level: 10,
+    title: "Level 10",
+    subtitle: "Grand Feast!",
+    instruction: "Grand picnic challenge! Drop 30 ants to conquer the feast!",
+    tiltEnabled: true,
+    dragEnabled: true,
+    caterpillarsEnabled: true,
+    initialAnts: 8,
+    initialCaterpillars: 2,
+    antSpeed: 82,
+    goalType: "defeat_ants",
+    goalTarget: 30
   }
 };
 
@@ -806,16 +876,19 @@ export function getLevelConfig(level: number): LevelConfig {
   if (level in LEVEL_CONFIGS) {
     return LEVEL_CONFIGS[level];
   }
-  const base = LEVEL_CONFIGS[5];
-  const extraLevels = level - 5;
+  const base = LEVEL_CONFIGS[10];
+  const extraLevels = level - 10;
   return {
     ...base,
     level,
     title: `Level ${level}`,
-    subtitle: "Picnic Mayhem!",
-    instruction: "Defend the picnic from endless waves!",
-    antSpeed: Math.min(85, base.antSpeed + extraLevels * 2),
-    initialAnts: Math.min(8, base.initialAnts + Math.floor(extraLevels / 2))
+    subtitle: "Endless Picnic Mayhem!",
+    instruction: `Endless challenge! Slide ${30 + extraLevels * 5} ants off the tray!`,
+    goalType: "defeat_ants",
+    goalTarget: 30 + extraLevels * 5,
+    antSpeed: Math.min(95, base.antSpeed + extraLevels * 2),
+    initialAnts: Math.min(10, base.initialAnts + Math.floor(extraLevels / 2)),
+    initialCaterpillars: Math.min(3, base.initialCaterpillars + (level >= 15 ? 1 : 0))
   };
 }
 
