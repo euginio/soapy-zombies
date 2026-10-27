@@ -704,7 +704,7 @@ export class Food extends MySprite {
         }
     }
 
-    private clearDragTimers() {
+    clearDragTimers() {
         this.clearDragHoldTimer();
         this.clearDragCooldownTimer();
     }

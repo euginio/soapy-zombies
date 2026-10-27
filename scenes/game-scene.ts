@@ -2170,6 +2170,7 @@ export class GameScene extends MyScene {
     }
     const currentFoods = this.foods.getChildren().slice() as Food[];
     currentFoods.forEach((food) => {
+      food.clearDragTimers();
       food.releaseAllCarriers(false);
       food.isBeingDragged = false;
       food.isDragCooldown = false;

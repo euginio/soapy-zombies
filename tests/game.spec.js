@@ -2041,6 +2041,8 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     const food = scene.foods.getChildren()[0];
+    food.clearDragTimers();
+    food.isDragCooldown = false;
     const t0 = performance.now();
     food.startDrag(undefined, t0);
     food.moveDrag(food.x - 25, food.y, t0 + 40);

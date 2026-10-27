@@ -72,6 +72,10 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
 10. **For the UI, only use Spanish messages.** Per the owner's instruction, all in-game
     user-facing UI text, menus, overlays, banners, HUD, instructions, button labels, and
     accessibility labels must be in Spanish.
+11. **Do not mention 'fruit' (or 'fruta') anywhere. Only refer to 'food' (and 'comida' in Spanish UI).**
+    Per the owner's instruction, in all agent responses, code comments, tests, UI messages, HUD
+    elements, banners, and documentation, never use 'fruit' or 'fruta'; always refer to 'food'
+    (English) or 'comida' (Spanish UI).
 
 ## Conventions and gotchas
 
@@ -93,6 +97,8 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
   - The `highScore` localStorage key.
 - UI text is in Spanish (game-over overlay, pause menu, level complete overlay, banners, HUD,
   instructions, buttons). Keep all UI messages in Spanish.
+- Do not mention 'fruit' or 'fruta'. Always refer to 'food' in English and 'comida' in
+  Spanish UI messages and HUD elements.
 
 ## Known open improvements
 
