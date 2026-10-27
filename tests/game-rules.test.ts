@@ -848,7 +848,7 @@ describe("level progression rules", () => {
     assert.equal(lvl1.caterpillarsEnabled, false);
     assert.equal(lvl1.goalType, "move_food");
     assert.equal(lvl1.initialFood, 1);
-    assert.equal(lvl1.initialAnts, 4);
+    assert.equal(lvl1.initialAnts, 0);
     assert.equal(lvl1.goalTarget, 1);
 
     const lvl2 = getLevelConfig(2);

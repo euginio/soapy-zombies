@@ -223,7 +223,7 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
     };
   })).toMatchObject({
     trayVisible: true,
-    visibleAnts: 4,
+    visibleAnts: 0,
     visibleFoods: 1,
     hudText: "0HI 0"
   });
@@ -491,13 +491,13 @@ test("new game shows the saved high score and starting ant and food counts", asy
     foodCount: 1,
     foodSprites: 1,
     availableFood: 1,
-    antSprites: 4
+    antSprites: 0
   });
 });
 
 test("an ant that leaves the tray awards a point through the fall path", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
-  await page.goto("/");
+  await page.goto("/?level=4");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
@@ -525,7 +525,7 @@ test("an ant that leaves the tray awards a point through the fall path", async (
 
 test("falling ants raise the score and spawn an extra ant every seventh escape", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
-  await page.goto("/");
+  await page.goto("/?level=4");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
@@ -1939,6 +1939,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
       isDragEnabled: scene.isDragEnabled,
       goalType: scene.currentLevelConfig.goalType,
       goalTarget: scene.currentLevelConfig.goalTarget,
+      antsCount: scene.ants.getChildren().length,
       hudText: hud?.textContent ?? "",
       bannerVisible: banner?.style.display !== "none",
       bannerTitle: bannerTitle?.textContent ?? ""
@@ -1950,6 +1951,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(initialLevelState.isDragEnabled).toBe(true);
   expect(initialLevelState.goalType).toBe("move_food");
   expect(initialLevelState.goalTarget).toBe(1);
+  expect(initialLevelState.antsCount).toBe(0);
   expect(initialLevelState.hudText).toContain("NIVEL 1");
   expect(initialLevelState.hudText).toContain("MUEVE LA COMIDA: 0/1");
   expect(initialLevelState.bannerTitle).toBe("Nivel 1");
@@ -2468,6 +2470,7 @@ test("pause button toggles pause state, pauses physics and music, and shows paus
   expect(await page.evaluate(() => window.__gameSceneForTest.isPaused)).toBe(false);
 
   // 4. Toggle via 'Escape'
+  await page.locator("#tilting-board").focus();
   await page.keyboard.press("Escape");
   await expect(pauseOverlay).toBeVisible();
   expect(await page.evaluate(() => window.__gameSceneForTest.isPaused)).toBe(true);
@@ -2717,7 +2720,9 @@ test("levels with tilt disabled do not apply tilt physics or phone orientation t
   // Gravity must remain 0 and board un-tilted
   const level1State = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
+    scene.addNewAnt();
     const ant = scene.ants.getChildren()[0];
+    ant.ANT_SPEED = scene.currentLevelConfig.antSpeed;
     ant.setVelocity(100, 0);
     return {
       gravity: { x: scene.gravity.x, y: scene.gravity.y },
@@ -2761,18 +2766,19 @@ test("levels with tilt disabled do not apply tilt physics or phone orientation t
 });
 
 
-test("level 1 starts with only one food and passes when the user moves the food", async ({ page }) => {
+test("level 1 starts with only one food and no ants, and passes when the user moves the food", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
   await page.goto("/?level=1");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
-  // 1. Level 1 starts with only 1 food
+  // 1. Level 1 starts with only 1 food and no ants
   const startingState = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     return {
       foodCount: scene.foodCount,
       foodSprites: scene.foods.getChildren().length,
+      antCount: scene.ants.getChildren().length,
       isTiltEnabled: scene.isTiltEnabled,
       isDragEnabled: scene.isDragEnabled,
       goalType: scene.currentLevelConfig.goalType,
@@ -2781,6 +2787,7 @@ test("level 1 starts with only one food and passes when the user moves the food"
   });
   expect(startingState.foodCount).toBe(1);
   expect(startingState.foodSprites).toBe(1);
+  expect(startingState.antCount).toBe(0);
   expect(startingState.isTiltEnabled).toBe(false);
   expect(startingState.isDragEnabled).toBe(true);
   expect(startingState.goalType).toBe("move_food");

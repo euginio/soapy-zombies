@@ -794,7 +794,7 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     dragEnabled: true,
     caterpillarsEnabled: false,
     initialFood: 1,
-    initialAnts: 4,
+    initialAnts: 0,
     initialCaterpillars: 0,
     antSpeed: 45,
     goalType: "move_food",
