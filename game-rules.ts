@@ -727,7 +727,7 @@ export function shouldWormContinueEating(options: {
     !options.isFoodCarried
   );
 }
-export type LevelGoalType = "shake_ants" | "survive_time" | "defeat_ants" | "endless";
+export type LevelGoalType = "move_food" | "shake_ants" | "survive_time" | "defeat_ants" | "endless";
 
 export interface LevelConfig {
   level: number;
@@ -737,6 +737,7 @@ export interface LevelConfig {
   tiltEnabled: boolean;
   dragEnabled: boolean;
   caterpillarsEnabled: boolean;
+  initialFood?: number;
   initialAnts: number;
   initialCaterpillars: number;
   antSpeed: number;
@@ -748,16 +749,17 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
   1: {
     level: 1,
     title: "Nivel 1",
-    subtitle: "¡Sacude la fruta!",
-    instruction: "¡Arrastra y sacude las frutas para soltar las hormigas!",
+    subtitle: "¡Mueve la fruta!",
+    instruction: "¡Arrastra la fruta para moverla y alejarla de las hormigas!",
     tiltEnabled: false,
     dragEnabled: true,
     caterpillarsEnabled: false,
+    initialFood: 1,
     initialAnts: 4,
     initialCaterpillars: 0,
     antSpeed: 45,
-    goalType: "shake_ants",
-    goalTarget: 10
+    goalType: "move_food",
+    goalTarget: 1
   },
   2: {
     level: 2,
@@ -923,6 +925,8 @@ export function formatLevelObjective(
   currentProgress: number
 ): string {
   switch (config.goalType) {
+    case "move_food":
+      return `MUEVE LA FRUTA: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;
     case "shake_ants":
       return `SACUDIDAS: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;
     case "survive_time": {

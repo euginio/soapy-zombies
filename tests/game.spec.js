@@ -224,7 +224,7 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
   })).toMatchObject({
     trayVisible: true,
     visibleAnts: 4,
-    visibleFoods: 8,
+    visibleFoods: 1,
     hudText: "0HI 0"
   });
 
@@ -450,8 +450,8 @@ test("game over shows the score and offers restart and home actions", async ({ p
   await expect.poll(() => readGameState(page)).toMatchObject({
     gameOver: false,
     score: 0,
-    foodCount: 8,
-    availableFood: 8,
+    foodCount: 1,
+    availableFood: 1,
     highScoreText: "HI 5",
     highScore: "5"
   });
@@ -488,9 +488,9 @@ test("new game shows the saved high score and starting ant and food counts", asy
     score: 0,
     scoreText: "0",
     highScoreText: "HI 9",
-    foodCount: 8,
-    foodSprites: 8,
-    availableFood: 8,
+    foodCount: 1,
+    foodSprites: 1,
+    availableFood: 1,
     antSprites: 4
   });
 });
@@ -551,7 +551,7 @@ test("eating food lowers the remaining count without a new high score when tied"
     localStorage.setItem("highScore", "4");
   });
 
-  await page.goto("/");
+  await page.goto("/?level=2");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
@@ -825,7 +825,7 @@ test("game events play their sound effects", async ({ page }) => {
       };
     }, { once: true });
   });
-  await page.goto("/");
+  await page.goto("/?level=2");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
   await page.evaluate(() => {
@@ -1025,7 +1025,7 @@ test("mobile portrait mode displays the rotation prompt overlay", async ({ brows
 
 test("food can be dragged for up to 3 seconds, cannot be eaten while dragging, and has a drag cooldown", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
-  await page.goto("/");
+  await page.goto("/?level=2");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
   await page.locator("#level-banner-confirm").click();
@@ -1401,7 +1401,7 @@ test("caterpillar spawns, resists tilt with lower gravityFactor, and awards 2 po
 
 test("ants steal food cooperatively and carry it faster towards edges", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
-  await page.goto("/");
+  await page.goto("/?level=2");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
@@ -1772,7 +1772,7 @@ test("screen wake lock is acquired during gameplay and released on shutdown", as
 
 test("dropping food over another food places it next to it instead of reverting to origin", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
-  await page.goto("/");
+  await page.goto("/?level=2");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
@@ -1948,10 +1948,10 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(initialLevelState.currentLevel).toBe(1);
   expect(initialLevelState.isTiltEnabled).toBe(false);
   expect(initialLevelState.isDragEnabled).toBe(true);
-  expect(initialLevelState.goalType).toBe("shake_ants");
-  expect(initialLevelState.goalTarget).toBe(10);
+  expect(initialLevelState.goalType).toBe("move_food");
+  expect(initialLevelState.goalTarget).toBe(1);
   expect(initialLevelState.hudText).toContain("NIVEL 1");
-  expect(initialLevelState.hudText).toContain("SACUDIDAS: 0/10");
+  expect(initialLevelState.hudText).toContain("MUEVE LA FRUTA: 0/1");
   expect(initialLevelState.bannerTitle).toBe("Nivel 1");
 
   // Click confirmation button to start Level 1 gameplay
@@ -1965,32 +1965,13 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   const tiltTransform = await page.locator("#tilting-board").evaluate((el) => el.style.transform);
   expect(tiltTransform).toBe("perspective(900px) rotateX(0deg) rotateY(0deg)");
 
-  // 3. Shaking fruit increments Level 1 progress
-  const shakeProgress = await page.evaluate(() => {
-    const scene = window.__gameSceneForTest;
-    const food = scene.foods.getChildren()[0];
-    const ant = scene.ants.getChildren()[0];
-
-    ant.isAlive = true;
-    ant.isClimbing = false;
-    scene.antHitFood(ant, food);
-
-    // Simulate shake off
-    food.shakeOffCarriers();
-
-    return {
-      levelProgress: scene.levelProgress,
-      hudText: document.querySelector("#level-hud")?.textContent ?? ""
-    };
-  });
-
-  expect(shakeProgress.levelProgress).toBeGreaterThanOrEqual(1);
-  expect(shakeProgress.hudText).toContain(`SACUDIDAS: ${shakeProgress.levelProgress}/10`);
-
-  // 4. Completing Level 1 triggers the level complete screen and requires pressing continue
+  // 3. Moving the fruit completes Level 1
   await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
-    scene.onAntsShaken(10);
+    const food = scene.foods.getChildren()[0];
+    food.startDrag();
+    food.moveDrag(food.x + 50, food.y + 50);
+    food.finishDrag();
   });
 
   const levelCompleteOverlay = page.locator("#level-complete-overlay");
@@ -2642,7 +2623,7 @@ test("level intro modal displays before each level with confirmation button to r
   await expect(confirmBtn).toBeVisible();
   await expect(confirmBtn).toHaveText("¡A jugar!");
   await expect(title).toHaveText("Nivel 1");
-  await expect(instruction).toContainText("frutas");
+  await expect(instruction).toContainText("fruta");
 
   // 2. Physics is paused while reading the rules
   const isPhysicsPaused = await page.evaluate(() => window.__gameSceneForTest.physics.world.isPaused);
@@ -2745,4 +2726,58 @@ test("levels with tilt disabled do not apply tilt physics or phone orientation t
   expect(level3State.gravity.x).not.toBe(0);
   // In Level 3, tilt physics applies gravity to ant velocity
   expect(level3State.antVx).not.toBe(-55);
+});
+
+
+test("level 1 starts with only one food and passes when the user moves the food", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/?level=1");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  // 1. Level 1 starts with only 1 food
+  const startingState = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    return {
+      foodCount: scene.foodCount,
+      foodSprites: scene.foods.getChildren().length,
+      isTiltEnabled: scene.isTiltEnabled,
+      isDragEnabled: scene.isDragEnabled,
+      goalType: scene.currentLevelConfig.goalType,
+      hudText: document.querySelector("#level-hud")?.textContent ?? ""
+    };
+  });
+  expect(startingState.foodCount).toBe(1);
+  expect(startingState.foodSprites).toBe(1);
+  expect(startingState.isTiltEnabled).toBe(false);
+  expect(startingState.isDragEnabled).toBe(true);
+  expect(startingState.goalType).toBe("move_food");
+  expect(startingState.hudText).toContain("MUEVE LA FRUTA: 0/1");
+
+  // Confirm intro banner
+  await page.locator("#level-banner-confirm").click();
+  await expect(page.locator("#level-banner")).toBeHidden();
+
+  // 2. Drag and move the food to pass Level 1
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    food.startDrag();
+    food.moveDrag(food.x + 60, food.y + 40);
+    food.finishDrag();
+  });
+
+  // Level complete overlay appears
+  const completeOverlay = page.locator("#level-complete-overlay");
+  await expect(completeOverlay).toBeVisible();
+  await expect(completeOverlay).toContainText("Nivel 1");
+  await expect(completeOverlay).toContainText("Nivel 2");
+
+  // Advance to Level 2
+  await page.locator("#level-complete-continue").click();
+  await expect(completeOverlay).toBeHidden();
+  expect(await page.evaluate(() => window.__gameSceneForTest.currentLevel)).toBe(2);
+
+  // Level 2 has 8 foods
+  await expect.poll(() => page.evaluate(() => window.__gameSceneForTest.foodCount)).toBe(8);
 });

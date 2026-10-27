@@ -49,6 +49,7 @@ export class Food extends MySprite {
     dragOffsetY: number = 0;
     dragOriginX: number = 0;
     dragOriginY: number = 0;
+    totalDragDistance: number = 0;
     eatProgress: number = 0;
     isWormEating: boolean = false;
     eatingBug: any | null = null;
@@ -539,6 +540,7 @@ export class Food extends MySprite {
         this.dragSamples = [{ x: this.x, y: this.y, time: now }];
         this.dragOriginX = this.x;
         this.dragOriginY = this.y;
+        this.totalDragDistance = 0;
         const pointerX = pointer ? pointer.x : this.x;
         const pointerY = pointer ? pointer.y : this.y;
         const offsetX = Number.isFinite(pointerX) ? pointerX - this.x : 0;
@@ -572,10 +574,13 @@ export class Food extends MySprite {
         }
         const bounds = this.scene.tray.getBounds();
         const clamped = clampFoodPosition(dragX, dragY, bounds, 25);
+        const prevX = this.x;
+        const prevY = this.y;
         this.setPosition(clamped.x, clamped.y);
         if (this.body) {
             this.body.reset(clamped.x, clamped.y);
         }
+        this.totalDragDistance += Math.hypot(clamped.x - prevX, clamped.y - prevY);
 
         const now = timeMs ?? (typeof performance !== 'undefined' ? performance.now() : Date.now());
         const lastSample = this.dragSamples[this.dragSamples.length - 1];
@@ -632,6 +637,9 @@ export class Food extends MySprite {
             targetY = resolved.y;
         }
 
+        const moveDist = Math.hypot(targetX - this.dragOriginX, targetY - this.dragOriginY);
+        const hasMoved = moveDist >= 15 || this.totalDragDistance >= 30;
+
         this.dragOriginX = targetX;
         this.dragOriginY = targetY;
 
@@ -644,6 +652,10 @@ export class Food extends MySprite {
         }
 
         this.startDragCooldown();
+
+        if (hasMoved) {
+            this.scene?.onFoodMoved?.(1);
+        }
     }
 
     private resetInputDragState(pointer?: Phaser.Input.Pointer) {

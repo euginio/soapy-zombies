@@ -842,9 +842,10 @@ describe("level progression rules", () => {
     assert.equal(lvl1.tiltEnabled, false);
     assert.equal(lvl1.dragEnabled, true);
     assert.equal(lvl1.caterpillarsEnabled, false);
-    assert.equal(lvl1.goalType, "shake_ants");
+    assert.equal(lvl1.goalType, "move_food");
+    assert.equal(lvl1.initialFood, 1);
     assert.equal(lvl1.initialAnts, 4);
-    assert.equal(lvl1.goalTarget, 10);
+    assert.equal(lvl1.goalTarget, 1);
 
     const lvl2 = getLevelConfig(2);
     assert.equal(lvl2.tiltEnabled, false);
@@ -895,6 +896,8 @@ describe("level progression rules", () => {
   });
 
   it("evaluates whether level completion goals are met", () => {
+    assert.equal(isLevelGoalMet("move_food", 0, 1), false);
+    assert.equal(isLevelGoalMet("move_food", 1, 1), true);
     assert.equal(isLevelGoalMet("shake_ants", 9, 10), false);
     assert.equal(isLevelGoalMet("shake_ants", 10, 10), true);
     assert.equal(isLevelGoalMet("shake_ants", 11, 10), true);
@@ -910,7 +913,8 @@ describe("level progression rules", () => {
 
   it("formats level objective HUD strings accurately", () => {
     const lvl1 = getLevelConfig(1);
-    assert.equal(formatLevelObjective(lvl1, 2), "SACUDIDAS: 2/10");
+    assert.equal(formatLevelObjective(lvl1, 0), "MUEVE LA FRUTA: 0/1");
+    assert.equal(formatLevelObjective(lvl1, 1), "MUEVE LA FRUTA: 1/1");
 
     const lvl2 = getLevelConfig(2);
     assert.equal(formatLevelObjective(lvl2, 6.2), "SOBREVIVE: 39s");
@@ -1020,8 +1024,8 @@ describe("level intro confirmation modal rules", () => {
     const lvl1 = getLevelConfig(1);
     const modal1 = formatLevelIntroModal(lvl1);
     assert.equal(modal1.title, "Nivel 1");
-    assert.equal(modal1.subtitle, "¡Sacude la fruta!");
-    assert.equal(modal1.instruction, "¡Arrastra y sacude las frutas para soltar las hormigas!");
+    assert.equal(modal1.subtitle, "¡Mueve la fruta!");
+    assert.equal(modal1.instruction, "¡Arrastra la fruta para moverla y alejarla de las hormigas!");
     assert.equal(modal1.confirmLabel, "¡A jugar!");
 
     const lvl2 = getLevelConfig(2);

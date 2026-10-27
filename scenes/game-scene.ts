@@ -403,11 +403,17 @@ export class GameScene extends MyScene {
     this.scoreLabel.textContent = this.scoreText.text;
     this.highScoreLabel.textContent = this.highScoreText.text;
 
+    const urlParams = typeof window !== "undefined" && window.location ? new URLSearchParams(window.location.search) : null;
+    const paramLevel = urlParams?.get("level");
+    const startingLevel = paramLevel ? Number(paramLevel) : 1;
+    const initialConfig = getLevelConfig(Number.isFinite(startingLevel) && startingLevel > 0 ? startingLevel : 1);
+    this.foodCount = initialConfig?.initialFood ?? this.initialFood;
+
     this.foods = this.add.group();
     this.foods.runChildUpdate = true;
     for (let index = 0; index < this.foodCount; index++) {
-      let newF= new Food(this)
-      this.foods.add(newF, true)
+      let newF = new Food(this);
+      this.foods.add(newF, true);
     }
 
     this.ants = this.add.group();
@@ -505,9 +511,6 @@ export class GameScene extends MyScene {
     // The title tap already unlocked audio; the music survives restarts, so this only resumes it.
     this.audio.startMusic();
 
-    const urlParams = typeof window !== "undefined" && window.location ? new URLSearchParams(window.location.search) : null;
-    const paramLevel = urlParams?.get("level");
-    const startingLevel = paramLevel ? Number(paramLevel) : 1;
     this.startLevel(Number.isFinite(startingLevel) && startingLevel > 0 ? startingLevel : 1);
   }
 
@@ -1864,6 +1867,18 @@ export class GameScene extends MyScene {
   }
 
 
+  onFoodMoved(count: number = 1) {
+    if (this.gameOver || this.isLevelTransitioning) {
+      return;
+    }
+    if (this.currentLevelConfig?.goalType === "move_food") {
+      this.levelProgress += count;
+      this.updateLevelHud();
+      this.checkFinalWave();
+      this.checkLevelCompletion();
+    }
+  }
+
   onAntsShaken(count: number) {
     if (this.gameOver || this.isLevelTransitioning) {
       return;
@@ -2097,11 +2112,20 @@ export class GameScene extends MyScene {
       food.setAlpha(1);
     });
 
+    const targetFoodCount = this.currentLevelConfig?.initialFood ?? this.initialFood;
     const activeFoods = currentFoods.filter((f) => f.active && f.body?.enable);
-    const needed = Math.max(0, this.initialFood - activeFoods.length);
-    for (let i = 0; i < needed; i++) {
-      const newF = new Food(this);
-      this.foods.add(newF, true);
+    if (activeFoods.length < targetFoodCount) {
+      const needed = targetFoodCount - activeFoods.length;
+      for (let i = 0; i < needed; i++) {
+        const newF = new Food(this);
+        this.foods.add(newF, true);
+      }
+    } else if (activeFoods.length > targetFoodCount) {
+      const excess = activeFoods.slice(targetFoodCount);
+      excess.forEach((food) => {
+        food.disableBody(true, true);
+        food.destroy();
+      });
     }
     this.foodCount = this.foods.getChildren().filter((f: any) => f.active && f.body?.enable).length;
   }
