@@ -795,7 +795,7 @@ export class GameScene extends MyScene {
 
     const title = document.createElement("h2");
     title.id = "pause-title";
-    title.textContent = "Partida pausada";
+    title.textContent = "Pausa";
     Object.assign(title.style, { margin: "0 0 0.35em", fontSize: "1.25em", color: "#172312" });
 
     const infoContainer = document.createElement("div");
@@ -916,7 +916,7 @@ export class GameScene extends MyScene {
 
   private refreshPauseOverlayInfo() {
     if (this.pauseLevelLabel && this.currentLevelConfig) {
-      this.pauseLevelLabel.textContent = `${this.currentLevelConfig.title}: ${this.currentLevelConfig.subtitle}`;
+      this.pauseLevelLabel.textContent = this.currentLevelConfig.title;
     }
     if (this.pauseStatsLabel) {
       this.pauseStatsLabel.textContent = `Puntaje: ${this.score}  •  Récord: ${this.currentHighScore}`;
@@ -1019,7 +1019,7 @@ export class GameScene extends MyScene {
     scoreContainer.style.fontSize = "0.95em";
     scoreContainer.style.fontWeight = "bold";
     scoreContainer.style.marginBottom = "0.6em";
-    scoreContainer.append("Puntaje actual: ");
+    scoreContainer.append("Puntaje: ");
     const scoreVal = document.createElement("span");
     scoreVal.id = "level-complete-score";
     scoreVal.textContent = "0";
@@ -1113,7 +1113,7 @@ export class GameScene extends MyScene {
       this.levelCompleteScore.textContent = this.score.toString();
     }
     if (this.levelCompleteSubtitle) {
-      this.levelCompleteSubtitle.textContent = `Siguiente: ${summary.nextTitle} - ${summary.nextSubtitle}`;
+      this.levelCompleteSubtitle.textContent = `Siguiente: ${summary.nextTitle}`;
     }
     if (this.levelCompleteInstruction) {
       this.levelCompleteInstruction.textContent = summary.nextInstruction;
@@ -1386,8 +1386,8 @@ export class GameScene extends MyScene {
     };
 
     actions.append(
-      createButton("game-over-restart", "Volver a jugar", "#26733a", () => this.restart()),
-      createButton("game-over-home", "Volver al inicio", "#4b5948", () => this.returnToTitle())
+      createButton("game-over-restart", "Reintentar", "#26733a", () => this.restart()),
+      createButton("game-over-home", "Inicio", "#4b5948", () => this.returnToTitle())
     );
     panel.append(title, statsContainer, actions);
     overlay.appendChild(panel);

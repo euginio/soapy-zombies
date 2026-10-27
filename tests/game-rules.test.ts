@@ -1013,7 +1013,7 @@ describe("level complete screen rules", () => {
     assert.equal(summary1.nextLevel, 2);
     assert.equal(summary1.nextTitle, "Nivel 2");
     assert.equal(summary1.nextSubtitle, "¡Sacude la fruta!");
-    assert.equal(summary1.nextInstruction, "¡Una hormiga atrapó la fruta! ¡Sacúdela con fuerza para soltarla!");
+    assert.equal(summary1.nextInstruction, "Sacúdela con fuerza.");
 
     const summary2 = formatLevelCompleteSummary(2);
     assert.equal(summary2.completedLevel, 2);
@@ -1034,14 +1034,14 @@ describe("level intro confirmation modal rules", () => {
     const modal1 = formatLevelIntroModal(lvl1);
     assert.equal(modal1.title, "Nivel 1");
     assert.equal(modal1.subtitle, "¡Mueve la fruta!");
-    assert.equal(modal1.instruction, "¡Arrastra la fruta para moverla y alejarla de las hormigas!");
+    assert.equal(modal1.instruction, "Arrastra la fruta.");
     assert.equal(modal1.confirmLabel, "¡A jugar!");
 
     const lvl2 = getLevelConfig(2);
     const modal2 = formatLevelIntroModal(lvl2);
     assert.equal(modal2.title, "Nivel 2");
     assert.equal(modal2.subtitle, "¡Sacude la fruta!");
-    assert.equal(modal2.instruction, "¡Una hormiga atrapó la fruta! ¡Sacúdela con fuerza para soltarla!");
+    assert.equal(modal2.instruction, "Sacúdela con fuerza.");
     assert.equal(modal2.confirmLabel, "¡A jugar!");
   });
 

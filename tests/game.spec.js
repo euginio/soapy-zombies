@@ -2433,7 +2433,7 @@ test("pause button toggles pause state, pauses physics and music, and shows paus
   // 1. Click pause button
   await pauseToggle.click();
   await expect(pauseOverlay).toBeVisible();
-  await expect(pauseOverlay).toContainText("Partida pausada");
+  await expect(pauseOverlay).toContainText("Pausa");
   await expect(pauseToggle).toHaveText("▶");
 
   const isPausedState = await page.evaluate(() => ({
@@ -2931,7 +2931,7 @@ test("level 3 starts with only one ant in the center of the tray and passes when
   await expect(page.locator("#level-banner")).toBeVisible();
   await expect(page.locator("#level-banner-title")).toHaveText("Nivel 3");
   await expect(page.locator("#level-banner-subtitle")).toHaveText("¡Inclina la bandeja!");
-  await expect(page.locator("#level-banner-instruction")).toHaveText("¡Una hormiga en la bandeja! ¡Inclina tu dispositivo o usa las flechas para tirarla!");
+  await expect(page.locator("#level-banner-instruction")).toHaveText("Tira la hormiga.");
   await page.locator("#level-banner-confirm").click();
   await expect(page.locator("#level-banner")).toBeHidden();
 
