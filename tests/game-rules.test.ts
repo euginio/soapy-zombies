@@ -54,6 +54,8 @@ import {
   isWormTouchingFood,
   shouldWormContinueEating,
   canPauseGame,
+  checkNeutralTiltProgress,
+  isTiltNeutral,
   togglePauseState,
   formatPauseMenuSummary,
   formatLevelCompleteSummary,
@@ -259,6 +261,8 @@ describe("ant food stealing rules", () => {
     assert.equal(shouldTiltAffectAnt(true, true), false);
     assert.equal(shouldTiltAffectAnt(false, false), false);
     assert.equal(shouldTiltAffectAnt(true, false), false);
+    assert.equal(shouldTiltAffectAnt(false, true, true), false);
+    assert.equal(shouldTiltAffectAnt(false, true, false), true);
     assert.equal(shouldTiltAffectCaterpillar(true), true);
     assert.equal(shouldTiltAffectCaterpillar(false), false);
 
@@ -918,6 +922,25 @@ describe("level progression rules", () => {
     assert.equal(isLevelGoalMet("endless", 999, 0), false);
   });
 
+  it("verifies neutral tilt detection and progression", () => {
+    assert.equal(isTiltNeutral(0, 0), true);
+    assert.equal(isTiltNeutral(0.08, 0.08), true);
+    assert.equal(isTiltNeutral(0.2, 0), false);
+    assert.equal(isTiltNeutral(0, -0.3), false);
+
+    const step1 = checkNeutralTiltProgress(true, 0, 100, 300);
+    assert.equal(step1.isReady, false);
+    assert.equal(step1.durationMs, 100);
+
+    const step2 = checkNeutralTiltProgress(true, 200, 100, 300);
+    assert.equal(step2.isReady, true);
+    assert.equal(step2.durationMs, 300);
+
+    const step3 = checkNeutralTiltProgress(false, 250, 50, 300);
+    assert.equal(step3.isReady, false);
+    assert.equal(step3.durationMs, 0);
+  });
+
   it("formats level objective HUD strings accurately", () => {
     const lvl1 = getLevelConfig(1);
     assert.equal(formatLevelObjective(lvl1, 0), "MUEVE LA FRUTA: 0/1");
@@ -928,7 +951,9 @@ describe("level progression rules", () => {
     assert.equal(formatLevelObjective(lvl2, 1), "SACUDE LA FRUTA: 1/1");
 
     const lvl3 = getLevelConfig(3);
-    assert.equal(formatLevelObjective(lvl3, 0), "HORMIGAS: 0/1");
+    assert.equal(lvl3.waitForNeutralTilt, true);
+    assert.equal(formatLevelObjective(lvl3, 0, true), "NIVELA LA BANDEJA");
+    assert.equal(formatLevelObjective(lvl3, 0, false), "HORMIGAS: 0/1");
     assert.equal(formatLevelObjective(lvl3, 1), "HORMIGAS: 1/1");
 
     const lvl5 = getLevelConfig(5);

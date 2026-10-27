@@ -220,12 +220,48 @@ export function calculateCarrierAntOffset(
   };
 }
 
-export function shouldTiltAffectAnt(isCarryingFood: boolean, tiltEnabled = true): boolean {
-  return !isCarryingFood && tiltEnabled;
+export function shouldTiltAffectAnt(
+  isCarryingFood: boolean,
+  tiltEnabled = true,
+  isWaitingForNeutral = false
+): boolean {
+  return !isCarryingFood && tiltEnabled && !isWaitingForNeutral;
 }
 
 export function shouldTiltAffectCaterpillar(tiltEnabled = true): boolean {
   return tiltEnabled;
+}
+
+export const NEUTRAL_TILT_THRESHOLD = 0.15;
+export const NEUTRAL_TILT_HOLD_MS = 300;
+
+export function isTiltNeutral(
+  tiltX: number,
+  tiltY: number,
+  maxNeutralThreshold = NEUTRAL_TILT_THRESHOLD
+): boolean {
+  return Math.hypot(tiltX, tiltY) <= maxNeutralThreshold;
+}
+
+export interface NeutralTiltProgress {
+  isReady: boolean;
+  durationMs: number;
+}
+
+export function checkNeutralTiltProgress(
+  isCurrentlyNeutral: boolean,
+  currentDurationMs: number,
+  deltaMs: number,
+  requiredDurationMs = NEUTRAL_TILT_HOLD_MS
+): NeutralTiltProgress {
+  if (!isCurrentlyNeutral) {
+    return { isReady: false, durationMs: 0 };
+  }
+  const nextDuration = currentDurationMs + deltaMs;
+  return {
+    isReady: nextDuration >= requiredDurationMs,
+    durationMs: nextDuration
+  };
 }
 
 export function calculateAntStealVelocity(
@@ -745,6 +781,7 @@ export interface LevelConfig {
   goalTarget: number;
   foodCarriedByAnt?: boolean;
   antInCenter?: boolean;
+  waitForNeutralTilt?: boolean;
 }
 
 export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
@@ -793,7 +830,8 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     antSpeed: 50,
     goalType: "defeat_ants",
     goalTarget: 1,
-    antInCenter: true
+    antInCenter: true,
+    waitForNeutralTilt: true
   },
   4: {
     level: 4,
@@ -928,8 +966,12 @@ export function isLevelGoalMet(
 
 export function formatLevelObjective(
   config: LevelConfig,
-  currentProgress: number
+  currentProgress: number,
+  isWaitingForNeutral = false
 ): string {
+  if (isWaitingForNeutral) {
+    return "NIVELA LA BANDEJA";
+  }
   switch (config.goalType) {
     case "move_food":
       return `MUEVE LA FRUTA: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;

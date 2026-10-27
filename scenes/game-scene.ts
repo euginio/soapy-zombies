@@ -14,12 +14,14 @@ import {
   calculateVisualLayerLayout,
   calculateWaveExtraAnts,
   canPauseGame,
+  checkNeutralTiltProgress,
   debugColorToTint,
   formatLevelObjective,
   formatLevelCompleteSummary,
   getLevelConfig,
   isFinalWaveTriggered,
   isLevelGoalMet,
+  isTiltNeutral,
   LevelConfig,
   getScreenOrientationAngle,
   isNewHighScore,
@@ -90,6 +92,8 @@ export class GameScene extends MyScene {
     return Boolean(this.currentLevelConfig?.dragEnabled);
   }
   isLevelCompleteActive: boolean = false;
+  isWaitingForNeutralTilt: boolean = false;
+  private neutralTiltDurationMs: number = 0;
   pendingNextLevel: number = 2;
   private levelCompleteOverlay: HTMLDivElement | null = null;
   private levelCompleteTitle: HTMLHeadingElement | null = null;
@@ -148,6 +152,8 @@ export class GameScene extends MyScene {
     this.gameOver = false;
     this.isPaused = false;
     this.isLevelCompleteActive = false;
+    this.isWaitingForNeutralTilt = false;
+    this.neutralTiltDurationMs = 0;
   }
 
   antDied(outAnt: Ant) {
@@ -612,6 +618,26 @@ export class GameScene extends MyScene {
       this.applyBoardTilt(this.gravity.x, this.gravity.y);
     } else {
       this.applyBoardTilt(this.gravity.x, this.gravity.y);
+    }
+
+    if (this.isWaitingForNeutralTilt) {
+      const tiltX = this.deviceTilt
+        ? this.deviceTilt.x
+        : (this.touchTilt ? this.touchTilt.x : (this.gravityNum.x !== 0 ? this.gravity.x / this.gravityNum.x : 0));
+      const tiltY = this.deviceTilt
+        ? this.deviceTilt.y
+        : (this.touchTilt ? this.touchTilt.y : (this.gravityNum.y !== 0 ? this.gravity.y / this.gravityNum.y : 0));
+      const isNeutral = isTiltNeutral(tiltX, tiltY);
+      const progress = checkNeutralTiltProgress(isNeutral, this.neutralTiltDurationMs, delta);
+      this.neutralTiltDurationMs = progress.durationMs;
+
+      if (progress.isReady) {
+        this.isWaitingForNeutralTilt = false;
+        this.recenterDeviceTilt();
+        this.updateLevelHud();
+        this.audio.play(AUDIO_KEYS.antFall);
+        this.showAnnouncementBanner("¡Bandeja nivelada!", "¡Ahora inclínala!", "Tira la hormiga.", 1200);
+      }
     }
   }
 
@@ -1902,6 +1928,8 @@ export class GameScene extends MyScene {
     this.currentLevelConfig = getLevelConfig(levelNumber);
     this.levelProgress = 0;
     this.hasTriggeredFinalWave = false;
+    this.isWaitingForNeutralTilt = Boolean(this.currentLevelConfig.waitForNeutralTilt);
+    this.neutralTiltDurationMs = 0;
 
     if (!this.currentLevelConfig.tiltEnabled) {
       this.gravity.x = 0;
@@ -1997,6 +2025,7 @@ export class GameScene extends MyScene {
   completeLevel() {
     this.isLevelTransitioning = true;
     this.isLevelCompleteActive = true;
+    this.isWaitingForNeutralTilt = false;
     this.isLevelIntroActive = false;
     this.hideLevelBanner(true);
     const completedLevel = this.currentLevel;
@@ -2024,7 +2053,11 @@ export class GameScene extends MyScene {
       return;
     }
     this.levelLabel.textContent = `NIVEL ${this.currentLevel}`;
-    this.objectiveLabel.textContent = formatLevelObjective(this.currentLevelConfig, this.levelProgress);
+    this.objectiveLabel.textContent = formatLevelObjective(
+      this.currentLevelConfig,
+      this.levelProgress,
+      this.isWaitingForNeutralTilt
+    );
   }
 
   showLevelIntroBanner(title: string, subtitle: string, instruction: string) {
@@ -2094,6 +2127,7 @@ export class GameScene extends MyScene {
     this.physics.resume();
     this.anims.resumeAll();
     this.time.paused = false;
+    this.updateLevelHud();
   }
 
   hideLevelBanner(immediate = false) {

@@ -210,6 +210,15 @@ export class Ant extends MySprite {
             return;
         }
 
+        if ((this.scene as any).isWaitingForNeutralTilt && this.scene.tray) {
+            this.setPosition(this.scene.tray.x, this.scene.tray.y);
+            this.setVelocity(0, 0);
+            if (this.body) {
+                this.body.reset(this.scene.tray.x, this.scene.tray.y);
+            }
+            return;
+        }
+
         if (this.carriedFood) {
             if (!this.carriedFood.active || this.carriedFood.isBeingEaten) {
                 this.dropFood(false);
@@ -330,7 +339,8 @@ export class Ant extends MySprite {
         // Pursuit and tray gravity are combined here; gravity itself is managed by the scene.
         // Tray tilt does not affect ants carrying food or in levels where tilt is disabled.
         const isTiltEnabled = this.scene.isTiltEnabled;
-        const gravityFactor = shouldTiltAffectAnt(Boolean(this.carriedFood), isTiltEnabled) ? this.gravityFactor : 0;
+        const isWaitingForNeutral = Boolean((this.scene as any).isWaitingForNeutralTilt);
+        const gravityFactor = shouldTiltAffectAnt(Boolean(this.carriedFood), isTiltEnabled, isWaitingForNeutral) ? this.gravityFactor : 0;
         const velocity = calculateAntVelocity(
             xDistance,
             yDistance ?? 0,

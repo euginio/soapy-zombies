@@ -1964,6 +1964,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   await page.keyboard.down("ArrowRight");
   const tiltTransform = await page.locator("#tilting-board").evaluate((el) => el.style.transform);
   expect(tiltTransform).toBe("perspective(900px) rotateX(0deg) rotateY(0deg)");
+  await page.keyboard.up("ArrowRight");
 
   // 3. Moving the fruit completes Level 1
   await page.evaluate(() => {
@@ -2076,7 +2077,8 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(level3State.foodsCount).toBe(0);
   expect(level3State.antsCount).toBe(1);
   expect(level3State.goalType).toBe("defeat_ants");
-  expect(level3State.hudText).toContain("HORMIGAS: 0/1");
+  expect(level3State.hudText).toContain("NIVELA LA BANDEJA");
+  await expect.poll(() => page.locator("#level-hud").textContent()).toContain("HORMIGAS: 0/1");
 
   // Arrow key tilts the board in Level 3
   await page.keyboard.down("ArrowRight");
@@ -2731,8 +2733,8 @@ test("levels with tilt disabled do not apply tilt physics or phone orientation t
   // Pure pursuit velocity without gravity acceleration (-45 along x axis for level 1 antSpeed)
   expect(level1State.antVx).toBe(-45);
 
-  // 2. Switch to Level 3 (tiltEnabled: true)
-  await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
+  // 2. Switch to Level 4 (tiltEnabled: true)
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(4, false));
 
   await page.evaluate(() => {
     window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", {
@@ -2741,7 +2743,7 @@ test("levels with tilt disabled do not apply tilt physics or phone orientation t
     }));
   });
 
-  const level3State = await page.evaluate(() => {
+  const level4State = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     const ant = scene.ants.getChildren()[0];
     ant.setVelocity(100, 0);
@@ -2752,10 +2754,10 @@ test("levels with tilt disabled do not apply tilt physics or phone orientation t
     };
   });
 
-  expect(level3State.isTiltEnabled).toBe(true);
-  expect(level3State.gravity.x).not.toBe(0);
-  // In Level 3, tilt physics applies gravity to ant velocity
-  expect(level3State.antVx).not.toBe(-55);
+  expect(level4State.isTiltEnabled).toBe(true);
+  expect(level4State.gravity.x).not.toBe(0);
+  // In Level 4, tilt physics applies gravity to ant velocity
+  expect(level4State.antVx).not.toBe(-55);
 });
 
 
@@ -2946,6 +2948,7 @@ test("level 3 starts with only one ant in the center of the tray and passes when
       antCount: scene.ants.getChildren().length,
       isTiltEnabled: scene.isTiltEnabled,
       isDragEnabled: scene.isDragEnabled,
+      isWaitingForNeutralTilt: scene.isWaitingForNeutralTilt,
       antX: ant.x,
       antY: ant.y,
       trayX: tray.x,
@@ -2959,12 +2962,29 @@ test("level 3 starts with only one ant in the center of the tray and passes when
   expect(initialState.antCount).toBe(1);
   expect(initialState.isTiltEnabled).toBe(true);
   expect(initialState.isDragEnabled).toBe(false);
+  expect(initialState.isWaitingForNeutralTilt).toBe(true);
   expect(initialState.isClimbing).toBe(false);
   expect(Math.abs(initialState.antX - initialState.trayX)).toBeLessThan(1);
   expect(Math.abs(initialState.antY - initialState.trayY)).toBeLessThan(1);
-  expect(initialState.hudText).toContain("HORMIGAS: 0/1");
+  expect(initialState.hudText).toContain("NIVELA LA BANDEJA");
 
-  // Tilt the board with ArrowRight so the ant falls off the tray
+  // While waiting for neutral tilt, tilting with arrow keys or holding tilted does not move the ant
+  await page.keyboard.down("ArrowRight");
+  await page.waitForTimeout(100);
+  const stillCentered = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const ant = scene.ants.getChildren()[0];
+    const tray = scene.tray;
+    return Math.hypot(ant.x - tray.x, ant.y - tray.y);
+  });
+  expect(stillCentered).toBeLessThan(1);
+  await page.keyboard.up("ArrowRight");
+
+  // Releasing arrow keys keeps neutral position; after neutral hold time, HUD updates
+  await expect.poll(() => page.locator("#level-hud").textContent()).toContain("HORMIGAS: 0/1");
+  expect(await page.evaluate(() => window.__gameSceneForTest.isWaitingForNeutralTilt)).toBe(false);
+
+  // Now tilt the board with ArrowRight so the ant falls off the tray
   await page.keyboard.down("ArrowRight");
   try {
     await expect
