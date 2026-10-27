@@ -275,7 +275,8 @@ export class Food extends MySprite {
                 return;
             }
             const trayBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
-            const speed = calculateCooperativeStealSpeed(55, this.carrierAnts.length);
+            const baseSpeed = this.scene?.currentLevelConfig?.antSpeed ?? 55;
+            const speed = calculateCooperativeStealSpeed(baseSpeed, this.carrierAnts.length);
             const velocity = calculateAntStealVelocity(
                 this.x,
                 this.y,
@@ -514,7 +515,7 @@ export class Food extends MySprite {
         });
     }
 
-    startDrag(pointer?: Phaser.Input.Pointer): boolean {
+    startDrag(pointer?: Phaser.Input.Pointer, timeMs?: number): boolean {
         if (this.isBeingDragged) {
             return true;
         }
@@ -536,7 +537,7 @@ export class Food extends MySprite {
             return false;
         }
         this.isBeingDragged = true;
-        const now = pointer?.downTime ?? this.scene?.time?.now ?? Date.now();
+        const now = timeMs ?? pointer?.downTime ?? (typeof performance !== "undefined" ? performance.now() : Date.now());
         this.dragSamples = [{ x: this.x, y: this.y, time: now }];
         this.dragOriginX = this.x;
         this.dragOriginY = this.y;

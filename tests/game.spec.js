@@ -551,7 +551,7 @@ test("eating food lowers the remaining count without a new high score when tied"
     localStorage.setItem("highScore", "4");
   });
 
-  await page.goto("/?level=2");
+  await page.goto("/?level=4");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
@@ -825,7 +825,7 @@ test("game events play their sound effects", async ({ page }) => {
       };
     }, { once: true });
   });
-  await page.goto("/?level=2");
+  await page.goto("/?level=4");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
   await page.evaluate(() => {
@@ -1025,7 +1025,7 @@ test("mobile portrait mode displays the rotation prompt overlay", async ({ brows
 
 test("food can be dragged for up to 3 seconds, cannot be eaten while dragging, and has a drag cooldown", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
-  await page.goto("/?level=2");
+  await page.goto("/?level=4");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
   await page.locator("#level-banner-confirm").click();
@@ -1401,7 +1401,7 @@ test("caterpillar spawns, resists tilt with lower gravityFactor, and awards 2 po
 
 test("ants steal food cooperatively and carry it faster towards edges", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
-  await page.goto("/?level=2");
+  await page.goto("/?level=4");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
@@ -1772,7 +1772,7 @@ test("screen wake lock is acquired during gameplay and released on shutdown", as
 
 test("dropping food over another food places it next to it instead of reverting to origin", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
-  await page.goto("/?level=2");
+  await page.goto("/?level=4");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
@@ -2005,22 +2005,55 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   await expect(page.locator("#level-banner")).toBeHidden();
   expect(await page.evaluate(() => window.__gameSceneForTest.isLevelIntroActive)).toBe(false);
 
-  // 5. Level 2 has survive_time goal and tilt disabled
+  // 5. Level 2 has shake_ants goal, 1 food carried by 1 stationary ant, and tilt disabled
   const level2State = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    const ant = scene.ants.getChildren()[0];
     return {
       currentLevel: scene.currentLevel,
       isTiltEnabled: scene.isTiltEnabled,
       isDragEnabled: scene.isDragEnabled,
       goalType: scene.currentLevelConfig.goalType,
+      foodCount: scene.foodCount,
+      antCount: scene.ants.getChildren().length,
+      isBeingCarried: food.isBeingCarried,
+      antCarrying: Boolean(ant.carriedFood),
+      antSpeed: scene.currentLevelConfig.antSpeed,
       hudText: document.querySelector("#level-hud")?.textContent ?? ""
     };
   });
   expect(level2State.currentLevel).toBe(2);
   expect(level2State.isTiltEnabled).toBe(false);
   expect(level2State.isDragEnabled).toBe(true);
-  expect(level2State.goalType).toBe("survive_time");
-  expect(level2State.hudText).toContain("SOBREVIVE:");
+  expect(level2State.goalType).toBe("shake_ants");
+  expect(level2State.foodCount).toBe(1);
+  expect(level2State.antCount).toBe(1);
+  expect(level2State.isBeingCarried).toBe(true);
+  expect(level2State.antCarrying).toBe(true);
+  expect(level2State.antSpeed).toBe(0);
+  expect(level2State.hudText).toContain("SACUDE LA FRUTA: 0/1");
+
+  // Shaking the fruit vigorously shakes off the ant and completes Level 2
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    const t0 = performance.now();
+    food.startDrag(undefined, t0);
+    food.moveDrag(food.x - 25, food.y, t0 + 40);
+    food.moveDrag(food.x + 30, food.y, t0 + 80);
+    food.moveDrag(food.x - 25, food.y, t0 + 120);
+    food.finishDrag();
+  });
+
+  await expect(levelCompleteOverlay).toBeVisible();
+  const lvl2CompleteTitle = await page.locator("#level-complete-title").textContent();
+  expect(lvl2CompleteTitle).toContain("Nivel 2");
+
+  // Continue to Level 3
+  await page.locator("#level-complete-continue").click();
+  await expect(page.locator("#level-banner-confirm")).toBeVisible();
+  await page.locator("#level-banner-confirm").click();
 
   // 6. Level 3 has fruit drag disabled and tray tilt enabled
   await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
@@ -2778,6 +2811,115 @@ test("level 1 starts with only one food and passes when the user moves the food"
   await expect(completeOverlay).toBeHidden();
   expect(await page.evaluate(() => window.__gameSceneForTest.currentLevel)).toBe(2);
 
-  // Level 2 has 8 foods
-  await expect.poll(() => page.evaluate(() => window.__gameSceneForTest.foodCount)).toBe(8);
+  // Level 2 has 1 food carried by 1 stationary ant
+  await expect.poll(() => page.evaluate(() => window.__gameSceneForTest.foodCount)).toBe(1);
+  const carriedState = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    const ant = scene.ants.getChildren()[0];
+    return {
+      isBeingCarried: food.isBeingCarried,
+      antCarrying: Boolean(ant.carriedFood)
+    };
+  });
+  expect(carriedState.isBeingCarried).toBe(true);
+  expect(carriedState.antCarrying).toBe(true);
+});
+
+test("level 2 starts with one food carried by a stationary ant and passes when shaken hard", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/?level=2");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  // Level 2 intro banner displays
+  await expect(page.locator("#level-banner")).toBeVisible();
+  await expect(page.locator("#level-banner-title")).toHaveText("Nivel 2");
+  await expect(page.locator("#level-banner-subtitle")).toHaveText("¡Sacude la fruta!");
+  await page.locator("#level-banner-confirm").click();
+  await expect(page.locator("#level-banner")).toBeHidden();
+
+  // Verify initial state: exactly 1 food, 1 ant, carried, antSpeed = 0
+  const initialState = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    const ant = scene.ants.getChildren()[0];
+    return {
+      foodCount: scene.foodCount,
+      antCount: scene.ants.getChildren().length,
+      isBeingCarried: food.isBeingCarried,
+      antCarrying: Boolean(ant.carriedFood),
+      antSpeed: scene.currentLevelConfig.antSpeed,
+      antX: ant.x,
+      antY: ant.y,
+      foodX: food.x,
+      foodY: food.y,
+      hudText: document.querySelector("#level-hud")?.textContent ?? ""
+    };
+  });
+  expect(initialState.foodCount).toBe(1);
+  expect(initialState.antCount).toBe(1);
+  expect(initialState.isBeingCarried).toBe(true);
+  expect(initialState.antCarrying).toBe(true);
+  expect(initialState.antSpeed).toBe(0);
+  expect(initialState.hudText).toContain("SACUDE LA FRUTA: 0/1");
+
+  // Verify the ant and carried food are not moving after waiting
+  await page.waitForTimeout(200);
+  const afterWait = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    const ant = scene.ants.getChildren()[0];
+    return {
+      antX: ant.x,
+      antY: ant.y,
+      foodX: food.x,
+      foodY: food.y
+    };
+  });
+  expect(Math.abs(afterWait.antX - initialState.antX)).toBeLessThan(1);
+  expect(Math.abs(afterWait.antY - initialState.antY)).toBeLessThan(1);
+  expect(Math.abs(afterWait.foodX - initialState.foodX)).toBeLessThan(1);
+  expect(Math.abs(afterWait.foodY - initialState.foodY)).toBeLessThan(1);
+
+  // Moving gently in a straight line does NOT shake off the ant or pass the level
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    food.startDrag();
+    food.moveDrag(food.x + 30, food.y + 30);
+    food.finishDrag();
+  });
+  const afterLinearMove = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    return {
+      isBeingCarried: food.isBeingCarried,
+      levelProgress: scene.levelProgress,
+      isComplete: scene.isLevelCompleteActive
+    };
+  });
+  expect(afterLinearMove.isBeingCarried).toBe(true);
+  expect(afterLinearMove.levelProgress).toBe(0);
+  expect(afterLinearMove.isComplete).toBe(false);
+  await expect(page.locator("#level-complete-overlay")).toBeHidden();
+
+  // Shaking hard back and forth shakes off the ant and passes Level 2
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    food.clearDragTimers();
+    food.isDragCooldown = false;
+    const t0 = performance.now();
+    food.startDrag(undefined, t0);
+    food.moveDrag(food.x - 25, food.y, t0 + 40);
+    food.moveDrag(food.x + 30, food.y, t0 + 80);
+    food.moveDrag(food.x - 25, food.y, t0 + 120);
+    food.finishDrag();
+  });
+
+  const levelCompleteOverlay = page.locator("#level-complete-overlay");
+  await expect(levelCompleteOverlay).toBeVisible();
+  await expect(levelCompleteOverlay).toContainText("Nivel 2");
+  await expect(page.locator("#level-hud")).toContainText("SACUDE LA FRUTA: 1/1");
 });

@@ -53,6 +53,9 @@ export class Ant extends MySprite {
         
         this.faceCenter();
         this.play('walk');
+        if (this.ANT_SPEED === 0) {
+            this.anims?.stop();
+        }
 
         this.climb();
         // this.setScale(1)
@@ -151,6 +154,14 @@ export class Ant extends MySprite {
             this.setDepth(0);
             this.isClimbing = false;
         }
+    }
+
+    cancelClimb() {
+        if (this.climbTimer) {
+            this.climbTimer.remove(false);
+            this.climbTimer = null;
+        }
+        this.isClimbing = false;
     }
 
     private climb() {

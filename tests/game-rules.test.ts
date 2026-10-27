@@ -851,8 +851,12 @@ describe("level progression rules", () => {
     assert.equal(lvl2.tiltEnabled, false);
     assert.equal(lvl2.dragEnabled, true);
     assert.equal(lvl2.caterpillarsEnabled, false);
-    assert.equal(lvl2.goalType, "survive_time");
-    assert.equal(lvl2.goalTarget, 45);
+    assert.equal(lvl2.initialFood, 1);
+    assert.equal(lvl2.initialAnts, 1);
+    assert.equal(lvl2.antSpeed, 0);
+    assert.equal(lvl2.goalType, "shake_ants");
+    assert.equal(lvl2.goalTarget, 1);
+    assert.equal(lvl2.foodCarriedByAnt, true);
 
     const lvl3 = getLevelConfig(3);
     assert.equal(lvl3.tiltEnabled, true);
@@ -917,7 +921,8 @@ describe("level progression rules", () => {
     assert.equal(formatLevelObjective(lvl1, 1), "MUEVE LA FRUTA: 1/1");
 
     const lvl2 = getLevelConfig(2);
-    assert.equal(formatLevelObjective(lvl2, 6.2), "SOBREVIVE: 39s");
+    assert.equal(formatLevelObjective(lvl2, 0), "SACUDE LA FRUTA: 0/1");
+    assert.equal(formatLevelObjective(lvl2, 1), "SACUDE LA FRUTA: 1/1");
 
     const lvl3 = getLevelConfig(3);
     assert.equal(formatLevelObjective(lvl3, 5), "HORMIGAS: 5/15");
@@ -986,7 +991,7 @@ describe("pause rules", () => {
     const summary = formatPauseMenuSummary(2, 18, 50, false);
     assert.equal(summary.levelNumber, 2);
     assert.equal(summary.levelTitle, "Nivel 2");
-    assert.equal(summary.levelSubtitle, "¡Defiende la comida!");
+    assert.equal(summary.levelSubtitle, "¡Sacude la fruta!");
     assert.equal(summary.score, 18);
     assert.equal(summary.highScore, 50);
     assert.equal(summary.isMuted, false);
@@ -1003,8 +1008,8 @@ describe("level complete screen rules", () => {
     assert.equal(summary1.completedLevel, 1);
     assert.equal(summary1.nextLevel, 2);
     assert.equal(summary1.nextTitle, "Nivel 2");
-    assert.equal(summary1.nextSubtitle, "¡Defiende la comida!");
-    assert.equal(summary1.nextInstruction, "¡Aleja las frutas de las hormigas que se acercan!");
+    assert.equal(summary1.nextSubtitle, "¡Sacude la fruta!");
+    assert.equal(summary1.nextInstruction, "¡Una hormiga atrapó la fruta! ¡Sacúdela con fuerza para soltarla!");
 
     const summary2 = formatLevelCompleteSummary(2);
     assert.equal(summary2.completedLevel, 2);
@@ -1031,7 +1036,8 @@ describe("level intro confirmation modal rules", () => {
     const lvl2 = getLevelConfig(2);
     const modal2 = formatLevelIntroModal(lvl2);
     assert.equal(modal2.title, "Nivel 2");
-    assert.equal(modal2.subtitle, "¡Defiende la comida!");
+    assert.equal(modal2.subtitle, "¡Sacude la fruta!");
+    assert.equal(modal2.instruction, "¡Una hormiga atrapó la fruta! ¡Sacúdela con fuerza para soltarla!");
     assert.equal(modal2.confirmLabel, "¡A jugar!");
   });
 

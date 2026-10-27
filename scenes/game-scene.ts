@@ -416,9 +416,10 @@ export class GameScene extends MyScene {
       this.foods.add(newF, true);
     }
 
+    const startingAnts = initialConfig?.initialAnts ?? this.initialAnts;
     this.ants = this.add.group();
     this.ants.runChildUpdate = true;
-    for (let i = 0; i < this.initialAnts; i++) {
+    for (let i = 0; i < startingAnts; i++) {
       this.addNewAnt()
     }
 
@@ -1921,6 +1922,22 @@ export class GameScene extends MyScene {
     this.syncCaterpillarsToLevel();
     this.updateLevelHud();
 
+    if (this.currentLevelConfig.foodCarriedByAnt) {
+      const activeFoods = this.foods.getChildren().filter((f: any) => f.active && f.body?.enable) as Food[];
+      const activeAnts = this.ants.getChildren().filter((a: any) => a.active && a.isAlive) as Ant[];
+      if (activeFoods.length > 0 && activeAnts.length > 0) {
+        const food = activeFoods[0];
+        const ant = activeAnts[0];
+        food.placeInTray();
+        ant.cancelClimb();
+        ant.stealFood(food);
+        food.updateCarrierPositions();
+        if (this.currentLevelConfig.antSpeed === 0) {
+          ant.anims?.stop();
+        }
+      }
+    }
+
     if (showIntroBanner) {
       this.showLevelIntroBanner(
         this.currentLevelConfig.title,
@@ -2159,6 +2176,9 @@ export class GameScene extends MyScene {
 
     (this.ants.getChildren() as Ant[]).forEach((ant) => {
       ant.ANT_SPEED = this.currentLevelConfig.antSpeed;
+      if (ant.ANT_SPEED === 0) {
+        ant.anims?.stop();
+      }
     });
   }
 

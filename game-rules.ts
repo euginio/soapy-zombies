@@ -743,6 +743,7 @@ export interface LevelConfig {
   antSpeed: number;
   goalType: LevelGoalType;
   goalTarget: number;
+  foodCarriedByAnt?: boolean;
 }
 
 export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
@@ -764,16 +765,18 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
   2: {
     level: 2,
     title: "Nivel 2",
-    subtitle: "¡Defiende la comida!",
-    instruction: "¡Aleja las frutas de las hormigas que se acercan!",
+    subtitle: "¡Sacude la fruta!",
+    instruction: "¡Una hormiga atrapó la fruta! ¡Sacúdela con fuerza para soltarla!",
     tiltEnabled: false,
     dragEnabled: true,
     caterpillarsEnabled: false,
-    initialAnts: 4,
+    initialFood: 1,
+    initialAnts: 1,
     initialCaterpillars: 0,
-    antSpeed: 50,
-    goalType: "survive_time",
-    goalTarget: 45
+    antSpeed: 0,
+    goalType: "shake_ants",
+    goalTarget: 1,
+    foodCarriedByAnt: true
   },
   3: {
     level: 3,
@@ -928,7 +931,7 @@ export function formatLevelObjective(
     case "move_food":
       return `MUEVE LA FRUTA: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;
     case "shake_ants":
-      return `SACUDIDAS: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;
+      return `SACUDE LA FRUTA: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;
     case "survive_time": {
       const remaining = Math.max(0, Math.ceil(config.goalTarget - currentProgress));
       return `SOBREVIVE: ${remaining}s`;
