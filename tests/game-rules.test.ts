@@ -2,6 +2,8 @@ import assert = require("node:assert/strict");
 import { describe, it } from "node:test";
 import {
   areFoodsOverlapping,
+  isTutorialCompleted,
+  TUTORIAL_STORAGE_KEY,
   calculateAntSearchHeading,
   calculateAntSearchVelocity,
   calculateAntVelocity,
@@ -944,68 +946,81 @@ describe("food shake and ant scatter rules", () => {
 });
 describe("level progression rules", () => {
   it("provides distinct progression configurations for tutorial and advanced levels", () => {
-    const lvl1 = getLevelConfig(1);
-    assert.equal(lvl1.tiltEnabled, false);
+    // Tutorial levels
+    const tut1 = getLevelConfig(1, true);
+    assert.equal(tut1.isTutorial, true);
+    assert.equal(tut1.title, "Tutorial 1");
+    assert.equal(tut1.tiltEnabled, false);
+    assert.equal(tut1.dragEnabled, true);
+    assert.equal(tut1.caterpillarsEnabled, false);
+    assert.equal(tut1.goalType, "move_food");
+    assert.equal(tut1.initialFood, 1);
+    assert.equal(tut1.initialAnts, 0);
+    assert.equal(tut1.goalTarget, 1);
+
+    const tut2 = getLevelConfig(2, true);
+    assert.equal(tut2.isTutorial, true);
+    assert.equal(tut2.title, "Tutorial 2");
+    assert.equal(tut2.tiltEnabled, false);
+    assert.equal(tut2.dragEnabled, true);
+    assert.equal(tut2.caterpillarsEnabled, false);
+    assert.equal(tut2.initialFood, 1);
+    assert.equal(tut2.initialAnts, 1);
+    assert.equal(tut2.antSpeed, 0);
+    assert.equal(tut2.goalType, "shake_ants");
+    assert.equal(tut2.goalTarget, 1);
+    assert.equal(tut2.foodCarriedByAnt, true);
+
+    const tut3 = getLevelConfig(3, true);
+    assert.equal(tut3.isTutorial, true);
+    assert.equal(tut3.title, "Tutorial 3");
+    assert.equal(tut3.tiltEnabled, true);
+    assert.equal(tut3.dragEnabled, false);
+    assert.equal(tut3.caterpillarsEnabled, false);
+    assert.equal(tut3.initialFood, 0);
+    assert.equal(tut3.initialAnts, 1);
+    assert.equal(tut3.goalType, "defeat_ants");
+    assert.equal(tut3.goalTarget, 1);
+    assert.equal(tut3.antInCenter, true);
+
+    // Separated Game levels
+    const lvl1 = getLevelConfig(1, false);
+    assert.equal(lvl1.isTutorial, false);
+    assert.equal(lvl1.title, "Nivel 1");
+    assert.equal(lvl1.subtitle, "¡Defensa total!");
+    assert.equal(lvl1.tiltEnabled, true);
     assert.equal(lvl1.dragEnabled, true);
     assert.equal(lvl1.caterpillarsEnabled, false);
-    assert.equal(lvl1.goalType, "move_food");
-    assert.equal(lvl1.initialFood, 1);
-    assert.equal(lvl1.initialAnts, 0);
-    assert.equal(lvl1.goalTarget, 1);
+    assert.equal(lvl1.goalType, "defeat_ants");
+    assert.equal(lvl1.goalTarget, 20);
 
-    const lvl2 = getLevelConfig(2);
-    assert.equal(lvl2.tiltEnabled, false);
+    const lvl2 = getLevelConfig(2, false);
+    assert.equal(lvl2.title, "Nivel 2");
+    assert.equal(lvl2.subtitle, "¡Cuidado con las orugas!");
+    assert.equal(lvl2.tiltEnabled, true);
     assert.equal(lvl2.dragEnabled, true);
-    assert.equal(lvl2.caterpillarsEnabled, false);
-    assert.equal(lvl2.initialFood, 1);
-    assert.equal(lvl2.initialAnts, 1);
-    assert.equal(lvl2.antSpeed, 0);
-    assert.equal(lvl2.goalType, "shake_ants");
-    assert.equal(lvl2.goalTarget, 1);
-    assert.equal(lvl2.foodCarriedByAnt, true);
+    assert.equal(lvl2.caterpillarsEnabled, true);
+    assert.equal(lvl2.goalType, "defeat_ants");
+    assert.equal(lvl2.goalTarget, 25);
+    assert.equal(lvl2.initialCaterpillars, 1);
+    assert.equal(lvl2.antSpeed, 62);
 
-    const lvl3 = getLevelConfig(3);
-    assert.equal(lvl3.tiltEnabled, true);
-    assert.equal(lvl3.dragEnabled, false);
-    assert.equal(lvl3.caterpillarsEnabled, false);
-    assert.equal(lvl3.initialFood, 0);
-    assert.equal(lvl3.initialAnts, 1);
-    assert.equal(lvl3.goalType, "defeat_ants");
-    assert.equal(lvl3.goalTarget, 1);
-    assert.equal(lvl3.antInCenter, true);
+    const lvl5 = getLevelConfig(5, false);
+    assert.equal(lvl5.initialCaterpillars, 2);
+    assert.equal(lvl5.goalTarget, 40);
+    assert.equal(lvl5.antSpeed, 74);
 
-    const lvl4 = getLevelConfig(4);
-    assert.equal(lvl4.tiltEnabled, true);
-    assert.equal(lvl4.dragEnabled, true);
-    assert.equal(lvl4.caterpillarsEnabled, false);
-    assert.equal(lvl4.goalType, "defeat_ants");
-    assert.equal(lvl4.goalTarget, 20);
+    const lvl7 = getLevelConfig(7, false);
+    assert.equal(lvl7.initialAnts, 8);
+    assert.equal(lvl7.initialCaterpillars, 2);
+    assert.equal(lvl7.goalTarget, 50);
+    assert.equal(lvl7.antSpeed, 82);
 
-    const lvl5 = getLevelConfig(5);
-    assert.equal(lvl5.tiltEnabled, true);
-    assert.equal(lvl5.dragEnabled, true);
-    assert.equal(lvl5.caterpillarsEnabled, true);
-    assert.equal(lvl5.goalType, "defeat_ants");
-    assert.equal(lvl5.goalTarget, 25);
-    assert.equal(lvl5.initialCaterpillars, 1);
-    assert.equal(lvl5.antSpeed, 62);
-
-    const lvl8 = getLevelConfig(8);
-    assert.equal(lvl8.initialCaterpillars, 2);
-    assert.equal(lvl8.goalTarget, 40);
-    assert.equal(lvl8.antSpeed, 74);
-
-    const lvl10 = getLevelConfig(10);
-    assert.equal(lvl10.initialAnts, 8);
-    assert.equal(lvl10.initialCaterpillars, 2);
-    assert.equal(lvl10.goalTarget, 50);
-    assert.equal(lvl10.antSpeed, 82);
-
-    // Level 11 escalates dynamically
-    const lvl11 = getLevelConfig(11);
-    assert.ok(lvl11.antSpeed > lvl10.antSpeed);
-    assert.equal(lvl11.level, 11);
-    assert.equal(lvl11.goalTarget, 60);
+    // Level 8 escalates dynamically
+    const lvl8 = getLevelConfig(8, false);
+    assert.ok(lvl8.antSpeed > lvl7.antSpeed);
+    assert.equal(lvl8.level, 8);
+    assert.equal(lvl8.goalTarget, 60);
   });
 
   it("evaluates whether level completion goals are met", () => {
@@ -1044,22 +1059,22 @@ describe("level progression rules", () => {
   });
 
   it("formats level objective HUD strings accurately", () => {
-    const lvl1 = getLevelConfig(1);
-    assert.equal(formatLevelObjective(lvl1, 0), "MUEVE LA COMIDA: 0/1");
-    assert.equal(formatLevelObjective(lvl1, 1), "MUEVE LA COMIDA: 1/1");
+    const tut1 = getLevelConfig(1, true);
+    assert.equal(formatLevelObjective(tut1, 0), "MUEVE LA COMIDA: 0/1");
+    assert.equal(formatLevelObjective(tut1, 1), "MUEVE LA COMIDA: 1/1");
 
-    const lvl2 = getLevelConfig(2);
-    assert.equal(formatLevelObjective(lvl2, 0), "SACUDE LA COMIDA: 0/1");
-    assert.equal(formatLevelObjective(lvl2, 1), "SACUDE LA COMIDA: 1/1");
+    const tut2 = getLevelConfig(2, true);
+    assert.equal(formatLevelObjective(tut2, 0), "SACUDE LA COMIDA: 0/1");
+    assert.equal(formatLevelObjective(tut2, 1), "SACUDE LA COMIDA: 1/1");
 
-    const lvl3 = getLevelConfig(3);
-    assert.equal(lvl3.waitForNeutralTilt, true);
-    assert.equal(formatLevelObjective(lvl3, 0, true), "NIVELA LA BANDEJA");
-    assert.equal(formatLevelObjective(lvl3, 0, false), "HORMIGAS: 0/1");
-    assert.equal(formatLevelObjective(lvl3, 1), "HORMIGAS: 1/1");
+    const tut3 = getLevelConfig(3, true);
+    assert.equal(tut3.waitForNeutralTilt, true);
+    assert.equal(formatLevelObjective(tut3, 0, true), "NIVELA LA BANDEJA");
+    assert.equal(formatLevelObjective(tut3, 0, false), "HORMIGAS: 0/1");
+    assert.equal(formatLevelObjective(tut3, 1), "HORMIGAS: 1/1");
 
-    const lvl5 = getLevelConfig(5);
-    assert.equal(formatLevelObjective(lvl5, 4), "HORMIGAS: 4/25");
+    const lvl2 = getLevelConfig(2, false);
+    assert.equal(formatLevelObjective(lvl2, 4), "HORMIGAS: 4/25");
   });
 
   it("determines whether the final ant wave is triggered near the end of the level", () => {
@@ -1119,33 +1134,52 @@ describe("pause rules", () => {
   });
 
   it("formats pause menu summary with level info, scores, and mute state", () => {
-    const summary = formatPauseMenuSummary(2, 18, 50, false);
-    assert.equal(summary.levelNumber, 2);
-    assert.equal(summary.levelTitle, "Nivel 2");
-    assert.equal(summary.levelSubtitle, "¡Sacude la comida!");
+    const summary = formatPauseMenuSummary(1, 18, 50, false, false);
+    assert.equal(summary.levelNumber, 1);
+    assert.equal(summary.levelTitle, "Nivel 1");
+    assert.equal(summary.levelSubtitle, "¡Defensa total!");
     assert.equal(summary.score, 18);
     assert.equal(summary.highScore, 50);
     assert.equal(summary.isMuted, false);
 
-    const mutedSummary = formatPauseMenuSummary(3, 0, 10, true);
-    assert.equal(mutedSummary.isMuted, true);
-    assert.equal(mutedSummary.levelTitle, "Nivel 3");
+    const tutSummary = formatPauseMenuSummary(2, 0, 10, true, true);
+    assert.equal(tutSummary.isMuted, true);
+    assert.equal(tutSummary.levelTitle, "Tutorial 2");
+    assert.equal(tutSummary.levelSubtitle, "¡Sacude la comida!");
   });
 });
 
 describe("level complete screen rules", () => {
   it("formats level completion summary with next level title and instructions", () => {
-    const summary1 = formatLevelCompleteSummary(1);
+    // Tutorial 1 completed -> Next is Tutorial 2
+    const summary1 = formatLevelCompleteSummary(1, true);
     assert.equal(summary1.completedLevel, 1);
+    assert.equal(summary1.isCompletedTutorial, true);
     assert.equal(summary1.nextLevel, 2);
-    assert.equal(summary1.nextTitle, "Nivel 2");
+    assert.equal(summary1.isNextTutorial, true);
+    assert.equal(summary1.title, "¡Tutorial 1 completado!");
+    assert.equal(summary1.nextTitle, "Tutorial 2");
     assert.equal(summary1.nextSubtitle, "¡Sacude la comida!");
-    assert.equal(summary1.nextInstruction, "Sacúdela con fuerza.");
 
-    const summary2 = formatLevelCompleteSummary(2);
-    assert.equal(summary2.completedLevel, 2);
-    assert.equal(summary2.nextLevel, 3);
-    assert.equal(summary2.nextTitle, "Nivel 3");
+    // Tutorial 3 completed -> Next is Game Level 1!
+    const summary3 = formatLevelCompleteSummary(3, true);
+    assert.equal(summary3.completedLevel, 3);
+    assert.equal(summary3.isCompletedTutorial, true);
+    assert.equal(summary3.nextLevel, 1);
+    assert.equal(summary3.isNextTutorial, false);
+    assert.equal(summary3.title, "¡Tutorial completado!");
+    assert.equal(summary3.nextTitle, "Nivel 1");
+    assert.equal(summary3.nextSubtitle, "¡Defensa total!");
+
+    // Game Level 1 completed -> Next is Game Level 2
+    const summaryGame1 = formatLevelCompleteSummary(1, false);
+    assert.equal(summaryGame1.completedLevel, 1);
+    assert.equal(summaryGame1.isCompletedTutorial, false);
+    assert.equal(summaryGame1.nextLevel, 2);
+    assert.equal(summaryGame1.isNextTutorial, false);
+    assert.equal(summaryGame1.title, "¡Nivel 1 completado!");
+    assert.equal(summaryGame1.nextTitle, "Nivel 2");
+    assert.equal(summaryGame1.nextSubtitle, "¡Cuidado con las orugas!");
   });
 
   it("determines whether the level complete screen can be shown", () => {
@@ -1157,19 +1191,18 @@ describe("level complete screen rules", () => {
 });
 describe("level intro confirmation modal rules", () => {
   it("formats level intro modal data with title, subtitle, instructions, and confirmation button label", () => {
-    const lvl1 = getLevelConfig(1);
+    const tut1 = getLevelConfig(1, true);
+    const modalTut1 = formatLevelIntroModal(tut1);
+    assert.equal(modalTut1.title, "Tutorial 1");
+    assert.equal(modalTut1.subtitle, "¡Mueve la comida!");
+    assert.equal(modalTut1.instruction, "Arrastra la comida.");
+    assert.equal(modalTut1.confirmLabel, "¡A jugar!");
+
+    const lvl1 = getLevelConfig(1, false);
     const modal1 = formatLevelIntroModal(lvl1);
     assert.equal(modal1.title, "Nivel 1");
-    assert.equal(modal1.subtitle, "¡Mueve la comida!");
-    assert.equal(modal1.instruction, "Arrastra la comida.");
+    assert.equal(modal1.subtitle, "¡Defensa total!");
     assert.equal(modal1.confirmLabel, "¡A jugar!");
-
-    const lvl2 = getLevelConfig(2);
-    const modal2 = formatLevelIntroModal(lvl2);
-    assert.equal(modal2.title, "Nivel 2");
-    assert.equal(modal2.subtitle, "¡Sacude la comida!");
-    assert.equal(modal2.instruction, "Sacúdela con fuerza.");
-    assert.equal(modal2.confirmLabel, "¡A jugar!");
   });
 
   it("evaluates whether level gameplay can begin", () => {
@@ -1177,5 +1210,16 @@ describe("level intro confirmation modal rules", () => {
     assert.equal(canStartLevelGameplay(false, true), false);
     assert.equal(canStartLevelGameplay(true, true), false);
     assert.equal(canStartLevelGameplay(false, false), true);
+  });
+});
+
+describe("tutorial storage rules", () => {
+  it("determines whether tutorial has been marked completed in storage", () => {
+    assert.equal(isTutorialCompleted("true"), true);
+    assert.equal(isTutorialCompleted("1"), true);
+    assert.equal(isTutorialCompleted(null), false);
+    assert.equal(isTutorialCompleted(undefined), false);
+    assert.equal(isTutorialCompleted("false"), false);
+    assert.equal(isTutorialCompleted("0"), false);
   });
 });

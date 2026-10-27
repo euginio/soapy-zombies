@@ -76,6 +76,11 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
     Per the owner's instruction, in all agent responses, code comments, tests, UI messages, HUD
     elements, banners, and documentation, never use 'fruit' or 'fruta'; always refer to 'food'
     (English) or 'comida' (Spanish UI).
+12. **The tutorial levels are shown only the very first time the game is played.**
+    Per the owner's instruction, separate tutorial levels (Tutorial 1, Tutorial 2, Tutorial 3)
+    from standard game levels (Nivel 1, Nivel 2, ...). Track tutorial completion via the
+    `tutorialCompleted` key in `localStorage`. When completed, subsequent visits, game
+    restarts, and returns to title start directly at Nivel 1.
 
 ## Conventions and gotchas
 
@@ -94,7 +99,7 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
   - DOM ids `#tilting-board`, `#stationary-hud`, `#high-score-label`, `#game-over-overlay`,
     `#game-over-restart`, `#game-over-home`, `#recenter-device-tilt`, `#sound-toggle`,
     `#fullscreen-toggle`, `#fullscreen-prompt-overlay`, `#pause-toggle`, `#pause-overlay`, `#pause-resume`, `#pause-restart`, `#pause-restart-game`, `#pause-sound`, `#pause-home`, `#level-complete-overlay`, `#level-complete-continue`, `#level-banner-confirm`.
-  - The `highScore` localStorage key.
+  - The `highScore` and `tutorialCompleted` localStorage keys.
 - UI text is in Spanish (game-over overlay, pause menu, level complete overlay, banners, HUD,
   instructions, buttons). Keep all UI messages in Spanish.
 - Do not mention 'fruit' or 'fruta'. Always refer to 'food' in English and 'comida' in

@@ -18,10 +18,12 @@ import {
   debugColorToTint,
   formatLevelObjective,
   formatLevelCompleteSummary,
+  formatPauseMenuSummary,
   getLevelConfig,
   isFinalWaveTriggered,
   isLevelGoalMet,
   isTiltNeutral,
+  isTutorialCompleted,
   LevelConfig,
   getScreenOrientationAngle,
   isNewHighScore,
@@ -31,7 +33,8 @@ import {
   resolveAntEscape,
   resolveCaterpillarEscape,
   resolveFoodLoss,
-  togglePauseState
+  togglePauseState,
+  TUTORIAL_STORAGE_KEY
 } from "../game-rules";
 import { Ant } from "../objects/ant";
 import { Caterpillar } from "../objects/caterpillar";
@@ -85,6 +88,7 @@ export class GameScene extends MyScene {
   levelProgress: number = 0;
   hasTriggeredFinalWave: boolean = false;
   isLevelTransitioning: boolean = false;
+  isTutorialMode: boolean = false;
   get isTiltEnabled(): boolean {
     return Boolean(this.currentLevelConfig?.tiltEnabled);
   }
@@ -92,6 +96,27 @@ export class GameScene extends MyScene {
     return Boolean(this.currentLevelConfig?.dragEnabled);
   }
   isLevelCompleteActive: boolean = false;
+
+  hasCompletedTutorial(): boolean {
+    try {
+      if (typeof localStorage !== "undefined") {
+        return isTutorialCompleted(localStorage.getItem(TUTORIAL_STORAGE_KEY));
+      }
+    } catch (e) {
+      console.warn("Could not read tutorial state from localStorage", e);
+    }
+    return false;
+  }
+
+  markTutorialCompleted(): void {
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem(TUTORIAL_STORAGE_KEY, "true");
+      }
+    } catch (e) {
+      console.warn("Could not save tutorial state to localStorage", e);
+    }
+  }
   isWaitingForNeutralTilt: boolean = false;
   private neutralTiltDurationMs: number = 0;
   pendingNextLevel: number = 2;
@@ -410,9 +435,33 @@ export class GameScene extends MyScene {
     this.highScoreLabel.textContent = this.highScoreText.text;
 
     const urlParams = typeof window !== "undefined" && window.location ? new URLSearchParams(window.location.search) : null;
+    const paramTutorial = urlParams?.get("tutorial");
     const paramLevel = urlParams?.get("level");
-    const startingLevel = paramLevel ? Number(paramLevel) : 1;
-    const initialConfig = getLevelConfig(Number.isFinite(startingLevel) && startingLevel > 0 ? startingLevel : 1);
+
+    let isTutorialMode = false;
+    let startingLevel = 1;
+
+    if (paramTutorial !== null && paramTutorial !== undefined) {
+      isTutorialMode = true;
+      const parsedTutorial = Number(paramTutorial);
+      startingLevel = Number.isFinite(parsedTutorial) && parsedTutorial > 0 ? parsedTutorial : 1;
+    } else if (paramLevel !== null && paramLevel !== undefined) {
+      if (paramLevel === "tutorial" || paramLevel.startsWith("tutorial-") || paramLevel.startsWith("t")) {
+        isTutorialMode = true;
+        const numPart = Number(paramLevel.replace(/[^0-9]/g, ""));
+        startingLevel = numPart > 0 ? numPart : 1;
+      } else {
+        const parsed = Number(paramLevel);
+        startingLevel = Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+        isTutorialMode = false;
+      }
+    } else {
+      isTutorialMode = !this.hasCompletedTutorial();
+      startingLevel = 1;
+    }
+
+    this.isTutorialMode = isTutorialMode;
+    const initialConfig = getLevelConfig(startingLevel, isTutorialMode);
     this.foodCount = initialConfig?.initialFood ?? this.initialFood;
 
     this.foods = this.add.group();
@@ -433,7 +482,8 @@ export class GameScene extends MyScene {
     this.physics.add.collider(this.ants, this.ants, null, null, this);
     this.caterpillars = this.add.group();
     this.caterpillars.runChildUpdate = true;
-    for (let i = 0; i < this.initialCaterpillars; i++) {
+    const startingCaterpillars = initialConfig?.initialCaterpillars ?? 0;
+    for (let i = 0; i < startingCaterpillars; i++) {
       this.addNewCaterpillar();
     }
 
@@ -518,7 +568,7 @@ export class GameScene extends MyScene {
     // The title tap already unlocked audio; the music survives restarts, so this only resumes it.
     this.audio.startMusic();
 
-    this.startLevel(Number.isFinite(startingLevel) && startingLevel > 0 ? startingLevel : 1);
+    this.startLevel(Number.isFinite(startingLevel) && startingLevel > 0 ? startingLevel : 1, true, isTutorialMode);
   }
 
 
@@ -914,7 +964,7 @@ export class GameScene extends MyScene {
 
   restartCurrentLevel() {
     this.togglePause(false);
-    this.startLevel(this.currentLevel, true);
+    this.startLevel(this.currentLevel, true, this.isTutorialMode);
   }
 
   restartWholeGame() {
@@ -922,7 +972,7 @@ export class GameScene extends MyScene {
     this.score = 0;
     this.scoreText.setText("0");
     this.scoreLabel.textContent = "0";
-    this.startLevel(1, true);
+    this.startLevel(1, true, false);
   }
 
   togglePauseSound() {
@@ -1128,12 +1178,15 @@ export class GameScene extends MyScene {
   }
 
   showLevelCompleteOverlay(completedLevel: number, nextLevel: number) {
+    if (this.isTutorialMode && completedLevel >= 3) {
+      this.markTutorialCompleted();
+    }
     if (!this.levelCompleteOverlay) {
       return;
     }
-    const summary = formatLevelCompleteSummary(completedLevel);
+    const summary = formatLevelCompleteSummary(completedLevel, this.isTutorialMode);
     if (this.levelCompleteTitle) {
-      this.levelCompleteTitle.textContent = `¡Nivel ${completedLevel} completado!`;
+      this.levelCompleteTitle.textContent = summary.title;
     }
     if (this.levelCompleteScore) {
       this.levelCompleteScore.textContent = this.score.toString();
@@ -1168,8 +1221,20 @@ export class GameScene extends MyScene {
     this.physics.resume();
     this.anims.resumeAll();
     this.time.paused = false;
+
+    if (this.isTutorialMode) {
+      if (this.currentLevel >= 3) {
+        this.markTutorialCompleted();
+        this.startLevel(1, true, false);
+        return;
+      }
+      const nextTutorial = this.currentLevel + 1;
+      this.startLevel(nextTutorial, true, true);
+      return;
+    }
+
     const next = this.pendingNextLevel || (this.currentLevel + 1);
-    this.startLevel(next);
+    this.startLevel(next, true, false);
   }
 
   private createVisualLayers(gameCanvas: HTMLCanvasElement) {
@@ -1918,14 +1983,19 @@ export class GameScene extends MyScene {
     }
   }
 
-  startLevel(levelNumber: number, showIntroBanner = true) {
+  startTutorial(tutorialNumber = 1, showIntroBanner = true) {
+    this.startLevel(tutorialNumber, showIntroBanner, true);
+  }
+
+  startLevel(levelNumber: number, showIntroBanner = true, isTutorial: boolean = false) {
+    this.isTutorialMode = isTutorial;
     this.hideLevelCompleteOverlay();
     this.isLevelCompleteActive = false;
     this.isLevelTransitioning = false;
     this.isLevelIntroActive = false;
 
     this.currentLevel = levelNumber;
-    this.currentLevelConfig = getLevelConfig(levelNumber);
+    this.currentLevelConfig = getLevelConfig(levelNumber, this.isTutorialMode);
     this.levelProgress = 0;
     this.hasTriggeredFinalWave = false;
     this.isWaitingForNeutralTilt = Boolean(this.currentLevelConfig.waitForNeutralTilt);
@@ -2052,7 +2122,7 @@ export class GameScene extends MyScene {
     if (!this.levelLabel || !this.objectiveLabel || !this.currentLevelConfig) {
       return;
     }
-    this.levelLabel.textContent = `NIVEL ${this.currentLevel}`;
+    this.levelLabel.textContent = this.isTutorialMode ? `TUTORIAL ${this.currentLevel}` : `NIVEL ${this.currentLevel}`;
     this.objectiveLabel.textContent = formatLevelObjective(
       this.currentLevelConfig,
       this.levelProgress,

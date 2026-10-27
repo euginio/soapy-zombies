@@ -539,6 +539,12 @@ export function parseStoredMuted(storedValue: string | null | undefined): boolea
   return storedValue === "1";
 }
 
+export const TUTORIAL_STORAGE_KEY = "tutorialCompleted";
+
+export function isTutorialCompleted(storedValue: string | null | undefined): boolean {
+  return storedValue === "true" || storedValue === "1";
+}
+
 export interface AntVelocity {
   x: number;
   y: number;
@@ -865,6 +871,7 @@ export type LevelGoalType = "move_food" | "shake_ants" | "survive_time" | "defea
 
 export interface LevelConfig {
   level: number;
+  isTutorial?: boolean;
   title: string;
   subtitle: string;
   instruction: string;
@@ -882,10 +889,11 @@ export interface LevelConfig {
   waitForNeutralTilt?: boolean;
 }
 
-export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
+export const TUTORIAL_CONFIGS: Record<number, LevelConfig> = {
   1: {
     level: 1,
-    title: "Nivel 1",
+    isTutorial: true,
+    title: "Tutorial 1",
     subtitle: "¡Mueve la comida!",
     instruction: "Arrastra la comida.",
     tiltEnabled: false,
@@ -900,7 +908,8 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
   },
   2: {
     level: 2,
-    title: "Nivel 2",
+    isTutorial: true,
+    title: "Tutorial 2",
     subtitle: "¡Sacude la comida!",
     instruction: "Sacúdela con fuerza.",
     tiltEnabled: false,
@@ -916,7 +925,8 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
   },
   3: {
     level: 3,
-    title: "Nivel 3",
+    isTutorial: true,
+    title: "Tutorial 3",
     subtitle: "¡Inclina la bandeja!",
     instruction: "Tira la hormiga.",
     tiltEnabled: true,
@@ -930,12 +940,16 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     goalTarget: 1,
     antInCenter: true,
     waitForNeutralTilt: true
-  },
-  4: {
-    level: 4,
-    title: "Nivel 4",
+  }
+};
+
+export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
+  1: {
+    level: 1,
+    isTutorial: false,
+    title: "Nivel 1",
     subtitle: "¡Defensa total!",
-    instruction: "Tira 20 hormigas.",
+    instruction: "Defiende la comida. Tira 20 hormigas.",
     tiltEnabled: true,
     dragEnabled: true,
     caterpillarsEnabled: false,
@@ -945,9 +959,10 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     goalType: "defeat_ants",
     goalTarget: 20
   },
-  5: {
-    level: 5,
-    title: "Nivel 5",
+  2: {
+    level: 2,
+    isTutorial: false,
+    title: "Nivel 2",
     subtitle: "¡Cuidado con las orugas!",
     instruction: "Tira 25 hormigas.",
     tiltEnabled: true,
@@ -959,9 +974,10 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     goalType: "defeat_ants",
     goalTarget: 25
   },
-  6: {
-    level: 6,
-    title: "Nivel 6",
+  3: {
+    level: 3,
+    isTutorial: false,
+    title: "Nivel 3",
     subtitle: "¡Enjambre de hormigas!",
     instruction: "Tira 30 hormigas.",
     tiltEnabled: true,
@@ -973,9 +989,10 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     goalType: "defeat_ants",
     goalTarget: 30
   },
-  7: {
-    level: 7,
-    title: "Nivel 7",
+  4: {
+    level: 4,
+    isTutorial: false,
+    title: "Nivel 4",
     subtitle: "¡Ataque veloz!",
     instruction: "Tira 35 hormigas.",
     tiltEnabled: true,
@@ -987,9 +1004,10 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     goalType: "defeat_ants",
     goalTarget: 35
   },
-  8: {
-    level: 8,
-    title: "Nivel 8",
+  5: {
+    level: 5,
+    isTutorial: false,
+    title: "Nivel 5",
     subtitle: "¡Doble problema!",
     instruction: "Tira 40 hormigas.",
     tiltEnabled: true,
@@ -1001,9 +1019,10 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     goalType: "defeat_ants",
     goalTarget: 40
   },
-  9: {
-    level: 9,
-    title: "Nivel 9",
+  6: {
+    level: 6,
+    isTutorial: false,
+    title: "Nivel 6",
     subtitle: "¡Pánico en el picnic!",
     instruction: "Tira 45 hormigas.",
     tiltEnabled: true,
@@ -1015,9 +1034,10 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     goalType: "defeat_ants",
     goalTarget: 45
   },
-  10: {
-    level: 10,
-    title: "Nivel 10",
+  7: {
+    level: 7,
+    isTutorial: false,
+    title: "Nivel 7",
     subtitle: "¡Gran festín!",
     instruction: "Tira 50 hormigas.",
     tiltEnabled: true,
@@ -1031,23 +1051,34 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
   }
 };
 
-export function getLevelConfig(level: number): LevelConfig {
+export function getTutorialConfig(level: number): LevelConfig {
+  if (level in TUTORIAL_CONFIGS) {
+    return TUTORIAL_CONFIGS[level];
+  }
+  return TUTORIAL_CONFIGS[1];
+}
+
+export function getLevelConfig(level: number, isTutorial = false): LevelConfig {
+  if (isTutorial) {
+    return getTutorialConfig(level);
+  }
   if (level in LEVEL_CONFIGS) {
     return LEVEL_CONFIGS[level];
   }
-  const base = LEVEL_CONFIGS[10];
-  const extraLevels = level - 10;
+  const base = LEVEL_CONFIGS[7];
+  const extraLevels = level - 7;
   return {
     ...base,
     level,
-    title: `Nivel ${level}`,
+    isTutorial: false,
+    title: "Nivel " + level,
     subtitle: "¡Caos infinito!",
-    instruction: `Tira ${50 + extraLevels * 10} hormigas.`,
+    instruction: "Tira " + (50 + extraLevels * 10) + " hormigas.",
     goalType: "defeat_ants",
     goalTarget: 50 + extraLevels * 10,
     antSpeed: Math.min(95, base.antSpeed + extraLevels * 2),
     initialAnts: Math.min(10, base.initialAnts + Math.floor(extraLevels / 2)),
-    initialCaterpillars: Math.min(3, base.initialCaterpillars + (level >= 15 ? 1 : 0))
+    initialCaterpillars: Math.min(3, base.initialCaterpillars + (level >= 12 ? 1 : 0))
   };
 }
 
@@ -1108,19 +1139,57 @@ export function calculateWaveExtraAnts(level: number): number {
 
 export interface LevelCompleteSummary {
   completedLevel: number;
+  isCompletedTutorial: boolean;
   nextLevel: number;
+  isNextTutorial: boolean;
+  title: string;
   nextTitle: string;
   nextSubtitle: string;
   nextInstruction: string;
 }
 
-export function formatLevelCompleteSummary(currentLevel: number): LevelCompleteSummary {
+export function formatLevelCompleteSummary(
+  currentLevel: number,
+  isTutorial = false
+): LevelCompleteSummary {
   const completedLevel = currentLevel;
+  if (isTutorial) {
+    if (completedLevel < 3) {
+      const nextLevel = completedLevel + 1;
+      const nextConfig = getLevelConfig(nextLevel, true);
+      return {
+        completedLevel,
+        isCompletedTutorial: true,
+        nextLevel,
+        isNextTutorial: true,
+        title: "¡Tutorial " + completedLevel + " completado!",
+        nextTitle: nextConfig.title,
+        nextSubtitle: nextConfig.subtitle,
+        nextInstruction: nextConfig.instruction
+      };
+    }
+    // Tutorial 3 finished -> Next is Game Level 1!
+    const nextConfig = getLevelConfig(1, false);
+    return {
+      completedLevel,
+      isCompletedTutorial: true,
+      nextLevel: 1,
+      isNextTutorial: false,
+      title: "¡Tutorial completado!",
+      nextTitle: nextConfig.title,
+      nextSubtitle: nextConfig.subtitle,
+      nextInstruction: nextConfig.instruction
+    };
+  }
+
   const nextLevel = completedLevel + 1;
-  const nextConfig = getLevelConfig(nextLevel);
+  const nextConfig = getLevelConfig(nextLevel, false);
   return {
     completedLevel,
+    isCompletedTutorial: false,
     nextLevel,
+    isNextTutorial: false,
+    title: "¡Nivel " + completedLevel + " completado!",
     nextTitle: nextConfig.title,
     nextSubtitle: nextConfig.subtitle,
     nextInstruction: nextConfig.instruction
@@ -1133,6 +1202,7 @@ export function canShowLevelComplete(gameOver: boolean, isLevelCompleteActive: b
 
 export interface PauseMenuSummary {
   levelNumber: number;
+  isTutorial: boolean;
   levelTitle: string;
   levelSubtitle: string;
   score: number;
@@ -1144,11 +1214,13 @@ export function formatPauseMenuSummary(
   levelNumber: number,
   score: number,
   highScore: number,
-  isMuted: boolean
+  isMuted: boolean,
+  isTutorial = false
 ): PauseMenuSummary {
-  const config = getLevelConfig(levelNumber);
+  const config = getLevelConfig(levelNumber, isTutorial);
   return {
     levelNumber,
+    isTutorial,
     levelTitle: config.title,
     levelSubtitle: config.subtitle,
     score,

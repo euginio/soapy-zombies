@@ -1367,7 +1367,7 @@ test("caterpillar spawns, resists tilt with lower gravityFactor, and awards 2 po
   await page.goto("/");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
-  await page.evaluate(() => window.__gameSceneForTest.startLevel(5, false));
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(2, false));
 
   const caterpillarData = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
@@ -1927,7 +1927,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
-  // 1. Level 1: Starts at Level 1 with drag enabled, tilt disabled, and HUD displays level info
+  // 1. Level 1 (Tutorial 1): Starts at Tutorial 1 with drag enabled, tilt disabled, and HUD displays tutorial info
   const initialLevelState = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     const hud = document.querySelector("#level-hud");
@@ -1935,6 +1935,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
     const bannerTitle = document.querySelector("#level-banner-title");
     return {
       currentLevel: scene.currentLevel,
+      isTutorialMode: scene.isTutorialMode,
       isTiltEnabled: scene.isTiltEnabled,
       isDragEnabled: scene.isDragEnabled,
       goalType: scene.currentLevelConfig.goalType,
@@ -1947,28 +1948,29 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   });
 
   expect(initialLevelState.currentLevel).toBe(1);
+  expect(initialLevelState.isTutorialMode).toBe(true);
   expect(initialLevelState.isTiltEnabled).toBe(false);
   expect(initialLevelState.isDragEnabled).toBe(true);
   expect(initialLevelState.goalType).toBe("move_food");
   expect(initialLevelState.goalTarget).toBe(1);
   expect(initialLevelState.antsCount).toBe(0);
-  expect(initialLevelState.hudText).toContain("NIVEL 1");
+  expect(initialLevelState.hudText).toContain("TUTORIAL 1");
   expect(initialLevelState.hudText).toContain("MUEVE LA COMIDA: 0/1");
-  expect(initialLevelState.bannerTitle).toBe("Nivel 1");
+  expect(initialLevelState.bannerTitle).toBe("Tutorial 1");
 
-  // Click confirmation button to start Level 1 gameplay
+  // Click confirmation button to start Tutorial 1 gameplay
   await expect(page.locator("#level-banner-confirm")).toBeVisible();
   await page.locator("#level-banner-confirm").click();
   await expect(page.locator("#level-banner")).toBeHidden();
   expect(await page.evaluate(() => window.__gameSceneForTest.isLevelIntroActive)).toBe(false);
 
-  // 2. In Level 1, tray tilt controls do NOT tilt the board
+  // 2. In Tutorial 1, tray tilt controls do NOT tilt the board
   await page.keyboard.down("ArrowRight");
   const tiltTransform = await page.locator("#tilting-board").evaluate((el) => el.style.transform);
   expect(tiltTransform).toBe("perspective(900px) rotateX(0deg) rotateY(0deg)");
   await page.keyboard.up("ArrowRight");
 
-  // 3. Moving the food completes Level 1
+  // 3. Moving the food completes Tutorial 1
   await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     const food = scene.foods.getChildren()[0];
@@ -1988,33 +1990,35 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
       hasContinueBtn: Boolean(document.querySelector("#level-complete-continue"))
     };
   });
-  expect(completeContent.title).toContain("Nivel 1");
-  expect(completeContent.subtitle).toContain("Nivel 2");
+  expect(completeContent.title).toContain("Tutorial 1");
+  expect(completeContent.subtitle).toContain("Tutorial 2");
   expect(completeContent.hasContinueBtn).toBe(true);
 
   // Level does NOT advance automatically while waiting for user
   expect(await page.evaluate(() => window.__gameSceneForTest.currentLevel)).toBe(1);
 
-  // Click continue button to advance to Level 2
+  // Click continue button to advance to Tutorial 2
   await page.locator("#level-complete-continue").click();
   await expect(levelCompleteOverlay).toBeHidden();
   expect(await page.evaluate(() => window.__gameSceneForTest.currentLevel)).toBe(2);
+  expect(await page.evaluate(() => window.__gameSceneForTest.isTutorialMode)).toBe(true);
 
-  // Before starting Level 2, the confirmation modal is shown with Level 2 rules!
+  // Before starting Tutorial 2, the confirmation modal is shown with Tutorial 2 rules!
   await expect(page.locator("#level-banner")).toBeVisible();
-  await expect(page.locator("#level-banner-title")).toHaveText("Nivel 2");
+  await expect(page.locator("#level-banner-title")).toHaveText("Tutorial 2");
   await expect(page.locator("#level-banner-confirm")).toBeVisible();
   await page.locator("#level-banner-confirm").click();
   await expect(page.locator("#level-banner")).toBeHidden();
   expect(await page.evaluate(() => window.__gameSceneForTest.isLevelIntroActive)).toBe(false);
 
-  // 5. Level 2 has shake_ants goal, 1 food carried by 1 stationary ant, and tilt disabled
+  // 5. Tutorial 2 has shake_ants goal, 1 food carried by 1 stationary ant, and tilt disabled
   const level2State = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     const food = scene.foods.getChildren()[0];
     const ant = scene.ants.getChildren()[0];
     return {
       currentLevel: scene.currentLevel,
+      isTutorialMode: scene.isTutorialMode,
       isTiltEnabled: scene.isTiltEnabled,
       isDragEnabled: scene.isDragEnabled,
       goalType: scene.currentLevelConfig.goalType,
@@ -2027,6 +2031,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
     };
   });
   expect(level2State.currentLevel).toBe(2);
+  expect(level2State.isTutorialMode).toBe(true);
   expect(level2State.isTiltEnabled).toBe(false);
   expect(level2State.isDragEnabled).toBe(true);
   expect(level2State.goalType).toBe("shake_ants");
@@ -2035,9 +2040,10 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(level2State.isBeingCarried).toBe(true);
   expect(level2State.antCarrying).toBe(true);
   expect(level2State.antSpeed).toBe(0);
+  expect(level2State.hudText).toContain("TUTORIAL 2");
   expect(level2State.hudText).toContain("SACUDE LA COMIDA: 0/1");
 
-  // Shaking the food vigorously shakes off the ant and completes Level 2
+  // Shaking the food vigorously shakes off the ant and completes Tutorial 2
   await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     const food = scene.foods.getChildren()[0];
@@ -2053,20 +2059,20 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
 
   await expect(levelCompleteOverlay).toBeVisible();
   const lvl2CompleteTitle = await page.locator("#level-complete-title").textContent();
-  expect(lvl2CompleteTitle).toContain("Nivel 2");
+  expect(lvl2CompleteTitle).toContain("Tutorial 2");
 
-  // Continue to Level 3
+  // Continue to Tutorial 3
   await page.locator("#level-complete-continue").click();
   await expect(page.locator("#level-banner-confirm")).toBeVisible();
+  await expect(page.locator("#level-banner-title")).toHaveText("Tutorial 3");
   await page.locator("#level-banner-confirm").click();
 
-  // 6. Level 3 has food drag disabled, tray tilt enabled, 0 food, and 1 ant in center
-  await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
-
+  // 6. Tutorial 3 has food drag disabled, tray tilt enabled, 0 food, and 1 ant in center
   const level3State = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     return {
       currentLevel: scene.currentLevel,
+      isTutorialMode: scene.isTutorialMode,
       isTiltEnabled: scene.isTiltEnabled,
       isDragEnabled: scene.isDragEnabled,
       foodsCount: scene.foods.getChildren().length,
@@ -2076,37 +2082,62 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
     };
   });
   expect(level3State.currentLevel).toBe(3);
+  expect(level3State.isTutorialMode).toBe(true);
   expect(level3State.isTiltEnabled).toBe(true);
   expect(level3State.isDragEnabled).toBe(false);
   expect(level3State.foodsCount).toBe(0);
   expect(level3State.antsCount).toBe(1);
   expect(level3State.goalType).toBe("defeat_ants");
+  expect(level3State.hudText).toContain("TUTORIAL 3");
   expect(level3State.hudText).toContain("NIVELA LA BANDEJA");
   await expect.poll(() => page.locator("#level-hud").textContent()).toContain("HORMIGAS: 0/1");
 
-  // Arrow key tilts the board in Level 3
+  // Arrow key tilts the board in Tutorial 3
   await page.keyboard.down("ArrowRight");
   await expect
     .poll(() => page.locator("#tilting-board").evaluate((el) => el.style.transform))
     .toBe("perspective(900px) rotateX(0deg) rotateY(10deg)");
   await page.keyboard.up("ArrowRight");
 
-  // 7. Level 4 has full combined controls and final wave
-  await page.evaluate(() => window.__gameSceneForTest.startLevel(4, false));
-  const level4State = await page.evaluate(() => {
+  // Trigger ant defeat to complete Tutorial 3
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const ant = scene.ants.getChildren()[0];
+    scene.antDied(ant);
+  });
+
+  await expect(levelCompleteOverlay).toBeVisible();
+  expect(await page.locator("#level-complete-title").textContent()).toContain("¡Tutorial completado!");
+  expect(await page.locator("#level-complete-subtitle").textContent()).toContain("Nivel 1");
+  expect(await page.evaluate(() => localStorage.getItem("tutorialCompleted"))).toBe("true");
+
+  // Continue to Game Level 1
+  await page.locator("#level-complete-continue").click();
+  await expect(page.locator("#level-banner-confirm")).toBeVisible();
+  await expect(page.locator("#level-banner-title")).toHaveText("Nivel 1");
+  await expect(page.locator("#level-banner-subtitle")).toHaveText("¡Defensa total!");
+  await page.locator("#level-banner-confirm").click();
+
+  // 7. Game Level 1 has full combined controls and final wave
+  const level1State = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     return {
       currentLevel: scene.currentLevel,
+      isTutorialMode: scene.isTutorialMode,
       isTiltEnabled: scene.isTiltEnabled,
       isDragEnabled: scene.isDragEnabled,
-      caterpillarsEnabled: scene.currentLevelConfig.caterpillarsEnabled
+      caterpillarsEnabled: scene.currentLevelConfig.caterpillarsEnabled,
+      goalTarget: scene.currentLevelConfig.goalTarget
     };
   });
-  expect(level4State.isTiltEnabled).toBe(true);
-  expect(level4State.isDragEnabled).toBe(true);
-  expect(level4State.caterpillarsEnabled).toBe(false);
+  expect(level1State.currentLevel).toBe(1);
+  expect(level1State.isTutorialMode).toBe(false);
+  expect(level1State.isTiltEnabled).toBe(true);
+  expect(level1State.isDragEnabled).toBe(true);
+  expect(level1State.caterpillarsEnabled).toBe(false);
+  expect(level1State.goalTarget).toBe(20);
 
-  // In Level 4 (goalTarget 20), reaching 70% (14 of 20 ants) triggers the final wave of ants
+  // In Level 1 (goalTarget 20), reaching 70% (14 of 20 ants) triggers the final wave of ants
   const waveStateBefore = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     // Defeat 13 ants (progress 13/20 = 65%, below 70%)
@@ -2137,9 +2168,9 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(waveStateAfter.hasTriggeredFinalWave).toBe(true);
   expect(waveStateAfter.bannerText).toContain("¡OLEADA FINAL!");
 
-  // 8. Level 5 introduces caterpillars and defeat_ants goal of 12 ants
-  await page.evaluate(() => window.__gameSceneForTest.startLevel(5, false));
-  const level5State = await page.evaluate(() => {
+  // 8. Game Level 2 introduces caterpillars and defeat_ants goal of 25 ants
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(2, false));
+  const level2GameState = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     return {
       currentLevel: scene.currentLevel,
@@ -2152,15 +2183,15 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
       hudText: document.querySelector("#level-hud")?.textContent ?? ""
     };
   });
-  expect(level5State.isTiltEnabled).toBe(true);
-  expect(level5State.isDragEnabled).toBe(true);
-  expect(level5State.caterpillarsEnabled).toBe(true);
-  expect(level5State.caterpillarsCount).toBeGreaterThanOrEqual(1);
-  expect(level5State.goalType).toBe("defeat_ants");
-  expect(level5State.goalTarget).toBe(25);
-  expect(level5State.hudText).toContain("HORMIGAS: 0/25");
+  expect(level2GameState.isTiltEnabled).toBe(true);
+  expect(level2GameState.isDragEnabled).toBe(true);
+  expect(level2GameState.caterpillarsEnabled).toBe(true);
+  expect(level2GameState.caterpillarsCount).toBeGreaterThanOrEqual(1);
+  expect(level2GameState.goalType).toBe("defeat_ants");
+  expect(level2GameState.goalTarget).toBe(25);
+  expect(level2GameState.hudText).toContain("HORMIGAS: 0/25");
 
-  // Ant falling from tray increments defeat_ants progress in Level 5
+  // Ant falling from tray increments defeat_ants progress in Level 2
   const antProgress = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     const ant = scene.ants.getChildren()[0];
@@ -2173,9 +2204,9 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(antProgress.levelProgress).toBe(1);
   expect(antProgress.hudText).toContain("HORMIGAS: 1/25");
 
-  // 9. Level 8 has 2 caterpillars and 22 ant target
-  await page.evaluate(() => window.__gameSceneForTest.startLevel(8, false));
-  const level8State = await page.evaluate(() => {
+  // 9. Level 5 has 2 caterpillars and 40 ant target
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(5, false));
+  const level5State = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     return {
       currentLevel: scene.currentLevel,
@@ -2184,14 +2215,14 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
       antSpeed: scene.currentLevelConfig.antSpeed
     };
   });
-  expect(level8State.currentLevel).toBe(8);
-  expect(level8State.caterpillarsCount).toBe(2);
-  expect(level8State.goalTarget).toBe(40);
-  expect(level8State.antSpeed).toBe(74);
+  expect(level5State.currentLevel).toBe(5);
+  expect(level5State.caterpillarsCount).toBe(2);
+  expect(level5State.goalTarget).toBe(40);
+  expect(level5State.antSpeed).toBe(74);
 
-  // 10. Level 10 has 8 ants, 2 caterpillars, and 30 ant target
-  await page.evaluate(() => window.__gameSceneForTest.startLevel(10, false));
-  const level10State = await page.evaluate(() => {
+  // 10. Level 7 has 8 ants, 2 caterpillars, and 50 ant target
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(7, false));
+  const level7State = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     return {
       currentLevel: scene.currentLevel,
@@ -2201,11 +2232,11 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
       antSpeed: scene.currentLevelConfig.antSpeed
     };
   });
-  expect(level10State.currentLevel).toBe(10);
-  expect(level10State.antsCount).toBe(8);
-  expect(level10State.caterpillarsCount).toBe(2);
-  expect(level10State.goalTarget).toBe(50);
-  expect(level10State.antSpeed).toBe(82);
+  expect(level7State.currentLevel).toBe(7);
+  expect(level7State.antsCount).toBe(8);
+  expect(level7State.caterpillarsCount).toBe(2);
+  expect(level7State.goalTarget).toBe(50);
+  expect(level7State.antSpeed).toBe(82);
 });
 
 test("modal boxes (level banner, level HUD, and game over overlay) remain within screen bounds", async ({ page }) => {
@@ -2697,7 +2728,7 @@ test("level intro modal displays before each level with confirmation button to r
 
 test("levels with tilt disabled do not apply tilt physics or phone orientation to moving ants", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
-  await page.goto("/?level=1");
+  await page.goto("/?tutorial=1");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
   await page.locator("#level-banner-confirm").click();
@@ -2711,7 +2742,7 @@ test("levels with tilt disabled do not apply tilt physics or phone orientation t
     }));
   });
 
-  // 1. Tilt phone while in Level 1 (tiltEnabled: false)
+  // 1. Tilt phone while in Tutorial 1 (tiltEnabled: false)
   await page.evaluate(() => {
     window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", {
       beta: 30,
@@ -2740,8 +2771,8 @@ test("levels with tilt disabled do not apply tilt physics or phone orientation t
   // Pure pursuit velocity without gravity acceleration (-45 along x axis for level 1 antSpeed)
   expect(level1State.antVx).toBe(-45);
 
-  // 2. Switch to Level 4 (tiltEnabled: true)
-  await page.evaluate(() => window.__gameSceneForTest.startLevel(4, false));
+  // 2. Switch to Game Level 1 (tiltEnabled: true)
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(1, false));
 
   await page.evaluate(() => {
     window.dispatchEvent(new DeviceOrientationEvent("deviceorientation", {
@@ -2763,18 +2794,18 @@ test("levels with tilt disabled do not apply tilt physics or phone orientation t
 
   expect(level4State.isTiltEnabled).toBe(true);
   expect(level4State.gravity.x).not.toBe(0);
-  // In Level 4, tilt physics applies gravity to ant velocity
-  expect(level4State.antVx).not.toBe(-55);
+  // In Game Level 1, tilt physics applies gravity to ant velocity
+  expect(level4State.antVx).not.toBe(-58);
 });
 
 
-test("level 1 starts with only one food and no ants, and passes when the user moves the food", async ({ page }) => {
+test("tutorial 1 starts with only one food and no ants, and passes when the user moves the food", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
-  await page.goto("/?level=1");
+  await page.goto("/?tutorial=1");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
-  // 1. Level 1 starts with only 1 food and no ants
+  // 1. Tutorial 1 starts with only 1 food and no ants
   const startingState = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     return {
@@ -2793,13 +2824,14 @@ test("level 1 starts with only one food and no ants, and passes when the user mo
   expect(startingState.isTiltEnabled).toBe(false);
   expect(startingState.isDragEnabled).toBe(true);
   expect(startingState.goalType).toBe("move_food");
+  expect(startingState.hudText).toContain("TUTORIAL 1");
   expect(startingState.hudText).toContain("MUEVE LA COMIDA: 0/1");
 
   // Confirm intro banner
   await page.locator("#level-banner-confirm").click();
   await expect(page.locator("#level-banner")).toBeHidden();
 
-  // 2. Drag and move the food to pass Level 1
+  // 2. Drag and move the food to pass Tutorial 1
   await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     const food = scene.foods.getChildren()[0];
@@ -2811,15 +2843,16 @@ test("level 1 starts with only one food and no ants, and passes when the user mo
   // Level complete overlay appears
   const completeOverlay = page.locator("#level-complete-overlay");
   await expect(completeOverlay).toBeVisible();
-  await expect(completeOverlay).toContainText("Nivel 1");
-  await expect(completeOverlay).toContainText("Nivel 2");
+  await expect(completeOverlay).toContainText("Tutorial 1");
+  await expect(completeOverlay).toContainText("Tutorial 2");
 
-  // Advance to Level 2
+  // Advance to Tutorial 2
   await page.locator("#level-complete-continue").click();
   await expect(completeOverlay).toBeHidden();
   expect(await page.evaluate(() => window.__gameSceneForTest.currentLevel)).toBe(2);
+  expect(await page.evaluate(() => window.__gameSceneForTest.isTutorialMode)).toBe(true);
 
-  // Level 2 has 1 food carried by 1 stationary ant
+  // Tutorial 2 has 1 food carried by 1 stationary ant
   await expect.poll(() => page.evaluate(() => window.__gameSceneForTest.foodCount)).toBe(1);
   const carriedState = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
@@ -2834,15 +2867,15 @@ test("level 1 starts with only one food and no ants, and passes when the user mo
   expect(carriedState.antCarrying).toBe(true);
 });
 
-test("level 2 starts with one food carried by a stationary ant and passes when shaken hard", async ({ page }) => {
+test("tutorial 2 starts with one food carried by a stationary ant and passes when shaken hard", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
-  await page.goto("/?level=2");
+  await page.goto("/?tutorial=2");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
-  // Level 2 intro banner displays
+  // Tutorial 2 intro banner displays
   await expect(page.locator("#level-banner")).toBeVisible();
-  await expect(page.locator("#level-banner-title")).toHaveText("Nivel 2");
+  await expect(page.locator("#level-banner-title")).toHaveText("Tutorial 2");
   await expect(page.locator("#level-banner-subtitle")).toHaveText("¡Sacude la comida!");
   await page.locator("#level-banner-confirm").click();
   await expect(page.locator("#level-banner")).toBeHidden();
@@ -2870,6 +2903,7 @@ test("level 2 starts with one food carried by a stationary ant and passes when s
   expect(initialState.isBeingCarried).toBe(true);
   expect(initialState.antCarrying).toBe(true);
   expect(initialState.antSpeed).toBe(0);
+  expect(initialState.hudText).toContain("TUTORIAL 2");
   expect(initialState.hudText).toContain("SACUDE LA COMIDA: 0/1");
 
   // Verify the ant and carried food are not moving after waiting
@@ -2912,7 +2946,7 @@ test("level 2 starts with one food carried by a stationary ant and passes when s
   expect(afterLinearMove.isComplete).toBe(false);
   await expect(page.locator("#level-complete-overlay")).toBeHidden();
 
-  // Shaking hard back and forth shakes off the ant and passes Level 2
+  // Shaking hard back and forth shakes off the ant and passes Tutorial 2
   await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     const food = scene.foods.getChildren()[0];
@@ -2928,19 +2962,19 @@ test("level 2 starts with one food carried by a stationary ant and passes when s
 
   const levelCompleteOverlay = page.locator("#level-complete-overlay");
   await expect(levelCompleteOverlay).toBeVisible();
-  await expect(levelCompleteOverlay).toContainText("Nivel 2");
+  await expect(levelCompleteOverlay).toContainText("Tutorial 2");
   await expect(page.locator("#level-hud")).toContainText("SACUDE LA COMIDA: 1/1");
 });
 
-test("level 3 starts with only one ant in the center of the tray and passes when tilted to make it fall out", async ({ page }) => {
+test("tutorial 3 starts with only one ant in the center of the tray and passes when tilted to make it fall out", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
-  await page.goto("/?level=3");
+  await page.goto("/?tutorial=3");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
-  // Level 3 intro banner displays
+  // Tutorial 3 intro banner displays
   await expect(page.locator("#level-banner")).toBeVisible();
-  await expect(page.locator("#level-banner-title")).toHaveText("Nivel 3");
+  await expect(page.locator("#level-banner-title")).toHaveText("Tutorial 3");
   await expect(page.locator("#level-banner-subtitle")).toHaveText("¡Inclina la bandeja!");
   await expect(page.locator("#level-banner-instruction")).toHaveText("Tira la hormiga.");
   await page.locator("#level-banner-confirm").click();
@@ -2975,6 +3009,7 @@ test("level 3 starts with only one ant in the center of the tray and passes when
   expect(initialState.isClimbing).toBe(false);
   expect(Math.abs(initialState.antX - initialState.trayX)).toBeLessThan(1);
   expect(Math.abs(initialState.antY - initialState.trayY)).toBeLessThan(1);
+  expect(initialState.hudText).toContain("TUTORIAL 3");
   expect(initialState.hudText).toContain("NIVELA LA BANDEJA");
 
   // While waiting for neutral tilt, tilting with arrow keys or holding tilted does not move the ant
@@ -3002,16 +3037,20 @@ test("level 3 starts with only one ant in the center of the tray and passes when
 
     const levelCompleteOverlay = page.locator("#level-complete-overlay");
     await expect(levelCompleteOverlay).toBeVisible({ timeout: 5000 });
-    await expect(levelCompleteOverlay).toContainText("Nivel 3");
+    await expect(levelCompleteOverlay).toContainText("¡Tutorial completado!");
     await expect(page.locator("#level-hud")).toContainText("HORMIGAS: 1/1");
   } finally {
     await page.keyboard.up("ArrowRight");
   }
 
-  // Advancing from Level 3 continues to Level 4
+  // Completing Tutorial 3 marks tutorial complete in localStorage
+  expect(await page.evaluate(() => localStorage.getItem("tutorialCompleted"))).toBe("true");
+
+  // Advancing from Tutorial 3 continues to Game Level 1
   await page.locator("#level-complete-continue").click();
   await expect(page.locator("#level-banner-confirm")).toBeVisible();
-  expect(await page.evaluate(() => window.__gameSceneForTest.currentLevel)).toBe(4);
+  expect(await page.evaluate(() => window.__gameSceneForTest.currentLevel)).toBe(1);
+  expect(await page.evaluate(() => window.__gameSceneForTest.isTutorialMode)).toBe(false);
 });
 
 test("ants walk randomly searching for food on the tray when the only remaining food is dragged", async ({ page }) => {
@@ -3116,4 +3155,93 @@ test("ants walk randomly searching for food on the tray when the only remaining 
 
   expect(resumedTargeting.foodBeingDragged).toBe(false);
   expect(resumedTargeting.antsTargetingFood).toBeGreaterThanOrEqual(1);
+});
+
+
+test("tutorial levels are shown only on first play and separated from game levels", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+
+  // 1. First play with clean storage starts in Tutorial 1
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.clear();
+  });
+  await page.reload();
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const firstPlayState = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    return {
+      isTutorialMode: scene.isTutorialMode,
+      currentLevel: scene.currentLevel,
+      title: scene.currentLevelConfig.title,
+      hudText: document.querySelector("#level-hud")?.textContent ?? ""
+    };
+  });
+  expect(firstPlayState.isTutorialMode).toBe(true);
+  expect(firstPlayState.currentLevel).toBe(1);
+  expect(firstPlayState.title).toBe("Tutorial 1");
+  expect(firstPlayState.hudText).toContain("TUTORIAL 1");
+
+  // 2. Once tutorialCompleted is saved in storage, fresh play starts at Game Level 1
+  await page.evaluate(() => {
+    localStorage.setItem("tutorialCompleted", "true");
+  });
+  await page.reload();
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const secondPlayState = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    return {
+      isTutorialMode: scene.isTutorialMode,
+      currentLevel: scene.currentLevel,
+      title: scene.currentLevelConfig.title,
+      hudText: document.querySelector("#level-hud")?.textContent ?? "",
+      isTiltEnabled: scene.isTiltEnabled,
+      isDragEnabled: scene.isDragEnabled
+    };
+  });
+  expect(secondPlayState.isTutorialMode).toBe(false);
+  expect(secondPlayState.currentLevel).toBe(1);
+  expect(secondPlayState.title).toBe("Nivel 1");
+  expect(secondPlayState.hudText).toContain("NIVEL 1");
+  expect(secondPlayState.isTiltEnabled).toBe(true);
+  expect(secondPlayState.isDragEnabled).toBe(true);
+
+  // 3. Restarting from pause menu restarts at Game Level 1 (not tutorial)
+  await page.locator("#level-banner-confirm").click();
+  await page.locator("#pause-toggle").click();
+  await page.locator("#pause-restart-game").click();
+  await waitForGameScene(page);
+
+  const restartState = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    return {
+      isTutorialMode: scene.isTutorialMode,
+      currentLevel: scene.currentLevel,
+      title: scene.currentLevelConfig.title
+    };
+  });
+  expect(restartState.isTutorialMode).toBe(false);
+  expect(restartState.currentLevel).toBe(1);
+  expect(restartState.title).toBe("Nivel 1");
+
+  // 4. URL query param explicitly starting tutorial still works
+  await page.goto("/?tutorial=2");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const explicitTutorialState = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    return {
+      isTutorialMode: scene.isTutorialMode,
+      currentLevel: scene.currentLevel,
+      title: scene.currentLevelConfig.title
+    };
+  });
+  expect(explicitTutorialState.isTutorialMode).toBe(true);
+  expect(explicitTutorialState.currentLevel).toBe(2);
+  expect(explicitTutorialState.title).toBe("Tutorial 2");
 });
