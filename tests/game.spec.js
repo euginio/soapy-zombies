@@ -3012,9 +3012,19 @@ test("tutorial 3 starts with only one ant in the center of the tray and passes w
   expect(initialState.hudText).toContain("TUTORIAL 3");
   expect(initialState.hudText).toContain("NIVELA LA BANDEJA");
 
-  // While waiting for neutral tilt, tilting with arrow keys or holding tilted does not move the ant
+  // Balance guide is visible and gives real-time visual feedback to level the device
+  const balanceGuide = page.locator("#neutral-balance-guide");
+  const balanceBubble = page.locator("#balance-bubble");
+  const balanceInstruction = page.locator("#balance-instruction");
+  await expect(balanceGuide).toBeVisible();
+
+  // While waiting for neutral tilt, tilting with arrow keys moves the balance bubble and updates instructions
   await page.keyboard.down("ArrowRight");
   await page.waitForTimeout(100);
+  await expect(balanceInstruction).toContainText("nivelar");
+  const bubbleTransform = await balanceBubble.evaluate((el) => el.style.transform);
+  expect(bubbleTransform).not.toBe("translate(-50%, -50%) translate(0.0px, 0.0px)");
+
   const stillCentered = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     const ant = scene.ants.getChildren()[0];
@@ -3024,8 +3034,9 @@ test("tutorial 3 starts with only one ant in the center of the tray and passes w
   expect(stillCentered).toBeLessThan(1);
   await page.keyboard.up("ArrowRight");
 
-  // Releasing arrow keys keeps neutral position; after neutral hold time, HUD updates
+  // Releasing arrow keys returns to neutral position and completes hold; HUD updates and balance guide hides
   await expect.poll(() => page.locator("#level-hud").textContent()).toContain("HORMIGAS: 0/1");
+  await expect(balanceGuide).toBeHidden();
   expect(await page.evaluate(() => window.__gameSceneForTest.isWaitingForNeutralTilt)).toBe(false);
 
   // Now tilt the board with ArrowRight so the ant falls off the tray

@@ -14,7 +14,10 @@ import {
   calculateVisualLayerLayout,
   calculateWaveExtraAnts,
   canPauseGame,
+  calculateBalanceBubblePosition,
+  calculateBalanceHoldProgress,
   checkNeutralTiltProgress,
+  getBalanceFeedbackMessage,
   debugColorToTint,
   formatLevelObjective,
   formatLevelCompleteSummary,
@@ -119,6 +122,12 @@ export class GameScene extends MyScene {
   }
   isWaitingForNeutralTilt: boolean = false;
   private neutralTiltDurationMs: number = 0;
+  private balanceGuide: HTMLDivElement | null = null;
+  private balancePhoneIcon: HTMLDivElement | null = null;
+  private balanceTargetRing: HTMLDivElement | null = null;
+  private balanceBubble: HTMLDivElement | null = null;
+  private balanceText: HTMLSpanElement | null = null;
+  private balanceProgressFill: HTMLDivElement | null = null;
   pendingNextLevel: number = 2;
   private levelCompleteOverlay: HTMLDivElement | null = null;
   private levelCompleteTitle: HTMLHeadingElement | null = null;
@@ -223,6 +232,7 @@ export class GameScene extends MyScene {
     // Set this first so later collisions or updates cannot process the ending twice.
     this.gameOver = true;
     this.hideLevelBanner();
+    this.hideBalanceGuide();
     if (this.isPaused) {
       this.isPaused = false;
       if (this.pauseOverlay) {
@@ -681,13 +691,18 @@ export class GameScene extends MyScene {
       const progress = checkNeutralTiltProgress(isNeutral, this.neutralTiltDurationMs, delta);
       this.neutralTiltDurationMs = progress.durationMs;
 
+      this.updateBalanceGuide(tiltX, tiltY);
+
       if (progress.isReady) {
         this.isWaitingForNeutralTilt = false;
         this.recenterDeviceTilt();
         this.updateLevelHud();
+        this.hideBalanceGuide();
         this.audio.play(AUDIO_KEYS.antFall);
         this.showAnnouncementBanner("¡Bandeja nivelada!", "¡Ahora inclínala!", "Tira la hormiga.", 1200);
       }
+    } else if (this.balanceGuide && this.balanceGuide.style.display !== "none") {
+      this.hideBalanceGuide();
     }
   }
 
@@ -1287,6 +1302,7 @@ export class GameScene extends MyScene {
     this.createRotatePromptOverlay();
     this.createLevelHud();
     this.createLevelBanner();
+    this.createBalanceGuide();
     this.syncVisualLayerBounds(gameCanvas);
 
     this.visualLayerResizeObserver = new ResizeObserver(this.invalidateVisualLayerBounds);
@@ -1881,6 +1897,13 @@ export class GameScene extends MyScene {
     this.hudOverlay = null;
     this.levelHud = null;
     this.levelBanner = null;
+    this.balanceGuide?.remove();
+    this.balanceGuide = null;
+    this.balancePhoneIcon = null;
+    this.balanceTargetRing = null;
+    this.balanceBubble = null;
+    this.balanceText = null;
+    this.balanceProgressFill = null;
     this.levelBannerConfirmButton = null;
     this.gameOverOverlay = null;
     this.stationaryBackground = null;
@@ -2000,6 +2023,11 @@ export class GameScene extends MyScene {
     this.hasTriggeredFinalWave = false;
     this.isWaitingForNeutralTilt = Boolean(this.currentLevelConfig.waitForNeutralTilt);
     this.neutralTiltDurationMs = 0;
+    if (this.isWaitingForNeutralTilt) {
+      this.showBalanceGuide();
+    } else {
+      this.hideBalanceGuide();
+    }
 
     if (!this.currentLevelConfig.tiltEnabled) {
       this.gravity.x = 0;
@@ -2098,6 +2126,7 @@ export class GameScene extends MyScene {
     this.isWaitingForNeutralTilt = false;
     this.isLevelIntroActive = false;
     this.hideLevelBanner(true);
+    this.hideBalanceGuide();
     const completedLevel = this.currentLevel;
     const nextLevel = completedLevel + 1;
     this.pendingNextLevel = nextLevel;
@@ -2360,6 +2389,227 @@ export class GameScene extends MyScene {
     hud.append(this.levelLabel, this.objectiveLabel);
     this.levelHud = hud;
     this.visualLayerParent.appendChild(hud);
+  }
+
+  private createBalanceGuide() {
+    if (this.balanceGuide) {
+      return;
+    }
+    if (typeof document !== "undefined" && !document.getElementById("balance-guide-style")) {
+      const style = document.createElement("style");
+      style.id = "balance-guide-style";
+      style.textContent = `
+        @keyframes phone-wobble {
+          0%, 100% { transform: rotate(-14deg); }
+          50% { transform: rotate(14deg); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    const guide = document.createElement("div");
+    guide.id = "neutral-balance-guide";
+    guide.setAttribute("role", "status");
+    guide.setAttribute("aria-live", "polite");
+    Object.assign(guide.style, {
+      position: "absolute",
+      left: "50%",
+      display: "none",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "8px",
+      zIndex: "20",
+      pointerEvents: "none",
+      transform: "translateX(-50%)",
+      padding: "5px 12px 8px 10px",
+      backgroundColor: "rgba(20, 32, 16, 0.92)",
+      border: "1.5px solid rgba(255, 255, 255, 0.25)",
+      borderRadius: "20px",
+      boxShadow: "0 3px 12px rgba(0, 0, 0, 0.4)",
+      color: "#ffffff",
+      fontFamily: "Courier, monospace",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      transition: "border-color 0.2s ease, opacity 0.3s ease"
+    });
+
+    const phoneIcon = document.createElement("div");
+    phoneIcon.id = "balance-phone-icon";
+    phoneIcon.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block;">
+        <rect x="5" y="2" width="14" height="20" rx="3" ry="3"></rect>
+        <line x1="12" y1="18" x2="12.01" y2="18"></line>
+      </svg>
+    `;
+    Object.assign(phoneIcon.style, {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "#fde047",
+      animation: "phone-wobble 1.2s ease-in-out infinite",
+      transformOrigin: "center center"
+    });
+
+    const gauge = document.createElement("div");
+    gauge.id = "balance-level-gauge";
+    Object.assign(gauge.style, {
+      position: "relative",
+      width: "24px",
+      height: "24px",
+      borderRadius: "50%",
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      border: "1px solid rgba(255, 255, 255, 0.3)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: "0"
+    });
+
+    const targetRing = document.createElement("div");
+    targetRing.id = "balance-target-ring";
+    Object.assign(targetRing.style, {
+      position: "absolute",
+      width: "10px",
+      height: "10px",
+      borderRadius: "50%",
+      border: "1px dashed rgba(255, 255, 255, 0.55)",
+      transition: "border-color 0.15s ease, background-color 0.15s ease"
+    });
+
+    const bubble = document.createElement("div");
+    bubble.id = "balance-bubble";
+    Object.assign(bubble.style, {
+      position: "absolute",
+      left: "50%",
+      top: "50%",
+      width: "6px",
+      height: "6px",
+      borderRadius: "50%",
+      backgroundColor: "#f59e0b",
+      boxShadow: "0 0 4px rgba(245, 158, 11, 0.8)",
+      transform: "translate(-50%, -50%)",
+      transition: "background 0.15s ease, box-shadow 0.15s ease"
+    });
+    gauge.append(targetRing, bubble);
+
+    const msg = document.createElement("span");
+    msg.id = "balance-instruction";
+    msg.textContent = "Mueve el teléfono para nivelar";
+    Object.assign(msg.style, {
+      fontSize: "0.85em",
+      fontWeight: "bold",
+      color: "#ffffff",
+      letterSpacing: "0.3px",
+      transition: "color 0.15s ease"
+    });
+
+    const progressTrack = document.createElement("div");
+    progressTrack.id = "balance-progress-track";
+    Object.assign(progressTrack.style, {
+      position: "absolute",
+      bottom: "0",
+      left: "0",
+      right: "0",
+      height: "3px",
+      backgroundColor: "rgba(255, 255, 255, 0.12)"
+    });
+
+    const progressFill = document.createElement("div");
+    progressFill.id = "balance-progress-fill";
+    Object.assign(progressFill.style, {
+      height: "100%",
+      width: "0%",
+      backgroundColor: "#4ade80",
+      transition: "width 0.05s linear"
+    });
+    progressTrack.appendChild(progressFill);
+
+    guide.append(phoneIcon, gauge, msg, progressTrack);
+
+    this.balanceGuide = guide;
+    this.balancePhoneIcon = phoneIcon;
+    this.balanceTargetRing = targetRing;
+    this.balanceBubble = bubble;
+    this.balanceText = msg;
+    this.balanceProgressFill = progressFill;
+
+    this.visualLayerParent.appendChild(guide);
+  }
+
+  showBalanceGuide() {
+    if (!this.balanceGuide) {
+      return;
+    }
+    this.balanceGuide.style.display = "flex";
+    this.balanceGuide.style.opacity = "1";
+    this.balanceGuide.style.borderColor = "rgba(255, 255, 255, 0.25)";
+    if (this.balanceProgressFill) {
+      this.balanceProgressFill.style.width = "0%";
+    }
+    if (this.gameCanvas) {
+      this.syncVisualLayerBounds(this.gameCanvas);
+    }
+  }
+
+  hideBalanceGuide() {
+    if (this.balanceGuide) {
+      this.balanceGuide.style.display = "none";
+    }
+  }
+
+  private updateBalanceGuide(tiltX: number, tiltY: number) {
+    if (!this.balanceGuide || this.balanceGuide.style.display === "none") {
+      return;
+    }
+    const isDesktop = Boolean(this.sys.game.device.os.desktop && !this.hasMotionInput);
+    const bubblePos = calculateBalanceBubblePosition(tiltX, tiltY, 9);
+    const progress = calculateBalanceHoldProgress(this.neutralTiltDurationMs);
+
+    if (this.balanceBubble) {
+      this.balanceBubble.style.transform = `translate(-50%, -50%) translate(${bubblePos.x.toFixed(1)}px, ${bubblePos.y.toFixed(1)}px)`;
+      this.balanceBubble.style.backgroundColor = bubblePos.isNeutral ? "#4ade80" : "#f59e0b";
+      this.balanceBubble.style.boxShadow = bubblePos.isNeutral
+        ? "0 0 5px #4ade80"
+        : "0 0 3px rgba(245, 158, 11, 0.8)";
+    }
+
+    if (this.balanceTargetRing) {
+      this.balanceTargetRing.style.borderColor = bubblePos.isNeutral
+        ? "#4ade80"
+        : "rgba(255, 255, 255, 0.55)";
+      this.balanceTargetRing.style.backgroundColor = bubblePos.isNeutral
+        ? "rgba(74, 222, 128, 0.25)"
+        : "transparent";
+    }
+
+    if (this.balancePhoneIcon) {
+      if (bubblePos.isNeutral) {
+        this.balancePhoneIcon.style.animation = "none";
+        this.balancePhoneIcon.style.transform = "rotate(0deg)";
+        this.balancePhoneIcon.style.color = "#4ade80";
+      } else {
+        this.balancePhoneIcon.style.animation = "phone-wobble 1.2s ease-in-out infinite";
+        this.balancePhoneIcon.style.color = "#fde047";
+      }
+    }
+
+    if (this.balanceText) {
+      const msg = getBalanceFeedbackMessage(bubblePos.isNeutral, isDesktop);
+      if (this.balanceText.textContent !== msg) {
+        this.balanceText.textContent = msg;
+      }
+      this.balanceText.style.color = bubblePos.isNeutral ? "#4ade80" : "#ffffff";
+    }
+
+    if (this.balanceProgressFill) {
+      this.balanceProgressFill.style.width = `${(progress * 100).toFixed(0)}%`;
+    }
+
+    if (bubblePos.isNeutral) {
+      this.balanceGuide.style.borderColor = "#4ade80";
+    } else {
+      this.balanceGuide.style.borderColor = "rgba(255, 255, 255, 0.25)";
+    }
   }
 
   private createLevelBanner() {

@@ -62,6 +62,9 @@ import {
   canPauseGame,
   checkNeutralTiltProgress,
   isTiltNeutral,
+  calculateBalanceBubblePosition,
+  getBalanceFeedbackMessage,
+  calculateBalanceHoldProgress,
   togglePauseState,
   formatPauseMenuSummary,
   formatLevelCompleteSummary,
@@ -1056,6 +1059,45 @@ describe("level progression rules", () => {
     const step3 = checkNeutralTiltProgress(false, 250, 50, 300);
     assert.equal(step3.isReady, false);
     assert.equal(step3.durationMs, 0);
+  });
+
+  it("calculates balance bubble position, feedback messages, and hold progress for neutral tutorial", () => {
+    // Centered tilt
+    const centerPos = calculateBalanceBubblePosition(0, 0, 10);
+    assert.equal(centerPos.x, 0);
+    assert.equal(centerPos.y, 0);
+    assert.equal(centerPos.isNeutral, true);
+    assert.equal(centerPos.distance, 0);
+
+    // Subtle neutral tilt within threshold
+    const subtlePos = calculateBalanceBubblePosition(0.08, 0.08, 10);
+    assert.equal(subtlePos.isNeutral, true);
+    assert.equal(subtlePos.x.toFixed(1), "0.8");
+    assert.equal(subtlePos.y.toFixed(1), "0.8");
+
+    // Outside neutral tilt
+    const tiltedPos = calculateBalanceBubblePosition(0.6, 0, 10);
+    assert.equal(tiltedPos.isNeutral, false);
+    assert.equal(tiltedPos.x, 6);
+    assert.equal(tiltedPos.y, 0);
+
+    // Clamps within maximum radius when tilt exceeds 1.0
+    const extremePos = calculateBalanceBubblePosition(2.0, 0, 10);
+    assert.equal(extremePos.isNeutral, false);
+    assert.equal(extremePos.x, 10);
+    assert.equal(extremePos.y, 0);
+
+    // Feedback messages in Spanish
+    assert.equal(getBalanceFeedbackMessage(true, false), "¡Mantén la posición!");
+    assert.equal(getBalanceFeedbackMessage(true, true), "¡Mantén la posición!");
+    assert.equal(getBalanceFeedbackMessage(false, false), "Mueve el teléfono para nivelar");
+    assert.equal(getBalanceFeedbackMessage(false, true), "Usa las flechas para nivelar");
+
+    // Hold progress percentage calculation
+    assert.equal(calculateBalanceHoldProgress(0, 300), 0);
+    assert.equal(calculateBalanceHoldProgress(150, 300), 0.5);
+    assert.equal(calculateBalanceHoldProgress(300, 300), 1);
+    assert.equal(calculateBalanceHoldProgress(450, 300), 1);
   });
 
   it("formats level objective HUD strings accurately", () => {

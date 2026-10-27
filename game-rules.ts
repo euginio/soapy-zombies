@@ -264,6 +264,52 @@ export function checkNeutralTiltProgress(
   };
 }
 
+export interface BalanceBubblePosition {
+  x: number;
+  y: number;
+  isNeutral: boolean;
+  distance: number;
+}
+
+export function calculateBalanceBubblePosition(
+  tiltX: number,
+  tiltY: number,
+  maxRadiusPx = 12,
+  maxNeutralThreshold = NEUTRAL_TILT_THRESHOLD
+): BalanceBubblePosition {
+  const distance = Math.hypot(tiltX, tiltY);
+  const isNeutral = distance <= maxNeutralThreshold;
+  const clampScale = distance > 1 ? 1 / distance : 1;
+  return {
+    x: tiltX * clampScale * maxRadiusPx,
+    y: tiltY * clampScale * maxRadiusPx,
+    isNeutral,
+    distance
+  };
+}
+
+export function getBalanceFeedbackMessage(
+  isNeutral: boolean,
+  isDesktop = false
+): string {
+  if (isNeutral) {
+    return "¡Mantén la posición!";
+  }
+  return isDesktop
+    ? "Usa las flechas para nivelar"
+    : "Mueve el teléfono para nivelar";
+}
+
+export function calculateBalanceHoldProgress(
+  durationMs: number,
+  requiredMs = NEUTRAL_TILT_HOLD_MS
+): number {
+  if (requiredMs <= 0) {
+    return 1;
+  }
+  return Math.min(1, Math.max(0, durationMs / requiredMs));
+}
+
 export function calculateAntStealVelocity(
   antX: number,
   antY: number,
