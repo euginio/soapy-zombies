@@ -2,7 +2,11 @@ import assert = require("node:assert/strict");
 import { describe, it } from "node:test";
 import {
   areFoodsOverlapping,
+  calculateAntSearchHeading,
+  calculateAntSearchVelocity,
   calculateAntVelocity,
+  isNearTrayEdge,
+  shouldAntSearchForFood,
   calculateAntStealVelocity,
   shouldTiltAffectAnt,
   shouldTiltAffectCaterpillar,
@@ -445,6 +449,104 @@ describe("ant steering", () => {
       x: 20,
       y: -10
     });
+  });
+});
+
+describe("ant food search rules", () => {
+  it("determines whether an ant should search for food when no target is reachable", () => {
+    // When food target exists, ant pursues it, so search is false
+    assert.equal(shouldAntSearchForFood(true, 1, true), false);
+    assert.equal(shouldAntSearchForFood(true, 1, false), false);
+
+    // When no food target exists and food is actively being dragged, ant searches for food
+    assert.equal(shouldAntSearchForFood(false, 1, true), true);
+    assert.equal(shouldAntSearchForFood(false, 2, true), true);
+
+    // When no food exists in the level (e.g. Level 3), ant does not search
+    assert.equal(shouldAntSearchForFood(false, 0, false), false);
+    assert.equal(shouldAntSearchForFood(false, 0, true), false);
+
+    // When food exists but is not being dragged, ant does not search (normal idle/waiting)
+    assert.equal(shouldAntSearchForFood(false, 1, false), false);
+  });
+
+  it("detects when ant is near tray edges within the avoidance margin", () => {
+    const bounds = { x: 100, y: 100, width: 400, height: 300 };
+    // Inside interior
+    assert.equal(isNearTrayEdge(300, 250, bounds, 35), false);
+
+    // Near left edge (100 to 135)
+    assert.equal(isNearTrayEdge(110, 250, bounds, 35), true);
+    // Near right edge (465 to 500)
+    assert.equal(isNearTrayEdge(480, 250, bounds, 35), true);
+    // Near top edge (100 to 135)
+    assert.equal(isNearTrayEdge(300, 120, bounds, 35), true);
+    // Near bottom edge (365 to 400)
+    assert.equal(isNearTrayEdge(300, 390, bounds, 35), true);
+  });
+
+  it("steers search heading back toward tray center when approaching boundary", () => {
+    const bounds = { x: 100, y: 100, width: 400, height: 300 };
+    // Center is at (300, 250)
+
+    // Near left edge (x=110, y=250), moving left (heading = Math.PI)
+    // Moving left near left edge should steer back toward center (dx > 0, heading = 0)
+    const steerFromLeft = calculateAntSearchHeading(110, 250, Math.PI, bounds, { margin: 35 });
+    assert.equal(Math.cos(steerFromLeft) > 0, true);
+
+    // Near right edge (x=490, y=250), moving right (heading = 0)
+    // Moving right near right edge should steer back toward center (dx < 0)
+    const steerFromRight = calculateAntSearchHeading(490, 250, 0, bounds, { margin: 35 });
+    assert.equal(Math.cos(steerFromRight) < 0, true);
+
+    // Near top edge (x=300, y=110), moving up (heading = -Math.PI / 2)
+    // Moving up near top edge should steer down toward center (dy > 0)
+    const steerFromTop = calculateAntSearchHeading(300, 110, -Math.PI / 2, bounds, { margin: 35 });
+    assert.equal(Math.sin(steerFromTop) > 0, true);
+
+    // Near bottom edge (x=300, y=390), moving down (heading = Math.PI / 2)
+    // Moving down near bottom edge should steer up toward center (dy < 0)
+    const steerFromBottom = calculateAntSearchHeading(300, 390, Math.PI / 2, bounds, { margin: 35 });
+    assert.equal(Math.sin(steerFromBottom) < 0, true);
+  });
+
+  it("updates heading when retarget interval fires or preserves it while wandering safely inside tray", () => {
+    const bounds = { x: 100, y: 100, width: 400, height: 300 };
+    // Inside tray interior
+    const currentHeading = 1.25;
+
+    // Timer not expired -> keeps heading
+    const preserved = calculateAntSearchHeading(300, 250, currentHeading, bounds, {
+      margin: 35,
+      shouldPickNewAngle: false
+    });
+    assert.equal(preserved, currentHeading);
+
+    // Timer expired with new random angle -> adopts new angle
+    const newAngle = 2.8;
+    const adopted = calculateAntSearchHeading(300, 250, currentHeading, bounds, {
+      margin: 35,
+      shouldPickNewAngle: true,
+      randomAngle: newAngle
+    });
+    assert.equal(adopted, newAngle);
+  });
+
+  it("calculates search velocity combining wandering speed with tray gravity", () => {
+    // Pure walking heading east (0 rad) with zero gravity
+    const vEast = calculateAntSearchVelocity(0, 50, 0, 0, 10);
+    assert.equal(Math.round(vEast.x), 50);
+    assert.equal(Math.round(vEast.y), 0);
+
+    // Pure walking heading south (pi/2 rad) with zero gravity
+    const vSouth = calculateAntSearchVelocity(Math.PI / 2, 50, 0, 0, 10);
+    assert.equal(Math.round(vSouth.x), 0);
+    assert.equal(Math.round(vSouth.y), 50);
+
+    // Combined with tray tilt gravity (gravityX = 2, gravityFactor = 10 -> +20)
+    const vTilted = calculateAntSearchVelocity(0, 50, 2, -1, 10);
+    assert.equal(Math.round(vTilted.x), 70); // 50 + 20
+    assert.equal(Math.round(vTilted.y), -10); // 0 - 10
   });
 });
 

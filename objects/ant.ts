@@ -1,5 +1,8 @@
 import {
+    calculateAntSearchHeading,
+    calculateAntSearchVelocity,
     calculateAntVelocity,
+    shouldAntSearchForFood,
     shouldTiltAffectAnt,
     canAntStealFood,
     clampFoodPosition,
@@ -29,6 +32,8 @@ export class Ant extends MySprite {
     isAlive: boolean;
     isClimbing: boolean;
     isTouchingTray: boolean;
+    searchHeading: number = 0;
+    searchRetargetTimer: number = 0;
     private climbTimer: Phaser.Time.TimerEvent | null = null;
 
     constructor(scene: GameScene) {
@@ -48,6 +53,8 @@ export class Ant extends MySprite {
         }
         this.isAlive = true;
         this.setScale(0.2);
+        this.searchHeading = Phaser.Math.FloatBetween(0, Math.PI * 2);
+        this.searchRetargetTimer = Phaser.Math.Between(400, 1000);
         this.enableBody(false, this.x, this.y, false, true);
         this.setRandomBorderPosition();
         
@@ -205,7 +212,7 @@ export class Ant extends MySprite {
         this.setPosition(x, y);
     }
 
-    update() {
+    update(_time?: number, delta: number = 16.6) {
         if (this.scene.gameOver || this.scene.isPaused || (this.scene as any).isLevelCompleteActive || !this.isAlive || this.isClimbing) {
             return;
         }
@@ -243,6 +250,9 @@ export class Ant extends MySprite {
             let xDistance = this.x - this.myFood.x;
             let yDistance = this.y - this.myFood.y;
             this.setVelocity(xDistance, yDistance);
+        } else if (this.shouldSearchForFood()) {
+            const dt = Number.isFinite(delta) && delta > 0 ? delta : 16.6;
+            this.updateSearchMovement(dt);
         } else {
             this.setVelocity(0, 0);
             if (this.body && Math.hypot(this.body.velocity.x, this.body.velocity.y) > 5) {
@@ -358,5 +368,62 @@ export class Ant extends MySprite {
         const availableFood = this.scene.foods.getChildren()
             .filter((food: Food) => food.body && food.body.enable && !food.isBeingDragged && food.carrierCount < MAX_CARRIER_ANTS && !food.isBeingEaten) as Food[];
         return pickNearestTarget(this.x, this.y, availableFood);
+    }
+
+    shouldSearchForFood(): boolean {
+        if (!this.isAlive || this.isClimbing || Boolean(this.carriedFood) || this.scene.gameOver || this.scene.isPaused) {
+            return false;
+        }
+        const activeFoods = (this.scene.foods?.getChildren()?.filter(
+            (food: any) => food.active && food.body?.enable
+        ) as Food[]) ?? [];
+        const isFoodBeingDragged = activeFoods.some((f) => f.isBeingDragged);
+        return shouldAntSearchForFood(Boolean(this.myFood), activeFoods.length, isFoodBeingDragged);
+    }
+
+    updateSearchMovement(delta: number = 16.6) {
+        if (!this.scene?.tray) {
+            return;
+        }
+        const trayBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
+        this.searchRetargetTimer -= delta;
+        const shouldPickNewAngle = this.searchRetargetTimer <= 0;
+        if (shouldPickNewAngle) {
+            this.searchRetargetTimer = Phaser.Math.Between(600, 1200);
+        }
+        const randomAngle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+
+        this.searchHeading = calculateAntSearchHeading(
+            this.x,
+            this.y,
+            this.searchHeading,
+            trayBounds,
+            {
+                margin: 35,
+                shouldPickNewAngle,
+                randomAngle
+            }
+        );
+
+        this.setAngle(Phaser.Math.RadToDeg(this.searchHeading) + 90);
+
+        if (this.ANT_SPEED > 0 && this.anims && !this.anims.isPlaying) {
+            this.play('walk');
+        }
+
+        const isTiltEnabled = this.scene.isTiltEnabled;
+        const isWaitingForNeutral = Boolean((this.scene as any).isWaitingForNeutralTilt);
+        const gravityFactor = shouldTiltAffectAnt(Boolean(this.carriedFood), isTiltEnabled, isWaitingForNeutral) ? this.gravityFactor : 0;
+
+        const velocity = calculateAntSearchVelocity(
+            this.searchHeading,
+            this.ANT_SPEED,
+            this.scene.gravity.x,
+            this.scene.gravity.y,
+            gravityFactor
+        );
+
+        this.setVelocityX(velocity.x);
+        this.setVelocityY(velocity.y);
     }
 }

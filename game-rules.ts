@@ -563,6 +563,104 @@ export function calculateAntVelocity(
   };
 }
 
+/**
+ * Determines whether an ant should search/wander for food when no target is available.
+ * Active when food exists in the level and is being dragged (or no target can be reached).
+ */
+export function shouldAntSearchForFood(
+  hasFoodTarget: boolean,
+  activeFoodCount: number,
+  isFoodBeingDragged: boolean
+): boolean {
+  if (hasFoodTarget) {
+    return false;
+  }
+  return activeFoodCount > 0 && isFoodBeingDragged;
+}
+
+/**
+ * Checks whether an ant position is within the boundary avoidance margin of the tray.
+ */
+export function isNearTrayEdge(
+  x: number,
+  y: number,
+  trayBounds: Rect,
+  margin = 35
+): boolean {
+  return (
+    x < trayBounds.x + margin ||
+    x > trayBounds.x + trayBounds.width - margin ||
+    y < trayBounds.y + margin ||
+    y > trayBounds.y + trayBounds.height - margin
+  );
+}
+
+/**
+ * Calculates the next wander heading for an ant searching for food.
+ * If the ant is near the tray edge and moving toward it, steers heading back toward tray center.
+ * Otherwise, allows gentle wandering or changes heading when retarget interval expires.
+ */
+export function calculateAntSearchHeading(
+  currentX: number,
+  currentY: number,
+  currentHeading: number,
+  trayBounds: Rect,
+  options?: {
+    margin?: number;
+    shouldPickNewAngle?: boolean;
+    randomAngle?: number;
+  }
+): number {
+  const margin = options?.margin ?? 35;
+  const centerX = trayBounds.x + trayBounds.width / 2;
+  const centerY = trayBounds.y + trayBounds.height / 2;
+
+  const nearLeft = currentX < trayBounds.x + margin;
+  const nearRight = currentX > trayBounds.x + trayBounds.width - margin;
+  const nearTop = currentY < trayBounds.y + margin;
+  const nearBottom = currentY > trayBounds.y + trayBounds.height - margin;
+
+  const movingLeft = Math.cos(currentHeading) < 0;
+  const movingRight = Math.cos(currentHeading) > 0;
+  const movingUp = Math.sin(currentHeading) < 0;
+  const movingDown = Math.sin(currentHeading) > 0;
+
+  const headingTowardEdge =
+    (nearLeft && movingLeft) ||
+    (nearRight && movingRight) ||
+    (nearTop && movingUp) ||
+    (nearBottom && movingDown);
+
+  if (headingTowardEdge) {
+    return Math.atan2(centerY - currentY, centerX - currentX);
+  }
+
+  if (options?.shouldPickNewAngle && typeof options.randomAngle === "number") {
+    return options.randomAngle;
+  }
+
+  return currentHeading;
+}
+
+/**
+ * Calculates velocity for an ant searching for food, combining wandering walking speed with tray gravity.
+ */
+export function calculateAntSearchVelocity(
+  heading: number,
+  antSpeed: number,
+  gravityX: number,
+  gravityY: number,
+  gravityFactor: number
+): AntVelocity {
+  const walkingX = Math.cos(heading) * antSpeed;
+  const walkingY = Math.sin(heading) * antSpeed;
+
+  return {
+    x: walkingX + gravityX * gravityFactor,
+    y: walkingY + gravityY * gravityFactor
+  };
+}
+
 export interface DeviceTilt {
   x: number;
   y: number;

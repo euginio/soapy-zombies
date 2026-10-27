@@ -3013,3 +3013,107 @@ test("level 3 starts with only one ant in the center of the tray and passes when
   await expect(page.locator("#level-banner-confirm")).toBeVisible();
   expect(await page.evaluate(() => window.__gameSceneForTest.currentLevel)).toBe(4);
 });
+
+test("ants walk randomly searching for food on the tray when the only remaining food is dragged", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/?level=4");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  await expect(page.locator("#level-banner")).toBeVisible();
+  await page.locator("#level-banner-confirm").click();
+  await expect(page.locator("#level-banner")).toBeHidden();
+
+  // Setup: leave exactly 1 remaining active food on the tray, and ensure living ants exist
+  const setupResult = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const foods = scene.foods.getChildren().filter((f) => f.active && f.body?.enable);
+    for (let i = 1; i < foods.length; i++) {
+      foods[i].disableBody(true, true);
+    }
+    const singleFood = foods[0];
+    singleFood.clearDragTimers();
+    singleFood.isDragCooldown = false;
+    singleFood.isBeingDragged = false;
+    singleFood.releaseAllCarriers(false);
+
+    const ants = scene.ants.getChildren().filter((a) => a.active && a.isAlive);
+    ants.forEach((a) => {
+      a.isClimbing = false;
+      a.setPosition(scene.tray.x + Phaser.Math.Between(-80, 80), scene.tray.y + Phaser.Math.Between(-40, 40));
+    });
+
+    return {
+      activeFoodCount: scene.foods.getChildren().filter((f) => f.active && f.body?.enable).length,
+      antCount: ants.length
+    };
+  });
+
+  expect(setupResult.activeFoodCount).toBe(1);
+  expect(setupResult.antCount).toBeGreaterThanOrEqual(2);
+
+  // 1. Drag the only remaining food
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren().find((f) => f.active && f.body?.enable);
+    food.startDrag();
+    food.moveDrag(food.x + 10, food.y + 10);
+  });
+
+  const isDragging = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren().find((f) => f.active && f.body?.enable);
+    return food.isBeingDragged;
+  });
+  expect(isDragging).toBe(true);
+
+  // 2. While dragged, verify ants are searching and actively moving on the tray without walking off
+  await page.waitForTimeout(400);
+
+  const searchState = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const ants = scene.ants.getChildren().filter((a) => a.active && a.isAlive);
+    const trayBounds = scene.tray.getBounds();
+    return {
+      antCount: ants.length,
+      allSearching: ants.every((a) => a.shouldSearchForFood()),
+      allMoving: ants.every((a) => Math.hypot(a.body?.velocity.x ?? 0, a.body?.velocity.y ?? 0) > 10),
+      allInsideTray: ants.every((a) => {
+        return (
+          a.x >= trayBounds.left &&
+          a.x <= trayBounds.right &&
+          a.y >= trayBounds.top &&
+          a.y <= trayBounds.bottom
+        );
+      })
+    };
+  });
+
+  expect(searchState.allSearching).toBe(true);
+  expect(searchState.allMoving).toBe(true);
+  expect(searchState.allInsideTray).toBe(true);
+  expect(searchState.antCount).toBe(setupResult.antCount);
+
+  // 3. Drop/finish dragging the food
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren().find((f) => f.active && f.body?.enable);
+    food.finishDrag();
+  });
+
+  await page.waitForTimeout(100);
+
+  // 4. Verify ants resume targeting the dropped food
+  const resumedTargeting = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren().find((f) => f.active && f.body?.enable);
+    const ants = scene.ants.getChildren().filter((a) => a.active && a.isAlive);
+    return {
+      foodBeingDragged: food.isBeingDragged,
+      antsTargetingFood: ants.filter((a) => a.myFood === food).length
+    };
+  });
+
+  expect(resumedTargeting.foodBeingDragged).toBe(false);
+  expect(resumedTargeting.antsTargetingFood).toBeGreaterThanOrEqual(1);
+});
