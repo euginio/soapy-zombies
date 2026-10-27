@@ -247,7 +247,7 @@ test("tilt controls apply perspective on both axes", async ({ page }) => {
     expect(Math.abs(alignedBounds[1][dimension] - alignedBounds[0][dimension])).toBeLessThan(0.1);
   }
 
-  await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(4, false));
 
   const directions = [
     ["ArrowRight", "perspective(900px) rotateX(0deg) rotateY(10deg)", { x: 30, y: 0 }],
@@ -417,7 +417,7 @@ test("game over shows the score and offers restart and home actions", async ({ p
   await clickStartOnCanvas(page);
   await expect(page.locator("#tilting-board")).toBeVisible();
   await waitForGameScene(page);
-  await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(4, false));
 
   await page.keyboard.down("ArrowRight");
   await expect
@@ -1618,7 +1618,7 @@ test("tray tilt does not affect ants carrying food", async ({ page }) => {
   await page.goto("/");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
-  await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(4, false));
 
   const tiltImmunityResult = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
@@ -2055,18 +2055,17 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   await expect(page.locator("#level-banner-confirm")).toBeVisible();
   await page.locator("#level-banner-confirm").click();
 
-  // 6. Level 3 has fruit drag disabled and tray tilt enabled
+  // 6. Level 3 has fruit drag disabled, tray tilt enabled, 0 food, and 1 ant in center
   await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
 
   const level3State = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
-    const food = scene.foods.getChildren()[0];
-    const dragSuccess = food.startDrag(scene.input.activePointer);
     return {
       currentLevel: scene.currentLevel,
       isTiltEnabled: scene.isTiltEnabled,
       isDragEnabled: scene.isDragEnabled,
-      dragSuccess,
+      foodsCount: scene.foods.getChildren().length,
+      antsCount: scene.ants.getChildren().length,
       goalType: scene.currentLevelConfig.goalType,
       hudText: document.querySelector("#level-hud")?.textContent ?? ""
     };
@@ -2074,9 +2073,10 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(level3State.currentLevel).toBe(3);
   expect(level3State.isTiltEnabled).toBe(true);
   expect(level3State.isDragEnabled).toBe(false);
-  expect(level3State.dragSuccess).toBe(false);
+  expect(level3State.foodsCount).toBe(0);
+  expect(level3State.antsCount).toBe(1);
   expect(level3State.goalType).toBe("defeat_ants");
-  expect(level3State.hudText).toContain("HORMIGAS: 0/15");
+  expect(level3State.hudText).toContain("HORMIGAS: 0/1");
 
   // Arrow key tilts the board in Level 3
   await page.keyboard.down("ArrowRight");
@@ -2085,40 +2085,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
     .toBe("perspective(900px) rotateX(0deg) rotateY(10deg)");
   await page.keyboard.up("ArrowRight");
 
-  // In Level 3, reaching 70% (11 of 15 ants) triggers the final wave of ants
-  const waveStateBefore = await page.evaluate(() => {
-    const scene = window.__gameSceneForTest;
-    // Defeat 10 ants (progress 10/15 = 66.7%, below 70%)
-    for (let i = 0; i < 10; i++) {
-      scene.antDied(scene.ants.getChildren()[0]);
-    }
-    return {
-      progress: scene.levelProgress,
-      hasTriggeredFinalWave: scene.hasTriggeredFinalWave,
-      antsCount: scene.ants.getChildren().length
-    };
-  });
-  expect(waveStateBefore.progress).toBe(10);
-  expect(waveStateBefore.hasTriggeredFinalWave).toBe(false);
-  expect(waveStateBefore.antsCount).toBe(5); // 4 base + 1 spawned at 7th escape milestone
-
-  // Defeat 11th ant (11/15 = 73.3% >= 70% threshold): triggers final wave!
-  const waveStateAfter = await page.evaluate(() => {
-    const scene = window.__gameSceneForTest;
-    scene.antDied(scene.ants.getChildren()[0]);
-    return {
-      progress: scene.levelProgress,
-      hasTriggeredFinalWave: scene.hasTriggeredFinalWave,
-      antsCount: scene.ants.getChildren().length,
-      bannerText: document.querySelector("#level-banner-title")?.textContent ?? ""
-    };
-  });
-  expect(waveStateAfter.progress).toBe(11);
-  expect(waveStateAfter.hasTriggeredFinalWave).toBe(true);
-  expect(waveStateAfter.antsCount).toBe(7); // 5 current + 2 extra wave ants
-  expect(waveStateAfter.bannerText).toContain("¡OLEADA FINAL!");
-
-  // 7. Level 4 has full combined controls
+  // 7. Level 4 has full combined controls and final wave
   await page.evaluate(() => window.__gameSceneForTest.startLevel(4, false));
   const level4State = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
@@ -2132,6 +2099,37 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(level4State.isTiltEnabled).toBe(true);
   expect(level4State.isDragEnabled).toBe(true);
   expect(level4State.caterpillarsEnabled).toBe(false);
+
+  // In Level 4 (goalTarget 20), reaching 70% (14 of 20 ants) triggers the final wave of ants
+  const waveStateBefore = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    // Defeat 13 ants (progress 13/20 = 65%, below 70%)
+    for (let i = 0; i < 13; i++) {
+      scene.antDied(scene.ants.getChildren()[0]);
+    }
+    return {
+      progress: scene.levelProgress,
+      hasTriggeredFinalWave: scene.hasTriggeredFinalWave,
+      antsCount: scene.ants.getChildren().length
+    };
+  });
+  expect(waveStateBefore.progress).toBe(13);
+  expect(waveStateBefore.hasTriggeredFinalWave).toBe(false);
+
+  // Defeat 14th ant (14/20 = 70% >= 70% threshold): triggers final wave!
+  const waveStateAfter = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    scene.antDied(scene.ants.getChildren()[0]);
+    return {
+      progress: scene.levelProgress,
+      hasTriggeredFinalWave: scene.hasTriggeredFinalWave,
+      antsCount: scene.ants.getChildren().length,
+      bannerText: document.querySelector("#level-banner-title")?.textContent ?? ""
+    };
+  });
+  expect(waveStateAfter.progress).toBe(14);
+  expect(waveStateAfter.hasTriggeredFinalWave).toBe(true);
+  expect(waveStateAfter.bannerText).toContain("¡OLEADA FINAL!");
 
   // 8. Level 5 introduces caterpillars and defeat_ants goal of 12 ants
   await page.evaluate(() => window.__gameSceneForTest.startLevel(5, false));
@@ -2249,8 +2247,7 @@ test("modal boxes (level banner, level HUD, and game over overlay) remain within
 
   // 3. Trigger Game Over overlay
   await page.evaluate(() => {
-    const scene = window.__gameSceneForTest;
-    scene.foods.getChildren().slice().forEach((food) => food.destroy());
+    window.__gameSceneForTest.overGame();
   });
   await expect(page.locator("#game-over-overlay")).toBeVisible();
 
@@ -2339,7 +2336,7 @@ test("modal popups fit completely on short narrow landscape viewport (600x320)",
 
 test("game over overlay displays the reached level", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
-  await page.goto("/?level=3");
+  await page.goto("/?level=4");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 
@@ -2350,7 +2347,7 @@ test("game over overlay displays the reached level", async ({ page }) => {
 
   await expect(page.locator("#game-over-overlay")).toBeVisible();
   const levelText = await page.locator("#game-over-level").textContent();
-  expect(levelText).toBe("3");
+  expect(levelText).toBe("4");
 });
 
 test("carrier ants stealing food does not award defeat score or level progress", async ({ page }) => {
@@ -2922,4 +2919,68 @@ test("level 2 starts with one food carried by a stationary ant and passes when s
   await expect(levelCompleteOverlay).toBeVisible();
   await expect(levelCompleteOverlay).toContainText("Nivel 2");
   await expect(page.locator("#level-hud")).toContainText("SACUDE LA FRUTA: 1/1");
+});
+
+test("level 3 starts with only one ant in the center of the tray and passes when tilted to make it fall out", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/?level=3");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  // Level 3 intro banner displays
+  await expect(page.locator("#level-banner")).toBeVisible();
+  await expect(page.locator("#level-banner-title")).toHaveText("Nivel 3");
+  await expect(page.locator("#level-banner-subtitle")).toHaveText("¡Inclina la bandeja!");
+  await expect(page.locator("#level-banner-instruction")).toHaveText("¡Una hormiga en la bandeja! ¡Inclina tu dispositivo o usa las flechas para tirarla!");
+  await page.locator("#level-banner-confirm").click();
+  await expect(page.locator("#level-banner")).toBeHidden();
+
+  // Verify initial state: exactly 0 food, exactly 1 ant placed at tray center
+  const initialState = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const ant = scene.ants.getChildren()[0];
+    const tray = scene.tray;
+    return {
+      foodCount: scene.foodCount,
+      foodsLength: scene.foods.getChildren().length,
+      antCount: scene.ants.getChildren().length,
+      isTiltEnabled: scene.isTiltEnabled,
+      isDragEnabled: scene.isDragEnabled,
+      antX: ant.x,
+      antY: ant.y,
+      trayX: tray.x,
+      trayY: tray.y,
+      isClimbing: ant.isClimbing,
+      hudText: document.querySelector("#level-hud")?.textContent ?? ""
+    };
+  });
+  expect(initialState.foodCount).toBe(0);
+  expect(initialState.foodsLength).toBe(0);
+  expect(initialState.antCount).toBe(1);
+  expect(initialState.isTiltEnabled).toBe(true);
+  expect(initialState.isDragEnabled).toBe(false);
+  expect(initialState.isClimbing).toBe(false);
+  expect(Math.abs(initialState.antX - initialState.trayX)).toBeLessThan(1);
+  expect(Math.abs(initialState.antY - initialState.trayY)).toBeLessThan(1);
+  expect(initialState.hudText).toContain("HORMIGAS: 0/1");
+
+  // Tilt the board with ArrowRight so the ant falls off the tray
+  await page.keyboard.down("ArrowRight");
+  try {
+    await expect
+      .poll(() => page.locator("#tilting-board").evaluate((el) => el.style.transform))
+      .toBe("perspective(900px) rotateX(0deg) rotateY(10deg)");
+
+    const levelCompleteOverlay = page.locator("#level-complete-overlay");
+    await expect(levelCompleteOverlay).toBeVisible({ timeout: 5000 });
+    await expect(levelCompleteOverlay).toContainText("Nivel 3");
+    await expect(page.locator("#level-hud")).toContainText("HORMIGAS: 1/1");
+  } finally {
+    await page.keyboard.up("ArrowRight");
+  }
+
+  // Advancing from Level 3 continues to Level 4
+  await page.locator("#level-complete-continue").click();
+  await expect(page.locator("#level-banner-confirm")).toBeVisible();
+  expect(await page.evaluate(() => window.__gameSceneForTest.currentLevel)).toBe(4);
 });

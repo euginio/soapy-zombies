@@ -236,6 +236,9 @@ export class Ant extends MySprite {
             this.setVelocity(xDistance, yDistance);
         } else {
             this.setVelocity(0, 0);
+            if (this.body && Math.hypot(this.body.velocity.x, this.body.velocity.y) > 5) {
+                this.setAngle(Phaser.Math.RadToDeg(Math.atan2(this.body.velocity.y, this.body.velocity.x)) + 90);
+            }
         }
 
         // The inset bounds create a narrow edge where an ant counts as having fallen.

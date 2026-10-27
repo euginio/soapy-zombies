@@ -1938,6 +1938,19 @@ export class GameScene extends MyScene {
       }
     }
 
+    if (this.currentLevelConfig.antInCenter) {
+      const activeAnts = this.ants.getChildren().filter((a: any) => a.active && a.isAlive) as Ant[];
+      if (activeAnts.length > 0 && this.tray) {
+        const ant = activeAnts[0];
+        ant.cancelClimb();
+        ant.setPosition(this.tray.x, this.tray.y);
+        ant.setAngle(0);
+        if (ant.body) {
+          ant.body.reset(this.tray.x, this.tray.y);
+        }
+      }
+    }
+
     if (showIntroBanner) {
       this.showLevelIntroBanner(
         this.currentLevelConfig.title,

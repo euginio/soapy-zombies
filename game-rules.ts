@@ -744,6 +744,7 @@ export interface LevelConfig {
   goalType: LevelGoalType;
   goalTarget: number;
   foodCarriedByAnt?: boolean;
+  antInCenter?: boolean;
 }
 
 export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
@@ -782,15 +783,17 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     level: 3,
     title: "Nivel 3",
     subtitle: "¡Inclina la bandeja!",
-    instruction: "¡Inclina tu dispositivo o usa las flechas para tirar a las hormigas!",
+    instruction: "¡Una hormiga en la bandeja! ¡Inclina tu dispositivo o usa las flechas para tirarla!",
     tiltEnabled: true,
     dragEnabled: false,
     caterpillarsEnabled: false,
-    initialAnts: 4,
+    initialFood: 0,
+    initialAnts: 1,
     initialCaterpillars: 0,
-    antSpeed: 55,
+    antSpeed: 50,
     goalType: "defeat_ants",
-    goalTarget: 15
+    goalTarget: 1,
+    antInCenter: true
   },
   4: {
     level: 4,

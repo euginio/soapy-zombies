@@ -862,8 +862,11 @@ describe("level progression rules", () => {
     assert.equal(lvl3.tiltEnabled, true);
     assert.equal(lvl3.dragEnabled, false);
     assert.equal(lvl3.caterpillarsEnabled, false);
+    assert.equal(lvl3.initialFood, 0);
+    assert.equal(lvl3.initialAnts, 1);
     assert.equal(lvl3.goalType, "defeat_ants");
-    assert.equal(lvl3.goalTarget, 15);
+    assert.equal(lvl3.goalTarget, 1);
+    assert.equal(lvl3.antInCenter, true);
 
     const lvl4 = getLevelConfig(4);
     assert.equal(lvl4.tiltEnabled, true);
@@ -925,7 +928,8 @@ describe("level progression rules", () => {
     assert.equal(formatLevelObjective(lvl2, 1), "SACUDE LA FRUTA: 1/1");
 
     const lvl3 = getLevelConfig(3);
-    assert.equal(formatLevelObjective(lvl3, 5), "HORMIGAS: 5/15");
+    assert.equal(formatLevelObjective(lvl3, 0), "HORMIGAS: 0/1");
+    assert.equal(formatLevelObjective(lvl3, 1), "HORMIGAS: 1/1");
 
     const lvl5 = getLevelConfig(5);
     assert.equal(formatLevelObjective(lvl5, 4), "HORMIGAS: 4/25");
