@@ -788,8 +788,8 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
   1: {
     level: 1,
     title: "Nivel 1",
-    subtitle: "¡Mueve la fruta!",
-    instruction: "Arrastra la fruta.",
+    subtitle: "¡Mueve la comida!",
+    instruction: "Arrastra la comida.",
     tiltEnabled: false,
     dragEnabled: true,
     caterpillarsEnabled: false,
@@ -803,7 +803,7 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
   2: {
     level: 2,
     title: "Nivel 2",
-    subtitle: "¡Sacude la fruta!",
+    subtitle: "¡Sacude la comida!",
     instruction: "Sacúdela con fuerza.",
     tiltEnabled: false,
     dragEnabled: true,
@@ -974,9 +974,9 @@ export function formatLevelObjective(
   }
   switch (config.goalType) {
     case "move_food":
-      return `MUEVE LA FRUTA: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;
+      return `MUEVE LA COMIDA: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;
     case "shake_ants":
-      return `SACUDE LA FRUTA: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;
+      return `SACUDE LA COMIDA: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;
     case "survive_time": {
       const remaining = Math.max(0, Math.ceil(config.goalTarget - currentProgress));
       return `SOBREVIVE: ${remaining}s`;

@@ -943,12 +943,12 @@ describe("level progression rules", () => {
 
   it("formats level objective HUD strings accurately", () => {
     const lvl1 = getLevelConfig(1);
-    assert.equal(formatLevelObjective(lvl1, 0), "MUEVE LA FRUTA: 0/1");
-    assert.equal(formatLevelObjective(lvl1, 1), "MUEVE LA FRUTA: 1/1");
+    assert.equal(formatLevelObjective(lvl1, 0), "MUEVE LA COMIDA: 0/1");
+    assert.equal(formatLevelObjective(lvl1, 1), "MUEVE LA COMIDA: 1/1");
 
     const lvl2 = getLevelConfig(2);
-    assert.equal(formatLevelObjective(lvl2, 0), "SACUDE LA FRUTA: 0/1");
-    assert.equal(formatLevelObjective(lvl2, 1), "SACUDE LA FRUTA: 1/1");
+    assert.equal(formatLevelObjective(lvl2, 0), "SACUDE LA COMIDA: 0/1");
+    assert.equal(formatLevelObjective(lvl2, 1), "SACUDE LA COMIDA: 1/1");
 
     const lvl3 = getLevelConfig(3);
     assert.equal(lvl3.waitForNeutralTilt, true);
@@ -1020,7 +1020,7 @@ describe("pause rules", () => {
     const summary = formatPauseMenuSummary(2, 18, 50, false);
     assert.equal(summary.levelNumber, 2);
     assert.equal(summary.levelTitle, "Nivel 2");
-    assert.equal(summary.levelSubtitle, "¡Sacude la fruta!");
+    assert.equal(summary.levelSubtitle, "¡Sacude la comida!");
     assert.equal(summary.score, 18);
     assert.equal(summary.highScore, 50);
     assert.equal(summary.isMuted, false);
@@ -1037,7 +1037,7 @@ describe("level complete screen rules", () => {
     assert.equal(summary1.completedLevel, 1);
     assert.equal(summary1.nextLevel, 2);
     assert.equal(summary1.nextTitle, "Nivel 2");
-    assert.equal(summary1.nextSubtitle, "¡Sacude la fruta!");
+    assert.equal(summary1.nextSubtitle, "¡Sacude la comida!");
     assert.equal(summary1.nextInstruction, "Sacúdela con fuerza.");
 
     const summary2 = formatLevelCompleteSummary(2);
@@ -1058,14 +1058,14 @@ describe("level intro confirmation modal rules", () => {
     const lvl1 = getLevelConfig(1);
     const modal1 = formatLevelIntroModal(lvl1);
     assert.equal(modal1.title, "Nivel 1");
-    assert.equal(modal1.subtitle, "¡Mueve la fruta!");
-    assert.equal(modal1.instruction, "Arrastra la fruta.");
+    assert.equal(modal1.subtitle, "¡Mueve la comida!");
+    assert.equal(modal1.instruction, "Arrastra la comida.");
     assert.equal(modal1.confirmLabel, "¡A jugar!");
 
     const lvl2 = getLevelConfig(2);
     const modal2 = formatLevelIntroModal(lvl2);
     assert.equal(modal2.title, "Nivel 2");
-    assert.equal(modal2.subtitle, "¡Sacude la fruta!");
+    assert.equal(modal2.subtitle, "¡Sacude la comida!");
     assert.equal(modal2.instruction, "Sacúdela con fuerza.");
     assert.equal(modal2.confirmLabel, "¡A jugar!");
   });

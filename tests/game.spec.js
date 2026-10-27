@@ -1951,7 +1951,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(initialLevelState.goalType).toBe("move_food");
   expect(initialLevelState.goalTarget).toBe(1);
   expect(initialLevelState.hudText).toContain("NIVEL 1");
-  expect(initialLevelState.hudText).toContain("MUEVE LA FRUTA: 0/1");
+  expect(initialLevelState.hudText).toContain("MUEVE LA COMIDA: 0/1");
   expect(initialLevelState.bannerTitle).toBe("Nivel 1");
 
   // Click confirmation button to start Level 1 gameplay
@@ -1966,7 +1966,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(tiltTransform).toBe("perspective(900px) rotateX(0deg) rotateY(0deg)");
   await page.keyboard.up("ArrowRight");
 
-  // 3. Moving the fruit completes Level 1
+  // 3. Moving the food completes Level 1
   await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     const food = scene.foods.getChildren()[0];
@@ -2033,9 +2033,9 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(level2State.isBeingCarried).toBe(true);
   expect(level2State.antCarrying).toBe(true);
   expect(level2State.antSpeed).toBe(0);
-  expect(level2State.hudText).toContain("SACUDE LA FRUTA: 0/1");
+  expect(level2State.hudText).toContain("SACUDE LA COMIDA: 0/1");
 
-  // Shaking the fruit vigorously shakes off the ant and completes Level 2
+  // Shaking the food vigorously shakes off the ant and completes Level 2
   await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     const food = scene.foods.getChildren()[0];
@@ -2056,7 +2056,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   await expect(page.locator("#level-banner-confirm")).toBeVisible();
   await page.locator("#level-banner-confirm").click();
 
-  // 6. Level 3 has fruit drag disabled, tray tilt enabled, 0 food, and 1 ant in center
+  // 6. Level 3 has food drag disabled, tray tilt enabled, 0 food, and 1 ant in center
   await page.evaluate(() => window.__gameSceneForTest.startLevel(3, false));
 
   const level3State = await page.evaluate(() => {
@@ -2655,7 +2655,7 @@ test("level intro modal displays before each level with confirmation button to r
   await expect(confirmBtn).toBeVisible();
   await expect(confirmBtn).toHaveText("¡A jugar!");
   await expect(title).toHaveText("Nivel 1");
-  await expect(instruction).toContainText("fruta");
+  await expect(instruction).toContainText("comida");
 
   // 2. Physics is paused while reading the rules
   const isPhysicsPaused = await page.evaluate(() => window.__gameSceneForTest.physics.world.isPaused);
@@ -2784,7 +2784,7 @@ test("level 1 starts with only one food and passes when the user moves the food"
   expect(startingState.isTiltEnabled).toBe(false);
   expect(startingState.isDragEnabled).toBe(true);
   expect(startingState.goalType).toBe("move_food");
-  expect(startingState.hudText).toContain("MUEVE LA FRUTA: 0/1");
+  expect(startingState.hudText).toContain("MUEVE LA COMIDA: 0/1");
 
   // Confirm intro banner
   await page.locator("#level-banner-confirm").click();
@@ -2834,7 +2834,7 @@ test("level 2 starts with one food carried by a stationary ant and passes when s
   // Level 2 intro banner displays
   await expect(page.locator("#level-banner")).toBeVisible();
   await expect(page.locator("#level-banner-title")).toHaveText("Nivel 2");
-  await expect(page.locator("#level-banner-subtitle")).toHaveText("¡Sacude la fruta!");
+  await expect(page.locator("#level-banner-subtitle")).toHaveText("¡Sacude la comida!");
   await page.locator("#level-banner-confirm").click();
   await expect(page.locator("#level-banner")).toBeHidden();
 
@@ -2861,7 +2861,7 @@ test("level 2 starts with one food carried by a stationary ant and passes when s
   expect(initialState.isBeingCarried).toBe(true);
   expect(initialState.antCarrying).toBe(true);
   expect(initialState.antSpeed).toBe(0);
-  expect(initialState.hudText).toContain("SACUDE LA FRUTA: 0/1");
+  expect(initialState.hudText).toContain("SACUDE LA COMIDA: 0/1");
 
   // Verify the ant and carried food are not moving after waiting
   await page.waitForTimeout(200);
@@ -2920,7 +2920,7 @@ test("level 2 starts with one food carried by a stationary ant and passes when s
   const levelCompleteOverlay = page.locator("#level-complete-overlay");
   await expect(levelCompleteOverlay).toBeVisible();
   await expect(levelCompleteOverlay).toContainText("Nivel 2");
-  await expect(page.locator("#level-hud")).toContainText("SACUDE LA FRUTA: 1/1");
+  await expect(page.locator("#level-hud")).toContainText("SACUDE LA COMIDA: 1/1");
 });
 
 test("level 3 starts with only one ant in the center of the tray and passes when tilted to make it fall out", async ({ page }) => {
