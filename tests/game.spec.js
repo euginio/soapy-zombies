@@ -3543,3 +3543,60 @@ test("redesigned title scene displays picnic tray, animated ants, food, and poli
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
 });
+
+
+test("caterpillar eating consumes outer border on incoming side first without hollowing center", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(5, false));
+
+  const biteState = await page.evaluate(async () => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    const caterpillar = scene.caterpillars.getChildren()[0];
+
+    scene.ants?.getChildren().forEach((ant) => ant.disableBody(true, false));
+
+    food.setPosition(200, 150);
+    food.body.reset(200, 150);
+    caterpillar.setPosition(230, 150);
+    caterpillar.body.reset(230, 150);
+    caterpillar.isClimbing = false;
+    caterpillar.isAlive = true;
+
+    scene.eatFood(caterpillar, food);
+
+    await new Promise((resolve) => {
+      const check = setInterval(() => {
+        if (food.eatProgress >= 0.45 || !food.active) {
+          clearInterval(check);
+          resolve();
+        }
+      }, 50);
+    });
+
+    const canvasTex = food.canvasTex;
+    let outerIncomingAlpha = 0;
+    let oppositeHalfAlpha = 0;
+    if (canvasTex) {
+      const ctx = canvasTex.context;
+      // Incoming side outer border at x=28, y=16 (should be eaten/cleared)
+      outerIncomingAlpha = ctx.getImageData(28, 16, 1, 1).data[3];
+      // Opposite side at x=8, y=16 (should be solid/intact)
+      oppositeHalfAlpha = ctx.getImageData(8, 16, 1, 1).data[3];
+    }
+
+    return {
+      eatProgress: food.eatProgress,
+      outerIncomingAlpha,
+      oppositeHalfAlpha,
+      isBeingEaten: food.isBeingEaten
+    };
+  });
+
+  expect(biteState.eatProgress).toBeGreaterThanOrEqual(0.40);
+  expect(biteState.outerIncomingAlpha).toBe(0);
+  expect(biteState.oppositeHalfAlpha).toBeGreaterThan(0);
+});

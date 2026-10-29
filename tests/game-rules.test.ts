@@ -687,6 +687,21 @@ describe("food drag and interaction", () => {
     assert.equal(getActiveFoodBites(0.9, sequence).length, 5);
     assert.equal(getActiveFoodBites(1.0, sequence).length, 6);
   });
+
+  it("consumes outer borders on the incoming side first without hollowing the center at half progress", () => {
+    const seq = getFoodBiteSequence(0);
+    const halfBites = getActiveFoodBites(0.5, seq);
+    assert.equal(halfBites.length, 3);
+
+    for (const bite of halfBites) {
+      assert.ok(bite.x > 16, `Bite center (${bite.x}) should be on incoming side (> 16)`);
+      assert.ok(bite.x + bite.radius >= 32, `Bite at (${bite.x}) with radius ${bite.radius} should clear the outer border (>= 32)`);
+    }
+
+    const lateBites = seq.filter((step) => step.progress > 0.8 && step.progress < 0.94);
+    assert.ok(lateBites.length > 0);
+    assert.ok(lateBites[0].x < 16, "Late bites should reach the opposite side (< 16)");
+  });
 });
 
 describe("high score", () => {

@@ -72,43 +72,49 @@ export interface FoodBiteStep {
 
 export function getFoodBiteSequence(incomingAngle: number): FoodBiteStep[] {
   // Food sprite frame is 32x32 with center at (16, 16).
-  // Bites progressively consume the food from the incoming ant edge inwards.
+  // Bites progressively consume the food from the incoming bug edge inwards across the whole boundary,
+  // ensuring the front borders are eaten cleanly first rather than leaving a hollowed center with floating borders.
+  const cos = Math.cos(incomingAngle);
+  const sin = Math.sin(incomingAngle);
+  const perpCos = -sin;
+  const perpSin = cos;
+
   return [
     {
       progress: 0.05,
-      x: 16 + Math.cos(incomingAngle) * 9,
-      y: 16 + Math.sin(incomingAngle) * 9,
-      radius: 7
-    },
-    {
-      progress: 0.24,
-      x: 16 + Math.cos(incomingAngle + 0.85) * 8,
-      y: 16 + Math.sin(incomingAngle + 0.85) * 8,
-      radius: 7.5
-    },
-    {
-      progress: 0.44,
-      x: 16 + Math.cos(incomingAngle - 0.85) * 8,
-      y: 16 + Math.sin(incomingAngle - 0.85) * 8,
-      radius: 7.5
-    },
-    {
-      progress: 0.64,
-      x: 16 + Math.cos(incomingAngle) * 3,
-      y: 16 + Math.sin(incomingAngle) * 3,
+      x: 16 + cos * 13,
+      y: 16 + sin * 13,
       radius: 9
     },
     {
+      progress: 0.24,
+      x: 16 + cos * 9 + perpCos * 8,
+      y: 16 + sin * 9 + perpSin * 8,
+      radius: 9.5
+    },
+    {
+      progress: 0.44,
+      x: 16 + cos * 9 - perpCos * 8,
+      y: 16 + sin * 9 - perpSin * 8,
+      radius: 9.5
+    },
+    {
+      progress: 0.64,
+      x: 16 + cos * 3,
+      y: 16 + sin * 3,
+      radius: 10.5
+    },
+    {
       progress: 0.82,
-      x: 16 - Math.cos(incomingAngle) * 4,
-      y: 16 - Math.sin(incomingAngle) * 4,
-      radius: 10
+      x: 16 - cos * 5,
+      y: 16 - sin * 5,
+      radius: 13.5
     },
     {
       progress: 0.94,
       x: 16,
       y: 16,
-      radius: 16
+      radius: 24
     }
   ];
 }

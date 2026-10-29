@@ -84,6 +84,10 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
 13. **Shaking food throws carrier ants to the borders of the tray.**
     Per the owner's instruction, when shaking food to dislodge stealing carrier ants, the ants must
     fall to the borders of the tray rather than arbitrary interior positions.
+14. **Food eating consumes borders on the incoming bug side first.**
+    Per the owner's instruction, when caterpillars or bugs eat food, bites must progressively
+    consume the outer borders on the incoming bug side first across the whole boundary, keeping the
+    remaining half intact rather than hollowing out the center and leaving floating border outlines.
 
 ## Conventions and gotchas
 

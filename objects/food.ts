@@ -425,9 +425,9 @@ export class Food extends MySprite {
                 ctx.arc(step.x, step.y, step.radius, 0, Math.PI * 2);
                 const subAngle = step.progress * 13;
                 ctx.arc(
-                    step.x + Math.cos(subAngle) * (step.radius * 0.4),
-                    step.y + Math.sin(subAngle) * (step.radius * 0.4),
-                    step.radius * 0.7,
+                    step.x + Math.cos(subAngle) * (step.radius * 0.35),
+                    step.y + Math.sin(subAngle) * (step.radius * 0.35),
+                    step.radius * 0.65,
                     0,
                     Math.PI * 2
                 );
