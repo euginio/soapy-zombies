@@ -14,6 +14,7 @@ import {
   calculateVisualLayerLayout,
   calculateWaveExtraAnts,
   canPauseGame,
+  clampFoodPosition,
   calculateBalanceBubblePosition,
   calculateBalanceHoldProgress,
   checkNeutralTiltProgress,
@@ -25,6 +26,7 @@ import {
   getLevelConfig,
   isFinalWaveTriggered,
   isLevelGoalMet,
+  insetHorizontalTrayBounds,
   isTiltNeutral,
   isTutorialCompleted,
   LevelConfig,
@@ -36,6 +38,7 @@ import {
   resolveAntEscape,
   resolveCaterpillarEscape,
   resolveFoodLoss,
+  resolveLevelFoodCount,
   togglePauseState,
   TUTORIAL_STORAGE_KEY
 } from "../game-rules";
@@ -156,6 +159,7 @@ export class GameScene extends MyScene {
   foodCount: number;
   initialAnts: number = 4
   initialFood: number = 8;
+  levelStartFoodCount: number = 8;
   zombieRate: number = 7;
 
   gravityNum = { x: 30, y: 30 };
@@ -213,7 +217,7 @@ export class GameScene extends MyScene {
   }
 
   destroyFood(food: Food) {
-    if (this.gameOver || this.isLevelTransitioning) {
+    if (this.gameOver) {
       return;
     }
     const outcome = resolveFoodLoss(this.foodCount);
@@ -233,6 +237,7 @@ export class GameScene extends MyScene {
     this.gameOver = true;
     this.hideLevelBanner();
     this.hideBalanceGuide();
+    this.hideLevelCompleteOverlay();
     if (this.isPaused) {
       this.isPaused = false;
       if (this.pauseOverlay) {
@@ -580,7 +585,7 @@ export class GameScene extends MyScene {
     // The title tap already unlocked audio; the music survives restarts, so this only resumes it.
     this.audio.startMusic();
 
-    this.startLevel(Number.isFinite(startingLevel) && startingLevel > 0 ? startingLevel : 1, true, isTutorialMode);
+    this.startLevel(Number.isFinite(startingLevel) && startingLevel > 0 ? startingLevel : 1, true, isTutorialMode, true);
   }
 
 
@@ -981,7 +986,7 @@ export class GameScene extends MyScene {
 
   restartCurrentLevel() {
     this.togglePause(false);
-    this.startLevel(this.currentLevel, true, this.isTutorialMode);
+    this.startLevel(this.currentLevel, true, this.isTutorialMode, false, true);
   }
 
   restartWholeGame() {
@@ -989,7 +994,7 @@ export class GameScene extends MyScene {
     this.score = 0;
     this.scoreText.setText("0");
     this.scoreLabel.textContent = "0";
-    this.startLevel(1, true, false);
+    this.startLevel(1, true, false, true);
   }
 
   togglePauseSound() {
@@ -1246,7 +1251,7 @@ export class GameScene extends MyScene {
         this.score = 0;
         this.scoreText.setText("0");
         this.scoreLabel.textContent = "0";
-        this.startLevel(1, true, false);
+        this.startLevel(1, true, false, true);
         return;
       }
       const nextTutorial = this.currentLevel + 1;
@@ -1255,7 +1260,7 @@ export class GameScene extends MyScene {
     }
 
     const next = this.pendingNextLevel || (this.currentLevel + 1);
-    this.startLevel(next, true, false);
+    this.startLevel(next, true, false, false);
   }
 
   private createVisualLayers(gameCanvas: HTMLCanvasElement) {
@@ -2027,7 +2032,13 @@ export class GameScene extends MyScene {
     this.startLevel(tutorialNumber, showIntroBanner, true);
   }
 
-  startLevel(levelNumber: number, showIntroBanner = true, isTutorial: boolean = false) {
+  startLevel(
+    levelNumber: number,
+    showIntroBanner = true,
+    isTutorial: boolean = false,
+    isStartingNewGameOrRestart: boolean = false,
+    isLevelRestart: boolean = false
+  ) {
     this.isTutorialMode = isTutorial;
     this.hideLevelCompleteOverlay();
     this.isLevelCompleteActive = false;
@@ -2057,7 +2068,11 @@ export class GameScene extends MyScene {
       }
     }
 
-    this.refillFoods();
+    this.refillFoods(isStartingNewGameOrRestart, isLevelRestart);
+    if (!this.isTutorialMode && this.foodCount <= 0) {
+      this.overGame();
+      return;
+    }
     if (this.pauseToggleButton) {
       this.pauseToggleButton.style.display = "block";
     }
@@ -2130,6 +2145,10 @@ export class GameScene extends MyScene {
 
   checkLevelCompletion() {
     if (this.isLevelTransitioning || this.gameOver || !this.currentLevelConfig) {
+      return;
+    }
+    if (!this.isTutorialMode && this.foodCount <= 0) {
+      this.overGame();
       return;
     }
     if (isLevelGoalMet(this.currentLevelConfig.goalType, this.levelProgress, this.currentLevelConfig.goalTarget)) {
@@ -2280,7 +2299,7 @@ export class GameScene extends MyScene {
     }
   }
 
-  refillFoods() {
+  refillFoods(isStartingNewGameOrRestart: boolean = false, isLevelRestart: boolean = false) {
     if (!this.foods || !this.tray) {
       return;
     }
@@ -2294,22 +2313,53 @@ export class GameScene extends MyScene {
       food.setAlpha(1);
     });
 
-    const targetFoodCount = this.currentLevelConfig?.initialFood ?? this.initialFood;
     const activeFoods = currentFoods.filter((f) => f.active && f.body?.enable);
-    if (activeFoods.length < targetFoodCount) {
-      const needed = targetFoodCount - activeFoods.length;
-      for (let i = 0; i < needed; i++) {
-        const newF = new Food(this);
-        this.foods.add(newF, true);
-      }
-    } else if (activeFoods.length > targetFoodCount) {
-      const excess = activeFoods.slice(targetFoodCount);
-      excess.forEach((food) => {
-        food.disableBody(true, true);
-        food.destroy();
-      });
+    const resolution = resolveLevelFoodCount({
+      isTutorial: this.isTutorialMode,
+      levelNumber: this.currentLevel,
+      currentActiveFood: activeFoods.length,
+      initialFoodConfig: this.currentLevelConfig?.initialFood,
+      defaultInitialFood: this.initialFood,
+      isStartingNewGameOrRestart,
+      isLevelRestart,
+      levelStartFoodCount: this.levelStartFoodCount
+    });
+
+    if (resolution.isGameOver) {
+      this.foodCount = 0;
+      this.overGame();
+      return;
     }
-    this.foodCount = this.foods.getChildren().filter((f: any) => f.active && f.body?.enable).length;
+
+    if (resolution.shouldRefill) {
+      const targetFoodCount = resolution.targetFoodCount;
+      if (activeFoods.length < targetFoodCount) {
+        const needed = targetFoodCount - activeFoods.length;
+        for (let i = 0; i < needed; i++) {
+          const newF = new Food(this);
+          this.foods.add(newF, true);
+        }
+      } else if (activeFoods.length > targetFoodCount) {
+        const excess = activeFoods.slice(targetFoodCount);
+        excess.forEach((food) => {
+          food.disableBody(true, true);
+          food.destroy(true);
+        });
+      }
+    }
+
+    const survivingFoods = this.foods.getChildren().filter((f: any) => f.active && f.body?.enable) as Food[];
+    const trayBounds = insetHorizontalTrayBounds(this.tray.getBounds());
+    survivingFoods.forEach((food) => {
+      const clamped = clampFoodPosition(food.x, food.y, trayBounds);
+      food.x = clamped.x;
+      food.y = clamped.y;
+    });
+
+    this.foodCount = survivingFoods.length;
+    if (!this.isTutorialMode) {
+      this.levelStartFoodCount = this.foodCount;
+    }
   }
 
   syncAntsToLevel() {

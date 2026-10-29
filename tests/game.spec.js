@@ -3365,3 +3365,85 @@ test("graduating from tutorial to game level 1 resets score to zero and prevents
   expect(level1State.score).toBe(0);
   expect(level1State.scoreLabelText).toBe("0");
 });
+
+
+test("food carries over across levels without refilling and game ends when all food is lost", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/?level=1");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+  await page.locator("#level-banner-confirm").click();
+
+  // Initial Level 1 state: 8 food pieces
+  const initialFoodCount = await page.evaluate(() => window.__gameSceneForTest.foodCount);
+  expect(initialFoodCount).toBe(8);
+
+  // Steal / destroy 3 pieces of food during Level 1
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const foods = scene.foods.getChildren().slice(0, 3);
+    foods.forEach((food) => {
+      scene.destroyFood(food);
+      food.disableBody(true, true);
+      food.destroy();
+    });
+  });
+
+  const remainingInLevel1 = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    return {
+      foodCount: scene.foodCount,
+      activeSprites: scene.foods.getChildren().filter((f) => f.active && f.body?.enable).length
+    };
+  });
+  expect(remainingInLevel1.foodCount).toBe(5);
+  expect(remainingInLevel1.activeSprites).toBe(5);
+
+  // Complete Level 1 by meeting ant defeat goal
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    scene.levelProgress = 20;
+    scene.checkLevelCompletion();
+  });
+
+  await expect(page.locator("#level-complete-overlay")).toBeVisible();
+  await page.locator("#level-complete-continue").click();
+  await expect(page.locator("#level-banner-confirm")).toBeVisible();
+  await page.locator("#level-banner-confirm").click();
+
+  // In Level 2, NO new food should have reappeared. Exactly 5 foods must remain!
+  const level2State = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    return {
+      currentLevel: scene.currentLevel,
+      foodCount: scene.foodCount,
+      activeSprites: scene.foods.getChildren().filter((f) => f.active && f.body?.enable).length
+    };
+  });
+  expect(level2State.currentLevel).toBe(2);
+  expect(level2State.foodCount).toBe(5);
+  expect(level2State.activeSprites).toBe(5);
+
+  // Steal / destroy all remaining 5 pieces of food in Level 2
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const remainingFoods = scene.foods.getChildren().filter((f) => f.active && f.body?.enable);
+    remainingFoods.forEach((food) => {
+      scene.destroyFood(food);
+      food.disableBody(true, true);
+      food.destroy();
+    });
+  });
+
+  // When all food is lost, Game Over overlay appears immediately!
+  await expect(page.locator("#game-over-overlay")).toBeVisible();
+  const gameOverState = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    return {
+      gameOver: scene.gameOver,
+      foodCount: scene.foodCount
+    };
+  });
+  expect(gameOverState.gameOver).toBe(true);
+  expect(gameOverState.foodCount).toBe(0);
+});

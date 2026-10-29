@@ -70,7 +70,8 @@ import {
   formatLevelCompleteSummary,
   canShowLevelComplete,
   canStartLevelGameplay,
-  formatLevelIntroModal
+  formatLevelIntroModal,
+  resolveLevelFoodCount
 } from "../game-rules";
 import { ScreenWakeLock, WakeLockSentinelLike } from "../services/wake-lock";
 
@@ -1265,5 +1266,129 @@ describe("tutorial storage rules", () => {
     assert.equal(isTutorialCompleted(undefined), false);
     assert.equal(isTutorialCompleted("false"), false);
     assert.equal(isTutorialCompleted("0"), false);
+  });
+});
+
+
+describe("level food rules", () => {
+  it("determines tutorial food configurations", () => {
+    assert.deepEqual(
+      resolveLevelFoodCount({
+        isTutorial: true,
+        levelNumber: 1,
+        currentActiveFood: 0,
+        initialFoodConfig: 1,
+        defaultInitialFood: 8
+      }),
+      { shouldRefill: true, targetFoodCount: 1, isGameOver: false }
+    );
+
+    assert.deepEqual(
+      resolveLevelFoodCount({
+        isTutorial: true,
+        levelNumber: 2,
+        currentActiveFood: 1,
+        initialFoodConfig: 1,
+        defaultInitialFood: 8
+      }),
+      { shouldRefill: true, targetFoodCount: 1, isGameOver: false }
+    );
+
+    assert.deepEqual(
+      resolveLevelFoodCount({
+        isTutorial: true,
+        levelNumber: 3,
+        currentActiveFood: 1,
+        initialFoodConfig: 0,
+        defaultInitialFood: 8
+      }),
+      { shouldRefill: true, targetFoodCount: 0, isGameOver: false }
+    );
+  });
+
+  it("initializes standard game level 1 with default food count", () => {
+    assert.deepEqual(
+      resolveLevelFoodCount({
+        isTutorial: false,
+        levelNumber: 1,
+        currentActiveFood: 0,
+        defaultInitialFood: 8,
+        isStartingNewGameOrRestart: true
+      }),
+      { shouldRefill: true, targetFoodCount: 8, isGameOver: false }
+    );
+
+    // Graduating from tutorial 3 where active food was 0
+    assert.deepEqual(
+      resolveLevelFoodCount({
+        isTutorial: false,
+        levelNumber: 1,
+        currentActiveFood: 0,
+        defaultInitialFood: 8,
+        isStartingNewGameOrRestart: false
+      }),
+      { shouldRefill: true, targetFoodCount: 8, isGameOver: false }
+    );
+  });
+
+  it("preserves surviving food between standard game levels without refilling", () => {
+    // Advancing from Level 1 to Level 2 with 6 surviving food pieces
+    assert.deepEqual(
+      resolveLevelFoodCount({
+        isTutorial: false,
+        levelNumber: 2,
+        currentActiveFood: 6,
+        defaultInitialFood: 8
+      }),
+      { shouldRefill: false, targetFoodCount: 6, isGameOver: false }
+    );
+
+    // Advancing from Level 2 to Level 3 with 3 surviving food pieces
+    assert.deepEqual(
+      resolveLevelFoodCount({
+        isTutorial: false,
+        levelNumber: 3,
+        currentActiveFood: 3,
+        defaultInitialFood: 8
+      }),
+      { shouldRefill: false, targetFoodCount: 3, isGameOver: false }
+    );
+
+    // Advancing from Level 3 to Level 4 with 1 surviving food piece
+    assert.deepEqual(
+      resolveLevelFoodCount({
+        isTutorial: false,
+        levelNumber: 4,
+        currentActiveFood: 1,
+        defaultInitialFood: 8
+      }),
+      { shouldRefill: false, targetFoodCount: 1, isGameOver: false }
+    );
+  });
+
+  it("triggers game over when all food is stolen or eaten", () => {
+    assert.deepEqual(
+      resolveLevelFoodCount({
+        isTutorial: false,
+        levelNumber: 2,
+        currentActiveFood: 0,
+        defaultInitialFood: 8
+      }),
+      { shouldRefill: false, targetFoodCount: 0, isGameOver: true }
+    );
+  });
+
+  it("restores level start food count when restarting a level", () => {
+    assert.deepEqual(
+      resolveLevelFoodCount({
+        isTutorial: false,
+        levelNumber: 2,
+        currentActiveFood: 3,
+        defaultInitialFood: 8,
+        isLevelRestart: true,
+        levelStartFoodCount: 6
+      }),
+      { shouldRefill: true, targetFoodCount: 6, isGameOver: false }
+    );
   });
 });

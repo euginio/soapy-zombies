@@ -1314,3 +1314,56 @@ export function formatLevelIntroModal(config: LevelConfig): LevelIntroModalInfo 
 export function canStartLevelGameplay(isLevelIntroActive: boolean, gameOver: boolean): boolean {
   return !isLevelIntroActive && !gameOver;
 }
+
+
+export interface LevelFoodResolution {
+  shouldRefill: boolean;
+  targetFoodCount: number;
+  isGameOver: boolean;
+}
+
+export function resolveLevelFoodCount(options: {
+  isTutorial: boolean;
+  levelNumber: number;
+  currentActiveFood: number;
+  initialFoodConfig?: number;
+  defaultInitialFood: number;
+  isStartingNewGameOrRestart?: boolean;
+  isLevelRestart?: boolean;
+  levelStartFoodCount?: number;
+}): LevelFoodResolution {
+  if (options.isTutorial) {
+    const target = typeof options.initialFoodConfig === "number" ? options.initialFoodConfig : 1;
+    return {
+      shouldRefill: true,
+      targetFoodCount: target,
+      isGameOver: false
+    };
+  }
+
+  if (options.isLevelRestart) {
+    const target = typeof options.levelStartFoodCount === "number" && options.levelStartFoodCount > 0
+      ? options.levelStartFoodCount
+      : options.defaultInitialFood;
+    return {
+      shouldRefill: true,
+      targetFoodCount: target,
+      isGameOver: false
+    };
+  }
+
+  if (options.isStartingNewGameOrRestart || (options.levelNumber === 1 && options.currentActiveFood === 0)) {
+    return {
+      shouldRefill: true,
+      targetFoodCount: options.defaultInitialFood,
+      isGameOver: false
+    };
+  }
+
+  const isGameOver = options.currentActiveFood <= 0;
+  return {
+    shouldRefill: false,
+    targetFoodCount: options.currentActiveFood,
+    isGameOver
+  };
+}
