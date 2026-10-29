@@ -52,10 +52,10 @@ export interface FoodLossOutcome {
 
 export function resolveFoodLoss(foodCount: number): FoodLossOutcome {
   // The round ends exactly when the final piece of food is removed.
-  const remainingFood = foodCount - 1;
+  const remainingFood = Math.max(0, foodCount - 1);
   return {
     foodCount: remainingFood,
-    gameOver: remainingFood === 0
+    gameOver: remainingFood <= 0
   };
 }
 

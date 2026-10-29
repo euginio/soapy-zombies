@@ -580,6 +580,8 @@ describe("food loss", () => {
 
   it("ends the game when the final food is eaten", () => {
     assert.deepEqual(resolveFoodLoss(1), { foodCount: 0, gameOver: true });
+    assert.deepEqual(resolveFoodLoss(0), { foodCount: 0, gameOver: true });
+    assert.deepEqual(resolveFoodLoss(-1), { foodCount: 0, gameOver: true });
   });
 });
 

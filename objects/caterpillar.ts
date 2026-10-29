@@ -144,7 +144,7 @@ export class Caterpillar extends MySprite {
                 this.disableBody(false, true);
             },
             onComplete: () => {
-                if (this.scene && !this.scene.gameOver && this.active) {
+                if (this.scene && !this.scene.gameOver && !(this.scene as any).isLevelCompleteActive && this.active) {
                     this.init();
                 }
             }

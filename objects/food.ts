@@ -488,6 +488,22 @@ export class Food extends MySprite {
         }
     }
 
+    resetEatingState() {
+        if (this.eatTween) {
+            this.scene?.tweens?.killTweensOf(this);
+            this.eatTween = null;
+        }
+        this.cleanupEatCanvas();
+        this.setTexture('food');
+        this.isBeingEaten = false;
+        this.isWormEating = false;
+        this.eatingBug = null;
+        this.appliedBiteIndex = 0;
+        this.eatProgress = 0;
+        this.setAngle(0);
+        this.setScale(1.5);
+    }
+
     private setupDragAndDrop() {
         this.setInteractive({ draggable: true, useHandCursor: true });
 
@@ -527,6 +543,7 @@ export class Food extends MySprite {
                 Boolean(this.scene?.gameOver),
                 Boolean((this.scene as any)?.isDragEnabled ?? true),
                 Boolean((this.scene as any)?.isLevelTransitioning)
+
             )
         ) {
             this.resetInputDragState(pointer);

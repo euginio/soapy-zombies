@@ -200,7 +200,7 @@ export class GameScene extends MyScene {
     this.scoreText.setText(this.score.toString());
     this.scoreLabel.textContent = this.score.toString();
     this.audio.play(AUDIO_KEYS.antFall);
-    if (outcome.spawnAnt) {
+    if (outcome.spawnAnt && !this.isTutorialMode) {
       this.addNewAnt();
     }
 
@@ -423,9 +423,11 @@ export class GameScene extends MyScene {
       }
     };
     window.addEventListener("pointerup", this.onWindowPointerUp);
-    window.addEventListener("mouseup", this.onWindowPointerUp);
+    // pointerup covers mouse, touch, and pen
     try {
-      history.pushState({ inGame: true }, "");
+      if (!history.state?.inGame) {
+        history.pushState({ inGame: true }, "");
+      }
     } catch {}
     window.addEventListener("popstate", this.onPopState);
     document.addEventListener("fullscreenchange", this.onFullscreenChange);
@@ -1019,7 +1021,7 @@ export class GameScene extends MyScene {
     if (this.gameOver || this.isLevelCompleteActive || this.isLevelIntroActive) {
       return;
     }
-    const nextState = typeof forceState === "boolean" ? forceState : togglePauseState(this.isPaused, this.gameOver, this.isLevelCompleteActive);
+    const nextState = typeof forceState === "boolean" ? forceState : togglePauseState(this.isPaused, this.gameOver, this.isLevelCompleteActive, this.isLevelIntroActive);
     if (this.isPaused === nextState) {
       return;
     }
@@ -1033,6 +1035,7 @@ export class GameScene extends MyScene {
       this.audio.play(AUDIO_KEYS.uiToggle);
       this.stopAllFoodDragging();
       this.resetTouchTilt();
+      this.hideLevelBanner(true);
       this.refreshPauseOverlayInfo();
       if (this.pauseOverlay) {
         this.pauseOverlay.style.display = "flex";
@@ -1240,6 +1243,9 @@ export class GameScene extends MyScene {
     if (this.isTutorialMode) {
       if (this.currentLevel >= 3) {
         this.markTutorialCompleted();
+        this.score = 0;
+        this.scoreText.setText("0");
+        this.scoreLabel.textContent = "0";
         this.startLevel(1, true, false);
         return;
       }
@@ -1553,6 +1559,13 @@ export class GameScene extends MyScene {
       this.levelBanner.style.maxWidth = `min(90vw, ${Math.max(280, layout.width * 0.85)}px, 460px)`;
       this.levelBanner.style.maxHeight = `min(80vh, ${Math.max(200, layout.height * 0.8)}px, 260px)`;
     }
+    if (this.balanceGuide) {
+      this.balanceGuide.style.left = "50%";
+      this.balanceGuide.style.top = `${layout.top + Math.max(40, 48 * layout.scaleY)}px`;
+      this.balanceGuide.style.fontSize = `${Math.max(11, Math.min(15, 13 * modalScale))}px`;
+      this.balanceGuide.style.maxWidth = `min(90vw, ${Math.min(layout.width * 0.9, 440)}px)`;
+    }
+
     const grass = this.textures.get("grass").getSourceImage() as HTMLImageElement;
     const overscanX = 60 * layout.scaleX;
     const overscanY = 60 * layout.scaleY;
@@ -1664,6 +1677,7 @@ export class GameScene extends MyScene {
       this.hudOverlay,
       this.levelHud,
       this.levelBanner,
+      this.balanceGuide,
       this.sensorRecenterButton,
       this.soundToggleButton,
       this.pauseToggleButton,
@@ -1728,7 +1742,9 @@ export class GameScene extends MyScene {
       return;
     }
     try {
-      history.pushState({ inGame: true }, "");
+      if (!history.state?.inGame) {
+        history.pushState({ inGame: true }, "");
+      }
     } catch {}
     if (!this.scale.isFullscreen && this.scale.fullscreen.available) {
       this.showFullscreenPrompt();
@@ -1930,6 +1946,7 @@ export class GameScene extends MyScene {
     document.removeEventListener("fullscreenchange", this.onFullscreenChange);
     document.removeEventListener("webkitfullscreenchange", this.onFullscreenChange);
     screenWakeLock.release();
+    this.input?.removeAllListeners();
     if (this.onWindowPointerUp) {
       window.removeEventListener("pointerup", this.onWindowPointerUp);
       window.removeEventListener("mouseup", this.onWindowPointerUp);
@@ -2093,7 +2110,7 @@ export class GameScene extends MyScene {
   }
 
   checkFinalWave() {
-    if (this.hasTriggeredFinalWave || this.isLevelTransitioning || this.gameOver || !this.currentLevelConfig) {
+    if (this.isTutorialMode || this.hasTriggeredFinalWave || this.isLevelTransitioning || this.gameOver || !this.currentLevelConfig) {
       return;
     }
     if (isFinalWaveTriggered(this.levelProgress, this.currentLevelConfig.goalTarget)) {
@@ -2273,6 +2290,7 @@ export class GameScene extends MyScene {
       food.releaseAllCarriers(false);
       food.isBeingDragged = false;
       food.isDragCooldown = false;
+      food.resetEatingState();
       food.setAlpha(1);
     });
 
@@ -2421,6 +2439,7 @@ export class GameScene extends MyScene {
       zIndex: "20",
       pointerEvents: "none",
       transform: "translateX(-50%)",
+      top: "48px",
       padding: "5px 12px 8px 10px",
       backgroundColor: "rgba(20, 32, 16, 0.92)",
       border: "1.5px solid rgba(255, 255, 255, 0.25)",

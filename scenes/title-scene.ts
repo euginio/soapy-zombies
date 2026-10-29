@@ -43,7 +43,8 @@ export class TitleScene extends MyScene {
     this.startTxt = this.add.text(this.width/2, this.height*0.75, 'Toca la pantalla para comenzar', {fontSize: '29px', fontStyle: 'bold', color: '#32F'});
     this.startTxt.setOrigin(.5,.5)
 
-    this.input.on('pointerup', () => this.start());
+    this.input.removeAllListeners();
+    this.input.once('pointerup', () => this.start());
   }
 
   async start() {

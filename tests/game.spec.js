@@ -3256,3 +3256,112 @@ test("tutorial levels are shown only on first play and separated from game level
   expect(explicitTutorialState.currentLevel).toBe(2);
   expect(explicitTutorialState.title).toBe("Tutorial 2");
 });
+
+test("neutral balance guide is positioned responsively by syncVisualLayerBounds and reparented correctly", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/?tutorial=3");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+  await page.locator("#level-banner-confirm").click();
+
+  const guide = page.locator("#neutral-balance-guide");
+  await expect(guide).toBeVisible();
+
+  const guideMetrics = await page.evaluate(() => {
+    const el = document.querySelector("#neutral-balance-guide");
+    const parent = window.__gameSceneForTest.visualLayerParent;
+    return {
+      top: el?.style.top,
+      fontSize: el?.style.fontSize,
+      isChildOfParent: el?.parentElement === parent
+    };
+  });
+
+  expect(guideMetrics.isChildOfParent).toBe(true);
+  expect(guideMetrics.top).toMatch(/px$/);
+  expect(parseFloat(guideMetrics.top)).toBeGreaterThan(0);
+});
+
+test("food eat state and texture are cleanly reset on level refill", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/?level=2");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+  await page.locator("#level-banner-confirm").click();
+
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren().find((f) => f.active && f.body?.enable);
+    if (food) {
+      food.beingEat({ x: food.x - 10, y: food.y });
+    }
+  });
+
+  const beforeRefill = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren().find((f) => f.active && f.body?.enable);
+    return {
+      isBeingEaten: food?.isBeingEaten,
+      hasTextureKey: Boolean(food?.texture?.key && food.texture.key.startsWith("eaten_food_"))
+    };
+  });
+  expect(beforeRefill.isBeingEaten).toBe(true);
+  expect(beforeRefill.hasTextureKey).toBe(true);
+
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    scene.refillFoods();
+  });
+
+  const afterRefill = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren().find((f) => f.active && f.body?.enable);
+    return {
+      isBeingEaten: food?.isBeingEaten,
+      textureKey: food?.texture?.key,
+      isWormEating: food?.isWormEating
+    };
+  });
+  expect(afterRefill.isBeingEaten).toBe(false);
+  expect(afterRefill.isWormEating).toBe(false);
+  expect(afterRefill.textureKey).toBe("food");
+});
+
+test("graduating from tutorial to game level 1 resets score to zero and prevents tutorial ant spawns", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/?tutorial=3");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+  await page.locator("#level-banner-confirm").click();
+
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    scene.score = 6;
+  });
+
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const ant = scene.ants.getChildren()[0];
+    scene.antDied(ant);
+  });
+
+  const antCountInTutorial3 = await page.evaluate(() => window.__gameSceneForTest.ants.getChildren().length);
+  expect(antCountInTutorial3).toBe(1);
+
+  await page.locator("#level-complete-continue").click();
+  await waitForGameScene(page);
+
+  const level1State = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    return {
+      isTutorialMode: scene.isTutorialMode,
+      currentLevel: scene.currentLevel,
+      score: scene.score,
+      scoreLabelText: scene.scoreLabel.textContent
+    };
+  });
+  expect(level1State.isTutorialMode).toBe(false);
+  expect(level1State.currentLevel).toBe(1);
+  expect(level1State.score).toBe(0);
+  expect(level1State.scoreLabelText).toBe("0");
+});
