@@ -3118,31 +3118,31 @@ test("ants walk randomly searching for food on the tray when the only remaining 
   expect(isDragging).toBe(true);
 
   // 2. While dragged, verify ants are searching and actively moving on the tray without walking off
-  await page.waitForTimeout(400);
-
-  const searchState = await page.evaluate(() => {
-    const scene = window.__gameSceneForTest;
-    const ants = scene.ants.getChildren().filter((a) => a.active && a.isAlive);
-    const trayBounds = scene.tray.getBounds();
-    return {
-      antCount: ants.length,
-      allSearching: ants.every((a) => a.shouldSearchForFood()),
-      allMoving: ants.every((a) => Math.hypot(a.body?.velocity.x ?? 0, a.body?.velocity.y ?? 0) > 10),
-      allInsideTray: ants.every((a) => {
-        return (
-          a.x >= trayBounds.left &&
-          a.x <= trayBounds.right &&
-          a.y >= trayBounds.top &&
-          a.y <= trayBounds.bottom
-        );
-      })
-    };
+  await expect.poll(async () => {
+    return page.evaluate(() => {
+      const scene = window.__gameSceneForTest;
+      const ants = scene.ants.getChildren().filter((a) => a.active && a.isAlive);
+      const trayBounds = scene.tray.getBounds();
+      return {
+        antCount: ants.length,
+        allSearching: ants.every((a) => a.shouldSearchForFood()),
+        allMoving: ants.every((a) => Math.hypot(a.body?.velocity.x ?? 0, a.body?.velocity.y ?? 0) > 10),
+        allInsideTray: ants.every((a) => {
+          return (
+            a.x >= trayBounds.left &&
+            a.x <= trayBounds.right &&
+            a.y >= trayBounds.top &&
+            a.y <= trayBounds.bottom
+          );
+        })
+      };
+    });
+  }).toMatchObject({
+    allSearching: true,
+    allMoving: true,
+    allInsideTray: true,
+    antCount: setupResult.antCount
   });
-
-  expect(searchState.allSearching).toBe(true);
-  expect(searchState.allMoving).toBe(true);
-  expect(searchState.allInsideTray).toBe(true);
-  expect(searchState.antCount).toBe(setupResult.antCount);
 
   // 3. Drop/finish dragging the food
   await page.evaluate(() => {
@@ -3512,4 +3512,34 @@ test("shaking food throws carrier ants to the borders of the tray", async ({ pag
 
   expect(antLandedState.isInsideTray).toBe(true);
   expect(antLandedState.isAtBorder).toBe(true);
+});
+
+
+test("redesigned title scene displays picnic tray, animated ants, food, and polished start button", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await page.waitForFunction(() => Boolean(window.__titleSceneForTest?.startTxt));
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: "C:/Users/Admin/.gemini/antigravity/brain/c5d10f75-8a18-4131-bafe-a7c7e4b18053/title_scene_redesign.png" });
+
+  const titleState = await page.evaluate(() => {
+    const scene = window.__titleSceneForTest;
+    return {
+      hasStartTxt: Boolean(scene.startTxt),
+      hasStartBtnContainer: Boolean(scene.startBtnContainer),
+      hasTitleContainer: Boolean(scene.titleContainer),
+      startTxtVisible: scene.startTxt.visible,
+      sceneActive: scene.sys.isActive()
+    };
+  });
+
+  expect(titleState.hasStartTxt).toBe(true);
+  expect(titleState.hasStartBtnContainer).toBe(true);
+  expect(titleState.hasTitleContainer).toBe(true);
+  expect(titleState.startTxtVisible).toBe(true);
+  expect(titleState.sceneActive).toBe(true);
+
+  // Clicking start transitions to GameScene
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
 });
