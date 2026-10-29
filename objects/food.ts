@@ -6,6 +6,7 @@ import {
     calculateCarrierAntOffset,
     calculateCooperativeStealSpeed,
     calculateRandomTrayPosition,
+    calculateTrayBorderPosition,
     CATERPILLAR_GRAVITY_FACTOR,
     CATERPILLAR_SPEED,
     detectFoodShake,
@@ -231,7 +232,7 @@ export class Food extends MySprite {
         if (this.scene?.tray) {
             const trayBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
             ants.forEach((ant) => {
-                const target = calculateRandomTrayPosition(trayBounds);
+                const target = calculateTrayBorderPosition(trayBounds, { x: this.x, y: this.y }, { x: ant.x, y: ant.y });
                 ant.fallFromFood(target.x, target.y);
             });
         } else {

@@ -468,6 +468,72 @@ export function calculateRandomTrayPosition(
   };
 }
 
+
+export function calculateTrayBorderPosition(
+  trayBounds: Rect,
+  origin?: Point,
+  headingOrTarget?: Point | number,
+  margin = 25
+): Point {
+  const minX = trayBounds.x + margin;
+  const maxX = trayBounds.x + trayBounds.width - margin;
+  const minY = trayBounds.y + margin;
+  const maxY = trayBounds.y + trayBounds.height - margin;
+
+  let angle: number;
+
+  if (typeof headingOrTarget === "number") {
+    angle = headingOrTarget;
+  } else if (headingOrTarget && origin) {
+    if (headingOrTarget.x !== origin.x || headingOrTarget.y !== origin.y) {
+      angle = Math.atan2(headingOrTarget.y - origin.y, headingOrTarget.x - origin.x);
+    } else {
+      angle = Math.random() * Math.PI * 2;
+    }
+  } else {
+    angle = Math.random() * Math.PI * 2;
+  }
+
+  const startX = origin ? Math.max(minX, Math.min(maxX, origin.x)) : (minX + maxX) / 2;
+  const startY = origin ? Math.max(minY, Math.min(maxY, origin.y)) : (minY + maxY) / 2;
+
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+
+  let t = Infinity;
+
+  if (cos > 1e-6) {
+    t = Math.min(t, (maxX - startX) / cos);
+  } else if (cos < -1e-6) {
+    t = Math.min(t, (minX - startX) / cos);
+  }
+
+  if (sin > 1e-6) {
+    t = Math.min(t, (maxY - startY) / sin);
+  } else if (sin < -1e-6) {
+    t = Math.min(t, (minY - startY) / sin);
+  }
+
+  if (!Number.isFinite(t) || t < 0) {
+    const border = Math.floor(Math.random() * 4);
+    switch (border) {
+      case 0:
+        return { x: minX + Math.random() * (maxX - minX), y: minY };
+      case 1:
+        return { x: minX + Math.random() * (maxX - minX), y: maxY };
+      case 2:
+        return { x: minX, y: minY + Math.random() * (maxY - minY) };
+      default:
+        return { x: maxX, y: minY + Math.random() * (maxY - minY) };
+    }
+  }
+
+  const borderX = Math.round(Math.max(minX, Math.min(maxX, startX + t * cos)));
+  const borderY = Math.round(Math.max(minY, Math.min(maxY, startY + t * sin)));
+
+  return { x: borderX, y: borderY };
+}
+
 export function clampFoodPosition(
   x: number,
   y: number,

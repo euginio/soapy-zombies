@@ -20,6 +20,7 @@ import {
   calculateCarrierAntOffset,
   calculateCooperativeStealSpeed,
   calculateRandomTrayPosition,
+  calculateTrayBorderPosition,
   detectFoodShake,
   DragSample,
   canAntStealFood,
@@ -779,6 +780,48 @@ describe("food shake and ant scatter rules", () => {
     const pos3 = calculateRandomTrayPosition(bounds, 20, 0.5, 0.5);
     assert.deepEqual(pos3, { x: 300, y: 150 });
   });
+
+  it("calculates positions at the borders of the tray when shaken off food", () => {
+    const bounds = { x: 100, y: 50, width: 400, height: 200 };
+    // minX = 125, maxX = 475, minY = 75, maxY = 225
+    const origin = { x: 300, y: 150 }; // tray center
+
+    // Heading right (angle = 0) hits right border at maxX = 475
+    const rightBorder = calculateTrayBorderPosition(bounds, origin, 0, 25);
+    assert.equal(rightBorder.x, 475);
+    assert.equal(rightBorder.y, 150);
+
+    // Heading left (angle = Math.PI) hits left border at minX = 125
+    const leftBorder = calculateTrayBorderPosition(bounds, origin, Math.PI, 25);
+    assert.equal(leftBorder.x, 125);
+    assert.equal(leftBorder.y, 150);
+
+    // Heading up (angle = -Math.PI / 2) hits top border at minY = 75
+    const topBorder = calculateTrayBorderPosition(bounds, origin, -Math.PI / 2, 25);
+    assert.equal(topBorder.x, 300);
+    assert.equal(topBorder.y, 75);
+
+    // Heading down (angle = Math.PI / 2) hits bottom border at maxY = 225
+    const bottomBorder = calculateTrayBorderPosition(bounds, origin, Math.PI / 2, 25);
+    assert.equal(bottomBorder.x, 300);
+    assert.equal(bottomBorder.y, 225);
+
+    // Heading towards ant position offset from origin
+    const antPos = { x: 320, y: 150 }; // to the right of food
+    const antBorder = calculateTrayBorderPosition(bounds, origin, antPos, 25);
+    assert.equal(antBorder.x, 475);
+    assert.equal(antBorder.y, 150);
+
+    // Verifies that for multiple arbitrary angles, points are strictly on the border
+    for (let a = 0; a < Math.PI * 2; a += 0.4) {
+      const p = calculateTrayBorderPosition(bounds, origin, a, 25);
+      const isOnBorder = p.x === 125 || p.x === 475 || p.y === 75 || p.y === 225;
+      assert.equal(isOnBorder, true, `Angle ${a} produced non-border position (${p.x}, ${p.y})`);
+      assert.equal(p.x >= 125 && p.x <= 475, true);
+      assert.equal(p.y >= 75 && p.y <= 225, true);
+    }
+  });
+
 
   it("detects food shaking from rapid direction reversals while dragging", () => {
     // Insufficient samples

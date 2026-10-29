@@ -3447,3 +3447,69 @@ test("food carries over across levels without refilling and game ends when all f
   expect(gameOverState.gameOver).toBe(true);
   expect(gameOverState.foodCount).toBe(0);
 });
+
+
+test("shaking food throws carrier ants to the borders of the tray", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/?tutorial=2");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+  await page.locator("#level-banner-confirm").click();
+
+  const initial = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    const ant = scene.ants.getChildren()[0];
+    return {
+      isBeingCarried: food.isBeingCarried,
+      foodPos: { x: food.x, y: food.y },
+      antPos: { x: ant.x, y: ant.y }
+    };
+  });
+  expect(initial.isBeingCarried).toBe(true);
+
+  // Shake the food vigorously
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    food.clearDragTimers();
+    food.isDragCooldown = false;
+    const t0 = performance.now();
+    food.startDrag(undefined, t0);
+    food.moveDrag(food.x - 30, food.y, t0 + 40);
+    food.moveDrag(food.x + 35, food.y, t0 + 80);
+    food.moveDrag(food.x - 30, food.y, t0 + 120);
+    food.finishDrag();
+  });
+
+  // Wait for the fall tween to complete
+  await page.waitForTimeout(550);
+
+  // Verify the ant landed at the border of the tray
+  const antLandedState = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const ant = scene.ants.getChildren()[0];
+    const bounds = scene.tray.getBounds();
+    const isAtBorder =
+      ant.x <= bounds.x + 55 ||
+      ant.x >= bounds.x + bounds.width - 55 ||
+      ant.y <= bounds.y + 35 ||
+      ant.y >= bounds.y + bounds.height - 35;
+    const isInsideTray =
+      ant.x >= bounds.x &&
+      ant.x <= bounds.x + bounds.width &&
+      ant.y >= bounds.y &&
+      ant.y <= bounds.y + bounds.height;
+
+    return {
+      isAtBorder,
+      isInsideTray,
+      antX: ant.x,
+      antY: ant.y,
+      bounds
+    };
+  });
+
+  expect(antLandedState.isInsideTray).toBe(true);
+  expect(antLandedState.isAtBorder).toBe(true);
+});

@@ -81,6 +81,9 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
     from standard game levels (Nivel 1, Nivel 2, ...). Track tutorial completion via the
     `tutorialCompleted` key in `localStorage`. When completed, subsequent visits, game
     restarts, and returns to title start directly at Nivel 1.
+13. **Shaking food throws carrier ants to the borders of the tray.**
+    Per the owner's instruction, when shaking food to dislodge stealing carrier ants, the ants must
+    fall to the borders of the tray rather than arbitrary interior positions.
 
 ## Conventions and gotchas
 
