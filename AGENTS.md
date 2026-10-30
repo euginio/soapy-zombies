@@ -88,6 +88,10 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
     Per the owner's instruction, when caterpillars or bugs eat food, bites must progressively
     consume the outer borders on the incoming bug side first across the whole boundary, keeping the
     remaining half intact rather than hollowing out the center and leaving floating border outlines.
+15. **When food is eaten, its hitbox fits the visible part.**
+    Per the owner's instruction, as bites are taken from food, its physics hitbox and interaction hit
+    area must dynamically fit the remaining visible portion rather than keeping the original
+    full-size shape.
 
 ## Conventions and gotchas
 

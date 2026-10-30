@@ -74,7 +74,9 @@ import {
   formatLevelIntroModal,
   resolveLevelFoodCount,
   selectAvailableFoodFrame,
-  TOTAL_FOOD_FRAMES
+  TOTAL_FOOD_FRAMES,
+  calculateVisibleHitboxFromAlpha,
+  calculateBittenFoodBounds
 } from "../game-rules";
 import { ScreenWakeLock, WakeLockSentinelLike } from "../services/wake-lock";
 
@@ -1492,5 +1494,77 @@ describe("food frame variety rules", () => {
     const fallbackFrame = selectAvailableFoodFrame(allUsed, 25, () => 0.2);
     assert.ok(fallbackFrame >= 0 && fallbackFrame < 25);
     assert.equal(fallbackFrame, 5);
+  });
+});
+describe("eaten food hitbox fitting rules", () => {
+  it("calculates initial visible hitbox from circular food mask", () => {
+    const initialBounds = calculateBittenFoodBounds([], 10, 16, 16);
+    assert.equal(initialBounds.hasVisiblePixels, true);
+    assert.equal(initialBounds.x, 6);
+    assert.equal(initialBounds.y, 6);
+    assert.equal(initialBounds.width, 21);
+    assert.equal(initialBounds.height, 21);
+  });
+
+  it("fits hitbox to remaining visible left half when eaten from the right", () => {
+    // Caterpillar coming from right (angle 0)
+    const bitesFromRight = [
+      { progress: 0.05, x: 29, y: 16, radius: 9 },
+      { progress: 0.24, x: 25, y: 8, radius: 9.5 },
+      { progress: 0.44, x: 25, y: 24, radius: 9.5 }
+    ];
+    const bounds = calculateBittenFoodBounds(bitesFromRight, 10, 16, 16);
+    assert.equal(bounds.hasVisiblePixels, true);
+    // Left edge remains intact
+    assert.equal(bounds.x, 6);
+    // Width has shrunk because right side was eaten
+    assert.ok(bounds.width < 21);
+    // Rightmost visible pixel is now at or below 19 instead of 26
+    assert.ok(bounds.x + bounds.width - 1 <= 19);
+  });
+
+  it("fits hitbox to remaining visible right half when eaten from the left", () => {
+    // Caterpillar coming from left (angle Math.PI)
+    const bitesFromLeft = [
+      { progress: 0.05, x: 3, y: 16, radius: 9 },
+      { progress: 0.24, x: 7, y: 8, radius: 9.5 },
+      { progress: 0.44, x: 7, y: 24, radius: 9.5 }
+    ];
+    const bounds = calculateBittenFoodBounds(bitesFromLeft, 10, 16, 16);
+    assert.equal(bounds.hasVisiblePixels, true);
+    // Left edge has moved inward as left side was eaten
+    assert.ok(bounds.x >= 12);
+    // Right edge remains intact
+    assert.equal(bounds.x + bounds.width - 1, 26);
+    assert.ok(bounds.width < 21);
+  });
+
+  it("returns zero bounds with hasVisiblePixels=false when food is completely eaten", () => {
+    const totalBite = [{ progress: 1.0, x: 16, y: 16, radius: 25 }];
+    const bounds = calculateBittenFoodBounds(totalBite, 10, 16, 16);
+    assert.equal(bounds.hasVisiblePixels, false);
+    assert.equal(bounds.width, 0);
+    assert.equal(bounds.height, 0);
+  });
+
+  it("extracts visible hitbox bounds from raw RGBA pixel buffers", () => {
+    const rgba = new Uint8Array(32 * 32 * 4);
+    // Fill a 10x12 rectangle from x=8..17, y=10..21 with opaque red
+    for (let y = 10; y <= 21; y++) {
+      for (let x = 8; x <= 17; x++) {
+        const idx = (y * 32 + x) * 4;
+        rgba[idx] = 255;
+        rgba[idx + 1] = 0;
+        rgba[idx + 2] = 0;
+        rgba[idx + 3] = 255;
+      }
+    }
+
+    const bounds = calculateVisibleHitboxFromAlpha(rgba, 32, 32, 25);
+    assert.equal(bounds.hasVisiblePixels, true);
+    assert.equal(bounds.x, 8);
+    assert.equal(bounds.y, 10);
+    assert.equal(bounds.width, 10);
+    assert.equal(bounds.height, 12);
   });
 });

@@ -3662,3 +3662,98 @@ test("food items on the board display varied food frames rather than defaulting 
   expect(framesAfterRefill.map((f) => f.foodFrameIndex)).toEqual(foodFrames.map((f) => f.foodFrameIndex));
   expect(framesAfterRefill.map((f) => f.frameName)).toEqual(foodFrames.map((f) => f.frameName));
 });
+test("when food is eaten its hitbox fits the visible part dynamically", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+  await page.evaluate(() => window.__gameSceneForTest.startLevel(5, false));
+
+  const hitboxCheck = await page.evaluate(async () => {
+    const scene = window.__gameSceneForTest;
+    const food = scene.foods.getChildren()[0];
+    const caterpillar = scene.caterpillars.getChildren()[0];
+
+    scene.ants?.getChildren().forEach((ant) => ant.disableBody(true, false));
+
+    food.setPosition(200, 150);
+    food.body.reset(200, 150);
+    if (food.body.updateFromGameObject) food.body.updateFromGameObject();
+
+    caterpillar.setPosition(230, 150);
+    caterpillar.body.reset(230, 150);
+    if (caterpillar.body.updateFromGameObject) caterpillar.body.updateFromGameObject();
+    caterpillar.isClimbing = false;
+    caterpillar.isAlive = true;
+
+    const initial = {
+      isCircle: food.body.isCircle,
+      radius: food.body.radius,
+      sourceWidth: food.body.sourceWidth,
+      sourceHeight: food.body.sourceHeight,
+      offsetX: food.body.offset.x,
+      offsetY: food.body.offset.y,
+      bodyRight: food.body.right
+    };
+
+    scene.eatFood(caterpillar, food);
+
+    // Wait until at least 2 bite steps have been applied (progress >= 0.50)
+    await new Promise((resolve) => {
+      const check = setInterval(() => {
+        if (food.eatProgress >= 0.50 || !food.active) {
+          clearInterval(check);
+          resolve();
+        }
+      }, 50);
+    });
+
+    const duringEat = {
+      eatProgress: food.eatProgress,
+      isCircle: food.body.isCircle,
+      sourceWidth: food.body.sourceWidth,
+      sourceHeight: food.body.sourceHeight,
+      offsetX: food.body.offset.x,
+      offsetY: food.body.offset.y,
+      bodyRight: food.body.right,
+      hitboxBounds: food.hitboxBounds
+    };
+
+    // Reset eating state to verify original circular hitbox is restored
+    food.resetEatingState();
+
+    const afterReset = {
+      isCircle: food.body.isCircle,
+      radius: food.body.radius,
+      sourceWidth: food.body.sourceWidth,
+      sourceHeight: food.body.sourceHeight,
+      offsetX: food.body.offset.x,
+      offsetY: food.body.offset.y
+    };
+
+    return { initial, duringEat, afterReset };
+  });
+
+  // Verify initial hitbox was circular with full dimensions
+  expect(hitboxCheck.initial.isCircle).toBe(true);
+  expect(hitboxCheck.initial.radius).toBe(10);
+  expect(hitboxCheck.initial.bodyRight).toBeGreaterThan(215);
+
+  // Verify during eating that hitbox dynamically fitted the visible portion
+  expect(hitboxCheck.duringEat.eatProgress).toBeGreaterThanOrEqual(0.50);
+  expect(hitboxCheck.duringEat.isCircle).toBe(false);
+  // Width should have shrunk because the incoming right side was eaten
+  expect(hitboxCheck.duringEat.sourceWidth).toBeLessThanOrEqual(19);
+  // The rightmost edge of the physics body moved inward
+  expect(hitboxCheck.duringEat.bodyRight).toBeLessThan(hitboxCheck.initial.bodyRight - 5);
+  // The hitbox bounds report visible pixels
+  expect(hitboxCheck.duringEat.hitboxBounds.hasVisiblePixels).toBe(true);
+  expect(hitboxCheck.duringEat.hitboxBounds.width).toBeLessThanOrEqual(19);
+  expect(hitboxCheck.duringEat.hitboxBounds.x + hitboxCheck.duringEat.hitboxBounds.width - 1).toBeLessThanOrEqual(20);
+
+  // Verify after reset that circular body was cleanly restored
+  expect(hitboxCheck.afterReset.isCircle).toBe(true);
+  expect(hitboxCheck.afterReset.radius).toBe(10);
+  expect(hitboxCheck.afterReset.offsetX).toBe(7);
+  expect(hitboxCheck.afterReset.offsetY).toBe(8);
+});

@@ -1464,3 +1464,117 @@ export function selectAvailableFoodFrame(
   const pickedIndex = Math.floor(randomFn() * pool.length);
   return pool[pickedIndex] ?? 0;
 }
+export interface FoodHitboxBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  hasVisiblePixels: boolean;
+}
+
+/**
+ * Calculates the bounding box of non-transparent pixels in an RGBA image buffer (or single-channel alpha grid),
+ * returning the local coordinates and dimensions of the visible portion.
+ */
+export function calculateVisibleHitboxFromAlpha(
+  data: Uint8Array | Uint8ClampedArray | number[],
+  gridWidth = 32,
+  gridHeight = 32,
+  alphaThreshold = 25
+): FoodHitboxBounds {
+  let minX = gridWidth;
+  let maxX = -1;
+  let minY = gridHeight;
+  let maxY = -1;
+
+  const isRgba = data.length >= gridWidth * gridHeight * 4;
+
+  for (let y = 0; y < gridHeight; y++) {
+    for (let x = 0; x < gridWidth; x++) {
+      const alpha = isRgba ? data[(y * gridWidth + x) * 4 + 3] : data[y * gridWidth + x];
+      if (alpha > alphaThreshold) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  if (maxX < 0 || maxY < 0) {
+    return {
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+      hasVisiblePixels: false
+    };
+  }
+
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX + 1,
+    height: maxY - minY + 1,
+    hasVisiblePixels: true
+  };
+}
+
+/**
+ * Analytically simulates bite circular cutouts on a food piece (default circular mask with center (16, 16)
+ * and radius 10 within a 32x32 frame) to compute the remaining visible hitbox bounding box.
+ */
+export function calculateBittenFoodBounds(
+  biteSteps: FoodBiteStep[],
+  initialRadius = 10,
+  centerX = 16,
+  centerY = 16,
+  frameSize = 32
+): FoodHitboxBounds {
+  const grid = new Uint8Array(frameSize * frameSize);
+
+  // Initialize initial food circular shape
+  const rSquared = initialRadius * initialRadius;
+  for (let y = 0; y < frameSize; y++) {
+    for (let x = 0; x < frameSize; x++) {
+      const dx = x - centerX;
+      const dy = y - centerY;
+      if (dx * dx + dy * dy <= rSquared) {
+        grid[y * frameSize + x] = 255;
+      }
+    }
+  }
+
+  // Carve out each bite step
+  for (const step of biteSteps) {
+    const mainRadiusSq = step.radius * step.radius;
+    const subRadius = step.radius * 0.65;
+    const subRadiusSq = subRadius * subRadius;
+    const subAngle = step.progress * 13;
+    const subX = step.x + Math.cos(subAngle) * (step.radius * 0.35);
+    const subY = step.y + Math.sin(subAngle) * (step.radius * 0.35);
+
+    const minScanX = Math.max(0, Math.floor(Math.min(step.x - step.radius, subX - subRadius)));
+    const maxScanX = Math.min(frameSize - 1, Math.ceil(Math.max(step.x + step.radius, subX + subRadius)));
+    const minScanY = Math.max(0, Math.floor(Math.min(step.y - step.radius, subY - subRadius)));
+    const maxScanY = Math.min(frameSize - 1, Math.ceil(Math.max(step.y + step.radius, subY + subRadius)));
+
+    for (let y = minScanY; y <= maxScanY; y++) {
+      for (let x = minScanX; x <= maxScanX; x++) {
+        const dMainX = x - step.x;
+        const dMainY = y - step.y;
+        if (dMainX * dMainX + dMainY * dMainY <= mainRadiusSq) {
+          grid[y * frameSize + x] = 0;
+          continue;
+        }
+        const dSubX = x - subX;
+        const dSubY = y - subY;
+        if (dSubX * dSubX + dSubY * dSubY <= subRadiusSq) {
+          grid[y * frameSize + x] = 0;
+        }
+      }
+    }
+  }
+
+  return calculateVisibleHitboxFromAlpha(grid, frameSize, frameSize, 128);
+}

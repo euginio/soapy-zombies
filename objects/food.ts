@@ -23,6 +23,9 @@ import {
     FOOD_EAT_DURATION_MS,
     FOOD_MAX_DRAG_MS,
     FoodBiteStep,
+    FoodHitboxBounds,
+    calculateBittenFoodBounds,
+    calculateVisibleHitboxFromAlpha,
     getFoodBiteSequence,
     resolveFoodDropPosition,
     TOTAL_FOOD_FRAMES
@@ -83,6 +86,63 @@ export class Food extends MySprite {
         this.init(this.foodFrameIndex);
     }
 
+    get hitboxBounds(): FoodHitboxBounds {
+        if (this.body && !this.body.isCircle) {
+            return {
+                x: this.body.offset.x,
+                y: this.body.offset.y,
+                width: this.body.sourceWidth,
+                height: this.body.sourceHeight,
+                hasVisiblePixels: this.body.enable && this.body.sourceWidth > 0 && this.body.sourceHeight > 0
+            };
+        }
+        return {
+            x: 7,
+            y: 8,
+            width: 20,
+            height: 20,
+            hasVisiblePixels: Boolean(this.body?.enable)
+        };
+    }
+
+    updateHitboxToVisible(): FoodHitboxBounds {
+        let bounds: FoodHitboxBounds | null = null;
+
+        if (this.canvasTex) {
+            try {
+                const ctx = this.canvasTex.context;
+                const imgData = ctx.getImageData(0, 0, 32, 32);
+                bounds = calculateVisibleHitboxFromAlpha(imgData.data, 32, 32, 25);
+            } catch {
+                bounds = null;
+            }
+        }
+
+        if (!bounds) {
+            bounds = calculateBittenFoodBounds(this.biteSequence.slice(0, this.appliedBiteIndex));
+        }
+
+        if (bounds.hasVisiblePixels && bounds.width > 0 && bounds.height > 0) {
+            if (this.body) {
+                this.body.setSize(bounds.width, bounds.height, false);
+                this.body.setOffset(bounds.x, bounds.y);
+            }
+            if (this.input && this.input.hitArea && typeof (this.input.hitArea as any).setTo === 'function') {
+                (this.input.hitArea as any).setTo(bounds.x, bounds.y, bounds.width, bounds.height);
+            }
+        } else {
+            if (this.body) {
+                this.body.setSize(1, 1, false);
+                this.body.setOffset(16, 16);
+            }
+            if (this.input && this.input.hitArea && typeof (this.input.hitArea as any).setTo === 'function') {
+                (this.input.hitArea as any).setTo(0, 0, 0, 0);
+            }
+        }
+
+        return bounds;
+    }
+
     setFoodFrame(frameIndex: number) {
         this.foodFrameIndex = frameIndex;
         if (!this.isBeingEaten || !this.eatCanvasKey) {
@@ -107,6 +167,13 @@ export class Food extends MySprite {
             this.foodFrameIndex = Phaser.Math.Between(0, TOTAL_FOOD_FRAMES - 1);
         }
         this.setTexture("food", this.foodFrameIndex);
+        this.setCircle(10, 7, 8);
+        if (this.body) {
+            this.body.enable = true;
+        }
+        if (this.input && this.input.hitArea && typeof (this.input.hitArea as any).setTo === 'function') {
+            (this.input.hitArea as any).setTo(0, 0, 32, 32);
+        }
         this.setAlpha(1);
         this.setAngle(0);
         this.setDepth(0);
@@ -456,6 +523,7 @@ export class Food extends MySprite {
             } else {
                 this.emitCrumbs(this.x, this.y);
             }
+            this.updateHitboxToVisible();
         };
 
         if (this.biteSequence.length > 0 && this.biteSequence[0].progress <= 0.06) {
@@ -511,6 +579,13 @@ export class Food extends MySprite {
         }
         this.cleanupEatCanvas();
         this.setTexture('food', this.foodFrameIndex);
+        this.setCircle(10, 7, 8);
+        if (this.body) {
+            this.body.enable = true;
+        }
+        if (this.input && this.input.hitArea && typeof (this.input.hitArea as any).setTo === 'function') {
+            (this.input.hitArea as any).setTo(0, 0, 32, 32);
+        }
         this.isBeingEaten = false;
         this.isWormEating = false;
         this.eatingBug = null;
