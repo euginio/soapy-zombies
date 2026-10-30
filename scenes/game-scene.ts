@@ -10,6 +10,8 @@ import { ANT_DEBUG_COLORS, DEBUG_MODE } from "../const/const";
 import {
   areFoodsOverlapping,
   calculateDeviceMotionTilt,
+  detectDeviceShake,
+  DeviceMotionSample,
   calculateDeviceTilt,
   calculateVisualLayerLayout,
   calculateWaveExtraAnts,
@@ -69,6 +71,10 @@ export class GameScene extends MyScene {
   };
   private deviceOrientationHandler: (event: DeviceOrientationEvent) => void;
   private deviceMotionHandler: (event: DeviceMotionEvent) => void;
+  private motionSamples: DeviceMotionSample[] = [];
+  private lastPhoneShakeTime = 0;
+  private readonly phoneShakeCooldownMs = 350;
+  private phoneShakeButton: HTMLButtonElement | null = null;
   private sensorRecenterButton: HTMLButtonElement | null = null;
   private soundToggleButton: HTMLButtonElement | null = null;
   private pauseToggleButton: HTMLButtonElement | null = null;
@@ -253,6 +259,9 @@ export class GameScene extends MyScene {
     if (this.pauseToggleButton) {
       this.pauseToggleButton.style.display = "none";
     }
+    if (this.phoneShakeButton) {
+      this.phoneShakeButton.style.display = "none";
+    }
     if (isNewHighScore(this.score, this.currentHighScore)) {
       this.currentHighScore = this.score;
       this.saveHighScore(this.currentHighScore);
@@ -356,6 +365,8 @@ export class GameScene extends MyScene {
         this.continueToNextLevel();
       } else if (this.isLevelIntroActive) {
         this.confirmLevelStart();
+      } else if (!this.gameOver && !this.isPaused && !this.isLevelTransitioning) {
+        this.triggerPhoneShake();
       }
     });
     this.wasdKeys = this.input.keyboard.addKeys({
@@ -519,6 +530,26 @@ export class GameScene extends MyScene {
     // this.ants.children.iterate((z:Ant)=>z.init())
     // Prefer orientation angles when available; raw acceleration is the fallback input.
     this.deviceMotionHandler = (event: DeviceMotionEvent) => {
+      const now = performance.now();
+      const accel = event.acceleration || event.accelerationIncludingGravity;
+      if (accel && typeof accel.x === "number" && typeof accel.y === "number") {
+        this.motionSamples.push({
+          time: now,
+          x: accel.x,
+          y: accel.y,
+          z: accel.z ?? 0
+        });
+        if (this.motionSamples.length > 25) {
+          this.motionSamples.shift();
+        }
+        if (now - this.lastPhoneShakeTime >= this.phoneShakeCooldownMs) {
+          if (detectDeviceShake(this.motionSamples)) {
+            this.lastPhoneShakeTime = now;
+            this.triggerPhoneShake();
+          }
+        }
+      }
+
       if (this.deviceTilt) {
         return;
       }
@@ -822,6 +853,86 @@ export class GameScene extends MyScene {
     this.visualLayerParent.appendChild(button);
   }
 
+
+  triggerPhoneShake(): number {
+    if (this.gameOver || this.isPaused || this.isLevelTransitioning || this.isLevelIntroActive || this.isLevelCompleteActive) {
+      return 0;
+    }
+
+    this.playBoardShakeEffect();
+
+    const borderAnts = ((this.ants?.getChildren() as Ant[]) ?? []).filter(
+      (ant) => ant.active && ant.isAlive && !ant.isClimbing && !ant.carriedFood && ant.isAtBorder
+    );
+
+    let defeated = 0;
+    for (const ant of borderAnts) {
+      ant.kill();
+      defeated++;
+    }
+
+    return defeated;
+  }
+
+  private playBoardShakeEffect() {
+    if (this.gameCanvas) {
+      try {
+        this.gameCanvas.animate(
+          [
+            { transform: `${this.gameCanvas.style.transform} translate(0, 0)` },
+            { transform: `${this.gameCanvas.style.transform} translate(-8px, 6px)` },
+            { transform: `${this.gameCanvas.style.transform} translate(8px, -6px)` },
+            { transform: `${this.gameCanvas.style.transform} translate(-5px, -4px)` },
+            { transform: `${this.gameCanvas.style.transform} translate(5px, 4px)` },
+            { transform: `${this.gameCanvas.style.transform} translate(0, 0)` }
+          ],
+          { duration: 180, easing: "ease-out" }
+        );
+      } catch (_) {}
+    }
+    try {
+      this.cameras?.main?.shake?.(120, 0.008);
+    } catch (_) {}
+  }
+
+  onAntReachedBorder(_ant: Ant) {
+    if (this.gameOver || this.isLevelTransitioning || this.isLevelCompleteActive) {
+      return;
+    }
+    if (this.currentLevelConfig?.goalType === "reach_border") {
+      this.levelProgress += 1;
+      this.updateLevelHud();
+      this.checkLevelCompletion();
+    }
+  }
+
+  private createPhoneShakeButton() {
+    const button = document.createElement("button");
+    button.id = "phone-shake-button";
+    button.type = "button";
+    button.setAttribute("aria-label", "Sacudir bandeja");
+    button.title = "Sacudir bandeja (Espacio)";
+    button.textContent = "SACUDIR";
+    Object.assign(button.style, {
+      position: "absolute",
+      zIndex: "10001",
+      padding: "0.25em 0.6em",
+      border: "0",
+      borderRadius: "0.4em",
+      color: "#201",
+      background: "rgba(255, 255, 255, 0.9)",
+      font: "bold 15px sans-serif",
+      lineHeight: "1.2",
+      cursor: "pointer",
+      pointerEvents: "auto",
+      userSelect: "none"
+    });
+    button.addEventListener("click", () => {
+      this.triggerPhoneShake();
+    });
+    this.phoneShakeButton = button;
+    this.visualLayerParent.appendChild(button);
+  }
 
   private createPauseToggleButton() {
     const button = document.createElement("button");
@@ -1217,7 +1328,7 @@ export class GameScene extends MyScene {
   }
 
   showLevelCompleteOverlay(completedLevel: number, nextLevel: number) {
-    if (this.isTutorialMode && completedLevel >= 3) {
+    if (this.isTutorialMode && completedLevel >= 4) {
       this.markTutorialCompleted();
     }
     if (!this.levelCompleteOverlay) {
@@ -1262,7 +1373,7 @@ export class GameScene extends MyScene {
     this.time.paused = false;
 
     if (this.isTutorialMode) {
-      if (this.currentLevel >= 3) {
+      if (this.currentLevel >= 4) {
         this.markTutorialCompleted();
         this.score = 0;
         this.scoreText.setText("0");
@@ -1324,6 +1435,7 @@ export class GameScene extends MyScene {
     this.createLevelCompleteOverlay();
     this.createSoundToggleButton();
     this.createPauseToggleButton();
+    this.createPhoneShakeButton();
     this.createFullscreenPromptOverlay();
     this.createRotatePromptOverlay();
     this.createLevelHud();
@@ -1640,6 +1752,12 @@ export class GameScene extends MyScene {
       this.pauseToggleButton.style.left = `${layout.left + layout.width - this.pauseToggleButton.offsetWidth - 8}px`;
       this.pauseToggleButton.style.top = `${layout.top + 8}px`;
     }
+    if (this.phoneShakeButton) {
+      this.phoneShakeButton.style.fontSize = `${14 * layout.scaleX}px`;
+      this.phoneShakeButton.style.left = `${layout.left + layout.width / 2}px`;
+      this.phoneShakeButton.style.transform = "translateX(-50%)";
+      this.phoneShakeButton.style.top = `${layout.top + layout.height - this.phoneShakeButton.offsetHeight - 8}px`;
+    }
     if (this.sensorRecenterButton) {
       const pauseOffset = this.pauseToggleButton ? this.pauseToggleButton.offsetWidth + 8 : 0;
       this.sensorRecenterButton.style.left = `${layout.left + layout.width - this.sensorRecenterButton.offsetWidth - 8 - pauseOffset}px`;
@@ -1905,6 +2023,8 @@ export class GameScene extends MyScene {
     this.soundToggleButton = null;
     this.pauseToggleButton?.remove();
     this.pauseToggleButton = null;
+    this.phoneShakeButton?.remove();
+    this.phoneShakeButton = null;
     this.pauseOverlay?.remove();
     this.pauseOverlay = null;
     this.pauseSoundButton = null;
@@ -2041,6 +2161,9 @@ export class GameScene extends MyScene {
     }
     if (this.pauseToggleButton) {
       this.pauseToggleButton.style.display = "block";
+    }
+    if (this.phoneShakeButton) {
+      this.phoneShakeButton.style.display = "block";
     }
     this.syncAntsToLevel();
     this.syncCaterpillarsToLevel();

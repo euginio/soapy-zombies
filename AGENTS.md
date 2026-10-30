@@ -77,7 +77,7 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
     elements, banners, and documentation, never use 'fruit' or 'fruta'; always refer to 'food'
     (English) or 'comida' (Spanish UI).
 12. **The tutorial levels are shown only the very first time the game is played.**
-    Per the owner's instruction, separate tutorial levels (Tutorial 1, Tutorial 2, Tutorial 3)
+    Per the owner's instruction, separate tutorial levels (Tutorial 1, Tutorial 2, Tutorial 3, Tutorial 4)
     from standard game levels (Nivel 1, Nivel 2, ...). Track tutorial completion via the
     `tutorialCompleted` key in `localStorage`. When completed, subsequent visits, game
     restarts, and returns to title start directly at Nivel 1.
@@ -104,6 +104,13 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
     ants increases each level, the number of simultaneous caterpillars increases progressively, ant
     speed accelerates, and defeat goals scale up.
 
+18. **For ants to be thrown out of the tray, the user must shake the phone when the ants are at the tray's border.**
+    Per the owner's instruction, ants no longer fall automatically off the tray simply by tilting. Instead,
+    tilting guides ants to the tray's border where they cling to the rim. To throw an ant out of the tray,
+    the player must shake the phone (or press Space on desktop / tap the shake button) while the ant is at
+    the border. Shaking when an ant is not at the border does not throw it out. A dedicated tutorial level
+    (Tutorial 4) teaches this mechanic.
+
 ## Conventions and gotchas
 
 - **Line endings are CRLF** (`core.autocrlf=true`, no `.gitattributes`). Edit tools that match
@@ -120,7 +127,7 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
     `SceneManager.start` inside the tests).
   - DOM ids `#tilting-board`, `#stationary-hud`, `#high-score-label`, `#game-over-overlay`,
     `#game-over-restart`, `#game-over-home`, `#recenter-device-tilt`, `#sound-toggle`,
-    `#fullscreen-toggle`, `#fullscreen-prompt-overlay`, `#pause-toggle`, `#pause-overlay`, `#pause-resume`, `#pause-restart`, `#pause-restart-game`, `#pause-sound`, `#pause-home`, `#level-complete-overlay`, `#level-complete-continue`, `#level-banner-confirm`, `#neutral-balance-guide`, `#balance-bubble`, `#balance-instruction`.
+    `#fullscreen-toggle`, `#fullscreen-prompt-overlay`, `#pause-toggle`, `#pause-overlay`, `#pause-resume`, `#pause-restart`, `#pause-restart-game`, `#pause-sound`, `#pause-home`, `#level-complete-overlay`, `#level-complete-continue`, `#level-banner-confirm`, `#neutral-balance-guide`, `#balance-bubble`, `#balance-instruction`, `#phone-shake-button`.
   - The `highScore` and `tutorialCompleted` localStorage keys.
 - UI text is in Spanish (game-over overlay, pause menu, level complete overlay, banners, HUD,
   instructions, buttons). Keep all UI messages in Spanish.

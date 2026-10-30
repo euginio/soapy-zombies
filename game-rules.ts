@@ -457,6 +457,56 @@ export function detectFoodShake(
   return reversals >= minReversals && totalDistance >= minTotalDistance;
 }
 
+export interface DeviceMotionSample {
+  time: number;
+  x: number;
+  y: number;
+  z?: number;
+}
+
+export interface DeviceShakeOptions {
+  windowMs?: number;
+  minMagnitude?: number;
+  minDelta?: number;
+}
+
+export function detectDeviceShake(
+  samples: DeviceMotionSample[],
+  options: DeviceShakeOptions = {}
+): boolean {
+  const windowMs = options.windowMs ?? 500;
+  const minMagnitude = options.minMagnitude ?? 18;
+  const minDelta = options.minDelta ?? 14;
+
+  if (samples.length < 2) {
+    return false;
+  }
+
+  const latestTime = samples[samples.length - 1].time;
+  const recent = samples.filter((s) => s.time >= latestTime - windowMs && s.time <= latestTime);
+  if (recent.length < 2) {
+    return false;
+  }
+
+  for (const sample of recent) {
+    const mag = Math.hypot(sample.x, sample.y, sample.z ?? 0);
+    if (mag >= minMagnitude) {
+      return true;
+    }
+  }
+
+  for (let i = 1; i < recent.length; i++) {
+    const prev = recent[i - 1];
+    const curr = recent[i];
+    const delta = Math.hypot(curr.x - prev.x, curr.y - prev.y, (curr.z ?? 0) - (prev.z ?? 0));
+    if (delta >= minDelta) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export function calculateRandomTrayPosition(
   trayBounds: Rect,
   margin = 25,
@@ -953,6 +1003,38 @@ export function rectanglesOverlap(a: Rect, b: Rect): boolean {
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
 
+export function isAntAtTrayBorder(
+  antX: number,
+  antY: number,
+  trayBounds: Rect,
+  borderMargin = 20
+): boolean {
+  const minX = trayBounds.x + borderMargin;
+  const maxX = trayBounds.x + trayBounds.width - borderMargin;
+  const minY = trayBounds.y + borderMargin;
+  const maxY = trayBounds.y + trayBounds.height - borderMargin;
+
+  return antX <= minX || antX >= maxX || antY <= minY || antY >= maxY;
+}
+
+export function clampAntToTrayBorder(
+  antX: number,
+  antY: number,
+  trayBounds: Rect,
+  padding = 6
+): { x: number; y: number; clamped: boolean } {
+  const minX = trayBounds.x + padding;
+  const maxX = trayBounds.x + trayBounds.width - padding;
+  const minY = trayBounds.y + padding;
+  const maxY = trayBounds.y + trayBounds.height - padding;
+
+  const clampedX = Math.max(minX, Math.min(maxX, antX));
+  const clampedY = Math.max(minY, Math.min(maxY, antY));
+  const clamped = clampedX !== antX || clampedY !== antY;
+
+  return { x: clampedX, y: clampedY, clamped };
+}
+
 export function shouldKeepScreenAwake(isGameActive: boolean, isDocumentVisible: boolean): boolean {
   return isGameActive && isDocumentVisible;
 }
@@ -985,7 +1067,7 @@ export function shouldWormContinueEating(options: {
     !options.isFoodCarried
   );
 }
-export type LevelGoalType = "move_food" | "shake_ants" | "survive_time" | "defeat_ants" | "endless";
+export type LevelGoalType = "move_food" | "shake_ants" | "reach_border" | "survive_time" | "defeat_ants" | "endless";
 
 export interface LevelConfig {
   level: number;
@@ -1046,7 +1128,25 @@ export const TUTORIAL_CONFIGS: Record<number, LevelConfig> = {
     isTutorial: true,
     title: "Tutorial 3",
     subtitle: "¡Inclina la bandeja!",
-    instruction: "Tira la hormiga.",
+    instruction: "Lleva la hormiga al borde.",
+    tiltEnabled: true,
+    dragEnabled: false,
+    caterpillarsEnabled: false,
+    initialFood: 0,
+    initialAnts: 1,
+    initialCaterpillars: 0,
+    antSpeed: 50,
+    goalType: "reach_border",
+    goalTarget: 1,
+    antInCenter: true,
+    waitForNeutralTilt: true
+  },
+  4: {
+    level: 4,
+    isTutorial: true,
+    title: "Tutorial 4",
+    subtitle: "¡Sacude para expulsar!",
+    instruction: "Lleva la hormiga al borde y sacude el teléfono.",
     tiltEnabled: true,
     dragEnabled: false,
     caterpillarsEnabled: false,
@@ -1056,8 +1156,7 @@ export const TUTORIAL_CONFIGS: Record<number, LevelConfig> = {
     antSpeed: 50,
     goalType: "defeat_ants",
     goalTarget: 1,
-    antInCenter: true,
-    waitForNeutralTilt: true
+    antInCenter: true
   }
 };
 
@@ -1224,6 +1323,8 @@ export function formatLevelObjective(
       return `MUEVE LA COMIDA: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;
     case "shake_ants":
       return `SACUDE LA COMIDA: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;
+    case "reach_border":
+      return `LLEVA AL BORDE: ${Math.min(Math.floor(currentProgress), config.goalTarget)}/${config.goalTarget}`;
     case "survive_time": {
       const remaining = Math.max(0, Math.ceil(config.goalTarget - currentProgress));
       return `SOBREVIVE: ${remaining}s`;
@@ -1278,7 +1379,7 @@ export function formatLevelCompleteSummary(
 ): LevelCompleteSummary {
   const completedLevel = currentLevel;
   if (isTutorial) {
-    if (completedLevel < 3) {
+    if (completedLevel < 4) {
       const nextLevel = completedLevel + 1;
       const nextConfig = getLevelConfig(nextLevel, true);
       return {
@@ -1292,7 +1393,7 @@ export function formatLevelCompleteSummary(
         nextInstruction: nextConfig.instruction
       };
     }
-    // Tutorial 3 finished -> Next is Game Level 1!
+    // Tutorial 4 finished -> Next is Game Level 1!
     const nextConfig = getLevelConfig(1, false);
     return {
       completedLevel,

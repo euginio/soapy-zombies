@@ -81,7 +81,11 @@ import {
   calculateBittenFoodBounds,
   shouldPauseForFullscreen,
   canResumeGameplay,
-  resolveFullscreenPauseTransition
+  resolveFullscreenPauseTransition,
+  isAntAtTrayBorder,
+  clampAntToTrayBorder,
+  detectDeviceShake,
+  DeviceMotionSample
 } from "../game-rules";
 import { ScreenWakeLock, WakeLockSentinelLike } from "../services/wake-lock";
 
@@ -1052,9 +1056,23 @@ describe("level progression rules", () => {
     assert.equal(tut3.caterpillarsEnabled, false);
     assert.equal(tut3.initialFood, 0);
     assert.equal(tut3.initialAnts, 1);
-    assert.equal(tut3.goalType, "defeat_ants");
+    assert.equal(tut3.goalType, "reach_border");
     assert.equal(tut3.goalTarget, 1);
     assert.equal(tut3.antInCenter, true);
+
+    const tut4 = getLevelConfig(4, true);
+    assert.equal(tut4.isTutorial, true);
+    assert.equal(tut4.title, "Tutorial 4");
+    assert.equal(tut4.subtitle, "¡Sacude para expulsar!");
+    assert.equal(tut4.instruction, "Lleva la hormiga al borde y sacude el teléfono.");
+    assert.equal(tut4.tiltEnabled, true);
+    assert.equal(tut4.dragEnabled, false);
+    assert.equal(tut4.caterpillarsEnabled, false);
+    assert.equal(tut4.initialFood, 0);
+    assert.equal(tut4.initialAnts, 1);
+    assert.equal(tut4.goalType, "defeat_ants");
+    assert.equal(tut4.goalTarget, 1);
+    assert.equal(tut4.antInCenter, true);
 
     // Separated Game levels
     const lvl1 = getLevelConfig(1, false);
@@ -1186,8 +1204,12 @@ describe("level progression rules", () => {
     const tut3 = getLevelConfig(3, true);
     assert.equal(tut3.waitForNeutralTilt, true);
     assert.equal(formatLevelObjective(tut3, 0, true), "NIVELA LA BANDEJA");
-    assert.equal(formatLevelObjective(tut3, 0, false), "HORMIGAS: 0/1");
-    assert.equal(formatLevelObjective(tut3, 1), "HORMIGAS: 1/1");
+    assert.equal(formatLevelObjective(tut3, 0, false), "LLEVA AL BORDE: 0/1");
+    assert.equal(formatLevelObjective(tut3, 1), "LLEVA AL BORDE: 1/1");
+
+    const tut4 = getLevelConfig(4, true);
+    assert.equal(formatLevelObjective(tut4, 0), "HORMIGAS: 0/1");
+    assert.equal(formatLevelObjective(tut4, 1), "HORMIGAS: 1/1");
 
     const lvl2 = getLevelConfig(2, false);
     assert.equal(formatLevelObjective(lvl2, 4), "HORMIGAS: 4/25");
@@ -1281,15 +1303,25 @@ describe("level complete screen rules", () => {
     assert.equal(summary1.nextTitle, "Tutorial 2");
     assert.equal(summary1.nextSubtitle, "¡Sacude la comida!");
 
-    // Tutorial 3 completed -> Next is Game Level 1!
+    // Tutorial 3 completed -> Next is Tutorial 4
     const summary3 = formatLevelCompleteSummary(3, true);
     assert.equal(summary3.completedLevel, 3);
     assert.equal(summary3.isCompletedTutorial, true);
-    assert.equal(summary3.nextLevel, 1);
-    assert.equal(summary3.isNextTutorial, false);
-    assert.equal(summary3.title, "¡Tutorial completado!");
-    assert.equal(summary3.nextTitle, "Nivel 1");
-    assert.equal(summary3.nextSubtitle, "¡Defensa total!");
+    assert.equal(summary3.nextLevel, 4);
+    assert.equal(summary3.isNextTutorial, true);
+    assert.equal(summary3.title, "¡Tutorial 3 completado!");
+    assert.equal(summary3.nextTitle, "Tutorial 4");
+    assert.equal(summary3.nextSubtitle, "¡Sacude para expulsar!");
+
+    // Tutorial 4 completed -> Next is Game Level 1!
+    const summary4 = formatLevelCompleteSummary(4, true);
+    assert.equal(summary4.completedLevel, 4);
+    assert.equal(summary4.isCompletedTutorial, true);
+    assert.equal(summary4.nextLevel, 1);
+    assert.equal(summary4.isNextTutorial, false);
+    assert.equal(summary4.title, "¡Tutorial completado!");
+    assert.equal(summary4.nextTitle, "Nivel 1");
+    assert.equal(summary4.nextSubtitle, "¡Defensa total!");
 
     // Game Level 1 completed -> Next is Game Level 2
     const summaryGame1 = formatLevelCompleteSummary(1, false);
@@ -1685,5 +1717,71 @@ describe("escalating level difficulty rules", () => {
         `Level ${level} caterpillars must be >= Level ${level - 1}`
       );
     }
+  });
+});
+
+describe("phone shake and border clamping rules", () => {
+  const trayBounds = { x: 50, y: 50, width: 700, height: 380 };
+
+  it("detects when an ant is at the tray border", () => {
+    // In center: not at border
+    assert.equal(isAntAtTrayBorder(400, 240, trayBounds, 20), false);
+
+    // Near left edge (minX = 70)
+    assert.equal(isAntAtTrayBorder(65, 240, trayBounds, 20), true);
+    // Near right edge (maxX = 730)
+    assert.equal(isAntAtTrayBorder(735, 240, trayBounds, 20), true);
+    // Near top edge (minY = 70)
+    assert.equal(isAntAtTrayBorder(400, 60, trayBounds, 20), true);
+    // Near bottom edge (maxY = 410)
+    assert.equal(isAntAtTrayBorder(400, 415, trayBounds, 20), true);
+  });
+
+  it("clamps ant position to stay on tray border rim", () => {
+    // Center: unaffected
+    const inside = clampAntToTrayBorder(400, 240, trayBounds, 6);
+    assert.equal(inside.clamped, false);
+    assert.equal(inside.x, 400);
+    assert.equal(inside.y, 240);
+
+    // Beyond right border
+    const beyondRight = clampAntToTrayBorder(800, 240, trayBounds, 6);
+    assert.equal(beyondRight.clamped, true);
+    assert.equal(beyondRight.x, 744); // 50 + 700 - 6
+    assert.equal(beyondRight.y, 240);
+
+    // Beyond left border
+    const beyondLeft = clampAntToTrayBorder(10, 240, trayBounds, 6);
+    assert.equal(beyondLeft.clamped, true);
+    assert.equal(beyondLeft.x, 56); // 50 + 6
+    assert.equal(beyondLeft.y, 240);
+  });
+
+  it("detects device shake based on acceleration magnitude or sudden spike", () => {
+    // Empty or single sample: no shake
+    assert.equal(detectDeviceShake([]), false);
+    assert.equal(detectDeviceShake([{ time: 100, x: 2, y: 1 }]), false);
+
+    // Gentle motion (resting / slow tilt): magnitude < 18, delta < 14
+    const gentleSamples: DeviceMotionSample[] = [
+      { time: 100, x: 1.0, y: 0.5, z: 9.8 },
+      { time: 200, x: 1.2, y: 0.7, z: 9.7 },
+      { time: 300, x: 1.5, y: 0.9, z: 9.8 }
+    ];
+    assert.equal(detectDeviceShake(gentleSamples), false);
+
+    // Vigorous phone shake with high acceleration spike
+    const shakeSpikeSamples: DeviceMotionSample[] = [
+      { time: 100, x: 1.0, y: 0.5, z: 9.8 },
+      { time: 200, x: 19.5, y: 5.0, z: 4.2 }
+    ];
+    assert.equal(detectDeviceShake(shakeSpikeSamples), true);
+
+    // Sudden rapid delta spike
+    const deltaSpikeSamples: DeviceMotionSample[] = [
+      { time: 100, x: -8.0, y: 0, z: 0 },
+      { time: 200, x: 10.0, y: 0, z: 0 } // delta = 18 >= 14
+    ];
+    assert.equal(detectDeviceShake(deltaSpikeSamples), true);
   });
 });

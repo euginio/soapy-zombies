@@ -2,6 +2,8 @@ import {
     calculateAntSearchHeading,
     calculateAntSearchVelocity,
     calculateAntVelocity,
+    clampAntToTrayBorder,
+    isAntAtTrayBorder,
     shouldAntSearchForFood,
     shouldTiltAffectAnt,
     canAntStealFood,
@@ -34,6 +36,7 @@ export class Ant extends MySprite {
     isTouchingTray: boolean;
     searchHeading: number = 0;
     searchRetargetTimer: number = 0;
+    isAtBorder: boolean = false;
     private climbTimer: Phaser.Time.TimerEvent | null = null;
 
     constructor(scene: GameScene) {
@@ -52,6 +55,7 @@ export class Ant extends MySprite {
             this.ANT_SPEED = this.scene.currentLevelConfig.antSpeed;
         }
         this.isAlive = true;
+        this.isAtBorder = false;
         this.setScale(0.2);
         this.searchHeading = Phaser.Math.FloatBetween(0, Math.PI * 2);
         this.searchRetargetTimer = Phaser.Math.Between(400, 1000);
@@ -260,14 +264,40 @@ export class Ant extends MySprite {
             }
         }
 
-        // The inset bounds create a narrow edge where an ant counts as having fallen.
-        const trayOverlapBounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
-        this.isTouchingTray = rectanglesOverlap(trayOverlapBounds, this.getBounds());
-        // Climbing ants returned early above, so reaching this point means the ant is on its own.
-        if (!this.isTouchingTray) {
-            // ant has fallen
+        // Border clamping and holding: ants only fall when shaken out of the tray while at border.
+        const fullTrayBounds = this.scene.tray.getBounds();
+        const trayOverlapBounds = insetHorizontalTrayBounds(fullTrayBounds);
+
+        // If the ant has completely left the tray bounds entirely, it falls and dies.
+        if (!rectanglesOverlap(fullTrayBounds, this.getBounds())) {
             this.kill();
+            return;
         }
+
+        const clampedPos = clampAntToTrayBorder(this.x, this.y, trayOverlapBounds, 6);
+        const atBorder = !this.isClimbing && this.isAlive && (clampedPos.clamped || isAntAtTrayBorder(this.x, this.y, trayOverlapBounds, 20));
+
+        if (atBorder) {
+            this.isAtBorder = true;
+            if (clampedPos.clamped) {
+                this.setPosition(clampedPos.x, clampedPos.y);
+                if (this.body) {
+                    this.body.reset(clampedPos.x, clampedPos.y);
+                }
+            }
+            if (this.body) {
+                if (this.x <= trayOverlapBounds.x + 6 && this.body.velocity.x < 0) this.setVelocityX(0);
+                if (this.x >= trayOverlapBounds.x + trayOverlapBounds.width - 6 && this.body.velocity.x > 0) this.setVelocityX(0);
+                if (this.y <= trayOverlapBounds.y + 6 && this.body.velocity.y < 0) this.setVelocityY(0);
+                if (this.y >= trayOverlapBounds.y + trayOverlapBounds.height - 6 && this.body.velocity.y > 0) this.setVelocityY(0);
+            }
+            if ((this.scene as any)?.currentLevelConfig?.goalType === "reach_border" && !(this.scene as any)?.isLevelTransitioning) {
+                (this.scene as any).onAntReachedBorder(this);
+            }
+        } else {
+            this.isAtBorder = false;
+        }
+        this.isTouchingTray = rectanglesOverlap(trayOverlapBounds, this.getBounds());
     }
 
     private faceCenter() {
@@ -307,6 +337,7 @@ export class Ant extends MySprite {
 
         this.isAlive = false;
         this.isClimbing = false;
+        this.isAtBorder = false;
         this.setImmovable(true);
         this.disableBody(false, false);
         // Report the escape once, then animate the ant before returning it to the tray.

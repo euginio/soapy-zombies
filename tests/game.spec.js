@@ -2118,10 +2118,10 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(level3State.isDragEnabled).toBe(false);
   expect(level3State.foodsCount).toBe(0);
   expect(level3State.antsCount).toBe(1);
-  expect(level3State.goalType).toBe("defeat_ants");
+  expect(level3State.goalType).toBe("reach_border");
   expect(level3State.hudText).toContain("TUTORIAL 3");
   expect(level3State.hudText).toContain("NIVELA LA BANDEJA");
-  await expect.poll(() => page.locator("#level-hud").textContent()).toContain("HORMIGAS: 0/1");
+  await expect.poll(() => page.locator("#level-hud").textContent()).toContain("LLEVA AL BORDE: 0/1");
 
   // Arrow key tilts the board in Tutorial 3
   await page.keyboard.down("ArrowRight");
@@ -2130,11 +2130,45 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
     .toBe("perspective(900px) rotateX(0deg) rotateY(10deg)");
   await page.keyboard.up("ArrowRight");
 
-  // Trigger ant defeat to complete Tutorial 3
+  // Ant reaches border to complete Tutorial 3
   await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     const ant = scene.ants.getChildren()[0];
-    scene.antDied(ant);
+    ant.isAtBorder = true;
+    scene.onAntReachedBorder(ant);
+  });
+
+  await expect(levelCompleteOverlay).toBeVisible();
+  expect(await page.locator("#level-complete-title").textContent()).toContain("¡Tutorial 3 completado!");
+  expect(await page.locator("#level-complete-subtitle").textContent()).toContain("Tutorial 4");
+
+  // Continue to Tutorial 4 (Phone shake tutorial)
+  await page.locator("#level-complete-continue").click();
+  await expect(page.locator("#level-banner-confirm")).toBeVisible();
+  await expect(page.locator("#level-banner-title")).toHaveText("Tutorial 4");
+  await expect(page.locator("#level-banner-subtitle")).toHaveText("¡Sacude para expulsar!");
+  await page.locator("#level-banner-confirm").click();
+
+  const level4State = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    return {
+      currentLevel: scene.currentLevel,
+      isTutorialMode: scene.isTutorialMode,
+      goalType: scene.currentLevelConfig.goalType,
+      antsCount: scene.ants.getChildren().length
+    };
+  });
+  expect(level4State.currentLevel).toBe(4);
+  expect(level4State.isTutorialMode).toBe(true);
+  expect(level4State.goalType).toBe("defeat_ants");
+  expect(level4State.antsCount).toBe(1);
+
+  // Trigger ant defeat to complete Tutorial 4
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const ant = scene.ants.getChildren()[0];
+    ant.isAtBorder = true;
+    scene.triggerPhoneShake();
   });
 
   await expect(levelCompleteOverlay).toBeVisible();
@@ -3007,7 +3041,7 @@ test("tutorial 3 starts with only one ant in the center of the tray and passes w
   await expect(page.locator("#level-banner")).toBeVisible();
   await expect(page.locator("#level-banner-title")).toHaveText("Tutorial 3");
   await expect(page.locator("#level-banner-subtitle")).toHaveText("¡Inclina la bandeja!");
-  await expect(page.locator("#level-banner-instruction")).toHaveText("Tira la hormiga.");
+  await expect(page.locator("#level-banner-instruction")).toHaveText("Lleva la hormiga al borde.");
   await page.locator("#level-banner-confirm").click();
   await expect(page.locator("#level-banner")).toBeHidden();
 
@@ -3066,11 +3100,11 @@ test("tutorial 3 starts with only one ant in the center of the tray and passes w
   await page.keyboard.up("ArrowRight");
 
   // Releasing arrow keys returns to neutral position and completes hold; HUD updates and balance guide hides
-  await expect.poll(() => page.locator("#level-hud").textContent()).toContain("HORMIGAS: 0/1");
+  await expect.poll(() => page.locator("#level-hud").textContent()).toContain("LLEVA AL BORDE: 0/1");
   await expect(balanceGuide).toBeHidden();
   expect(await page.evaluate(() => window.__gameSceneForTest.isWaitingForNeutralTilt)).toBe(false);
 
-  // Now tilt the board with ArrowRight so the ant falls off the tray
+  // Now tilt the board with ArrowRight so the ant slides to the tray border
   await page.keyboard.down("ArrowRight");
   try {
     await expect
@@ -3079,20 +3113,17 @@ test("tutorial 3 starts with only one ant in the center of the tray and passes w
 
     const levelCompleteOverlay = page.locator("#level-complete-overlay");
     await expect(levelCompleteOverlay).toBeVisible({ timeout: 5000 });
-    await expect(levelCompleteOverlay).toContainText("¡Tutorial completado!");
-    await expect(page.locator("#level-hud")).toContainText("HORMIGAS: 1/1");
+    await expect(levelCompleteOverlay).toContainText("¡Tutorial 3 completado!");
+    await expect(page.locator("#level-hud")).toContainText("LLEVA AL BORDE: 1/1");
   } finally {
     await page.keyboard.up("ArrowRight");
   }
 
-  // Completing Tutorial 3 marks tutorial complete in localStorage
-  expect(await page.evaluate(() => localStorage.getItem("tutorialCompleted"))).toBe("true");
-
-  // Advancing from Tutorial 3 continues to Game Level 1
+  // Advancing from Tutorial 3 continues to Tutorial 4
   await page.locator("#level-complete-continue").click();
   await expect(page.locator("#level-banner-confirm")).toBeVisible();
-  expect(await page.evaluate(() => window.__gameSceneForTest.currentLevel)).toBe(1);
-  expect(await page.evaluate(() => window.__gameSceneForTest.isTutorialMode)).toBe(false);
+  expect(await page.evaluate(() => window.__gameSceneForTest.currentLevel)).toBe(4);
+  expect(await page.evaluate(() => window.__gameSceneForTest.isTutorialMode)).toBe(true);
 });
 
 test("ants walk randomly searching for food on the tray when the only remaining food is dragged", async ({ page }) => {
@@ -3365,7 +3396,7 @@ test("food eat state and texture are cleanly reset on level refill", async ({ pa
 
 test("graduating from tutorial to game level 1 resets score to zero and prevents tutorial ant spawns", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
-  await page.goto("/?tutorial=3");
+  await page.goto("/?tutorial=4");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
   await page.locator("#level-banner-confirm").click();
@@ -3378,11 +3409,12 @@ test("graduating from tutorial to game level 1 resets score to zero and prevents
   await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
     const ant = scene.ants.getChildren()[0];
-    scene.antDied(ant);
+    ant.isAtBorder = true;
+    scene.triggerPhoneShake();
   });
 
-  const antCountInTutorial3 = await page.evaluate(() => window.__gameSceneForTest.ants.getChildren().length);
-  expect(antCountInTutorial3).toBe(1);
+  const antCountInTutorial4 = await page.evaluate(() => window.__gameSceneForTest.ants.getChildren().length);
+  expect(antCountInTutorial4).toBe(1);
 
   await page.locator("#level-complete-continue").click();
   await waitForGameScene(page);
@@ -3607,6 +3639,7 @@ test("caterpillar eating consumes outer border on incoming side first without ho
     await new Promise((resolve) => {
       const check = setInterval(() => {
         if (food.eatProgress >= 0.45 || !food.active) {
+          food.eatTween?.pause();
           clearInterval(check);
           resolve();
         }
@@ -3845,4 +3878,77 @@ test("each level increases simultaneous ants and caterpillars, making each level
     expect(levelStates[i].antSpeed).toBeGreaterThan(levelStates[i - 1].antSpeed);
     expect(levelStates[i].goalTarget).toBeGreaterThan(levelStates[i - 1].goalTarget);
   }
+});
+
+test("phone shake mechanic: ants at tray border are thrown out only when phone shake occurs", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/?tutorial=4");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  // Tutorial 4 banner displays with phone shake instructions
+  await expect(page.locator("#level-banner")).toBeVisible();
+  await expect(page.locator("#level-banner-title")).toHaveText("Tutorial 4");
+  await expect(page.locator("#level-banner-subtitle")).toHaveText("¡Sacude para expulsar!");
+  await expect(page.locator("#level-banner-instruction")).toHaveText("Lleva la hormiga al borde y sacude el teléfono.");
+  await page.locator("#level-banner-confirm").click();
+
+  // Initial state: 1 ant at tray center, HUD says HORMIGAS: 0/1
+  await expect(page.locator("#level-hud")).toContainText("HORMIGAS: 0/1");
+  const initialAntAtBorder = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const ant = scene.ants.getChildren()[0];
+    return ant.isAtBorder;
+  });
+  expect(initialAntAtBorder).toBe(false);
+
+  // 1. Triggering phone shake while ant is in the center does NOT defeat the ant
+  await page.keyboard.press("Space");
+  await page.waitForTimeout(100);
+  expect(await page.evaluate(() => window.__gameSceneForTest.levelProgress)).toBe(0);
+  expect(await page.evaluate(() => window.__gameSceneForTest.ants.getChildren()[0].isAlive)).toBe(true);
+
+  // 2. Tilt board to slide ant to the tray border
+  await page.keyboard.down("ArrowRight");
+  await expect
+    .poll(() => page.locator("#tilting-board").evaluate((el) => el.style.transform))
+    .toBe("perspective(900px) rotateX(0deg) rotateY(10deg)");
+
+  // Wait for the ant to reach the right border and cling there
+  await expect.poll(async () => {
+    return page.evaluate(() => {
+      const scene = window.__gameSceneForTest;
+      const ant = scene.ants.getChildren()[0];
+      return ant.isAtBorder;
+    });
+  }, { timeout: 5000 }).toBe(true);
+  await page.keyboard.up("ArrowRight");
+
+  // The ant is at the border but STILL ALIVE without phone shake
+  const antStillAliveAtBorder = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const ant = scene.ants.getChildren()[0];
+    return ant.isAlive && ant.isAtBorder;
+  });
+  expect(antStillAliveAtBorder).toBe(true);
+  expect(await page.evaluate(() => window.__gameSceneForTest.levelProgress)).toBe(0);
+
+  // 3. Now shake the phone (or press Space key / click shake button): ant is thrown off the tray!
+  await page.keyboard.press("Space");
+
+  // Level complete overlay appears
+  const completeOverlay = page.locator("#level-complete-overlay");
+  await expect(completeOverlay).toBeVisible({ timeout: 5000 });
+  await expect(completeOverlay).toContainText("¡Tutorial completado!");
+  await expect(completeOverlay).toContainText("Nivel 1");
+  await expect(page.locator("#level-hud")).toContainText("HORMIGAS: 1/1");
+
+  // Tutorial is marked completed in localStorage
+  expect(await page.evaluate(() => localStorage.getItem("tutorialCompleted"))).toBe("true");
+
+  // Advancing continues directly to Game Level 1
+  await page.locator("#level-complete-continue").click();
+  await expect(page.locator("#level-banner-confirm")).toBeVisible();
+  expect(await page.evaluate(() => window.__gameSceneForTest.currentLevel)).toBe(1);
+  expect(await page.evaluate(() => window.__gameSceneForTest.isTutorialMode)).toBe(false);
 });
