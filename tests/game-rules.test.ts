@@ -13,6 +13,8 @@ import {
   shouldTiltAffectAnt,
   shouldTiltAffectCaterpillar,
   calculateWaveExtraAnts,
+  calculateLevelDifficultyScore,
+  isLevelHarder,
   getLevelConfig,
   isFinalWaveTriggered,
   isLevelGoalMet,
@@ -1073,24 +1075,28 @@ describe("level progression rules", () => {
     assert.equal(lvl2.caterpillarsEnabled, true);
     assert.equal(lvl2.goalType, "defeat_ants");
     assert.equal(lvl2.goalTarget, 25);
+    assert.equal(lvl2.initialAnts, 6);
     assert.equal(lvl2.initialCaterpillars, 1);
-    assert.equal(lvl2.antSpeed, 62);
+    assert.equal(lvl2.antSpeed, 65);
 
     const lvl5 = getLevelConfig(5, false);
-    assert.equal(lvl5.initialCaterpillars, 2);
+    assert.equal(lvl5.initialAnts, 9);
+    assert.equal(lvl5.initialCaterpillars, 3);
     assert.equal(lvl5.goalTarget, 40);
-    assert.equal(lvl5.antSpeed, 74);
+    assert.equal(lvl5.antSpeed, 80);
 
     const lvl7 = getLevelConfig(7, false);
-    assert.equal(lvl7.initialAnts, 8);
-    assert.equal(lvl7.initialCaterpillars, 2);
+    assert.equal(lvl7.initialAnts, 11);
+    assert.equal(lvl7.initialCaterpillars, 4);
     assert.equal(lvl7.goalTarget, 50);
-    assert.equal(lvl7.antSpeed, 82);
+    assert.equal(lvl7.antSpeed, 90);
 
     // Level 8 escalates dynamically
     const lvl8 = getLevelConfig(8, false);
     assert.ok(lvl8.antSpeed > lvl7.antSpeed);
     assert.equal(lvl8.level, 8);
+    assert.equal(lvl8.initialAnts, 12);
+    assert.equal(lvl8.initialCaterpillars, 4);
     assert.equal(lvl8.goalTarget, 60);
   });
 
@@ -1206,9 +1212,13 @@ describe("level progression rules", () => {
 
   it("calculates extra ant count for the final wave based on level tier", () => {
     assert.equal(calculateWaveExtraAnts(1), 2);
-    assert.equal(calculateWaveExtraAnts(4), 2);
-    assert.equal(calculateWaveExtraAnts(5), 3);
-    assert.equal(calculateWaveExtraAnts(10), 3);
+    assert.equal(calculateWaveExtraAnts(2), 2);
+    assert.equal(calculateWaveExtraAnts(3), 3);
+    assert.equal(calculateWaveExtraAnts(4), 3);
+    assert.equal(calculateWaveExtraAnts(5), 4);
+    assert.equal(calculateWaveExtraAnts(6), 4);
+    assert.equal(calculateWaveExtraAnts(7), 5);
+    assert.equal(calculateWaveExtraAnts(10), 6);
   });
 
   it("respects dragEnabled parameter in canFoodBeDragged", () => {
@@ -1620,5 +1630,60 @@ describe("mandatory fullscreen rules", () => {
       shouldResume: false,
       pausedDueToFullscreen: false
     });
+  });
+});
+describe("escalating level difficulty rules", () => {
+  it("ensures each level is strictly harder than the previous one", () => {
+    for (let level = 2; level <= 12; level++) {
+      const prev = getLevelConfig(level - 1, false);
+      const curr = getLevelConfig(level, false);
+      assert.equal(
+        isLevelHarder(curr, prev),
+        true,
+        `Level ${level} must be harder than Level ${level - 1}`
+      );
+      assert.ok(
+        calculateLevelDifficultyScore(curr) > calculateLevelDifficultyScore(prev),
+        `Difficulty score of level ${level} must be higher than level ${level - 1}`
+      );
+    }
+  });
+
+  it("increases the number of simultaneous ants with each level", () => {
+    for (let level = 1; level < 12; level++) {
+      const curr = getLevelConfig(level, false);
+      const next = getLevelConfig(level + 1, false);
+      assert.ok(
+        next.initialAnts > curr.initialAnts,
+        `Level ${level + 1} (${next.initialAnts}) must have more simultaneous ants than level ${level} (${curr.initialAnts})`
+      );
+    }
+  });
+
+  it("increases the number of simultaneous caterpillars progressively across levels", () => {
+    const lvl1 = getLevelConfig(1, false);
+    const lvl2 = getLevelConfig(2, false);
+    const lvl3 = getLevelConfig(3, false);
+    const lvl5 = getLevelConfig(5, false);
+    const lvl7 = getLevelConfig(7, false);
+    const lvl9 = getLevelConfig(9, false);
+    const lvl11 = getLevelConfig(11, false);
+
+    assert.equal(lvl1.initialCaterpillars, 0);
+    assert.equal(lvl2.initialCaterpillars, 1);
+    assert.equal(lvl3.initialCaterpillars, 2);
+    assert.equal(lvl5.initialCaterpillars, 3);
+    assert.equal(lvl7.initialCaterpillars, 4);
+    assert.equal(lvl9.initialCaterpillars, 5);
+    assert.equal(lvl11.initialCaterpillars, 6);
+
+    for (let level = 2; level <= 12; level++) {
+      const prev = getLevelConfig(level - 1, false);
+      const curr = getLevelConfig(level, false);
+      assert.ok(
+        curr.initialCaterpillars >= prev.initialCaterpillars,
+        `Level ${level} caterpillars must be >= Level ${level - 1}`
+      );
+    }
   });
 });

@@ -99,6 +99,11 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
     game automatically pauses and prompts to return to fullscreen, remaining paused until fullscreen
     is active.
 
+17. **Each level is harder than the previous one, with increasing simultaneous ants and caterpillars.**
+    Per the owner's instruction, game difficulty escalates with every level. The number of simultaneous
+    ants increases each level, the number of simultaneous caterpillars increases progressively, ant
+    speed accelerates, and defeat goals scale up.
+
 ## Conventions and gotchas
 
 - **Line endings are CRLF** (`core.autocrlf=true`, no `.gitattributes`). Edit tools that match

@@ -1073,7 +1073,7 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     caterpillarsEnabled: false,
     initialAnts: 5,
     initialCaterpillars: 0,
-    antSpeed: 58,
+    antSpeed: 60,
     goalType: "defeat_ants",
     goalTarget: 20
   },
@@ -1086,9 +1086,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     tiltEnabled: true,
     dragEnabled: true,
     caterpillarsEnabled: true,
-    initialAnts: 5,
+    initialAnts: 6,
     initialCaterpillars: 1,
-    antSpeed: 62,
+    antSpeed: 65,
     goalType: "defeat_ants",
     goalTarget: 25
   },
@@ -1101,9 +1101,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     tiltEnabled: true,
     dragEnabled: true,
     caterpillarsEnabled: true,
-    initialAnts: 6,
-    initialCaterpillars: 1,
-    antSpeed: 66,
+    initialAnts: 7,
+    initialCaterpillars: 2,
+    antSpeed: 70,
     goalType: "defeat_ants",
     goalTarget: 30
   },
@@ -1116,9 +1116,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     tiltEnabled: true,
     dragEnabled: true,
     caterpillarsEnabled: true,
-    initialAnts: 6,
-    initialCaterpillars: 1,
-    antSpeed: 70,
+    initialAnts: 8,
+    initialCaterpillars: 2,
+    antSpeed: 75,
     goalType: "defeat_ants",
     goalTarget: 35
   },
@@ -1126,14 +1126,14 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     level: 5,
     isTutorial: false,
     title: "Nivel 5",
-    subtitle: "¡Doble problema!",
+    subtitle: "¡Amenaza múltiple!",
     instruction: "Tira 40 hormigas.",
     tiltEnabled: true,
     dragEnabled: true,
     caterpillarsEnabled: true,
-    initialAnts: 7,
-    initialCaterpillars: 2,
-    antSpeed: 74,
+    initialAnts: 9,
+    initialCaterpillars: 3,
+    antSpeed: 80,
     goalType: "defeat_ants",
     goalTarget: 40
   },
@@ -1146,9 +1146,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     tiltEnabled: true,
     dragEnabled: true,
     caterpillarsEnabled: true,
-    initialAnts: 7,
-    initialCaterpillars: 2,
-    antSpeed: 78,
+    initialAnts: 10,
+    initialCaterpillars: 3,
+    antSpeed: 85,
     goalType: "defeat_ants",
     goalTarget: 45
   },
@@ -1161,9 +1161,9 @@ export const LEVEL_CONFIGS: Record<number, LevelConfig> = {
     tiltEnabled: true,
     dragEnabled: true,
     caterpillarsEnabled: true,
-    initialAnts: 8,
-    initialCaterpillars: 2,
-    antSpeed: 82,
+    initialAnts: 11,
+    initialCaterpillars: 4,
+    antSpeed: 90,
     goalType: "defeat_ants",
     goalTarget: 50
   }
@@ -1194,9 +1194,9 @@ export function getLevelConfig(level: number, isTutorial = false): LevelConfig {
     instruction: "Tira " + (50 + extraLevels * 10) + " hormigas.",
     goalType: "defeat_ants",
     goalTarget: 50 + extraLevels * 10,
-    antSpeed: Math.min(95, base.antSpeed + extraLevels * 2),
-    initialAnts: Math.min(10, base.initialAnts + Math.floor(extraLevels / 2)),
-    initialCaterpillars: Math.min(3, base.initialCaterpillars + (level >= 12 ? 1 : 0))
+    antSpeed: Math.min(105, base.antSpeed + extraLevels * 2),
+    initialAnts: Math.min(16, base.initialAnts + extraLevels),
+    initialCaterpillars: Math.min(6, base.initialCaterpillars + Math.floor(extraLevels / 2))
   };
 }
 
@@ -1249,10 +1249,16 @@ export function isFinalWaveTriggered(
 }
 
 export function calculateWaveExtraAnts(level: number): number {
-  if (level <= 4) {
+  if (level <= 2) {
     return 2;
   }
-  return 3;
+  if (level <= 4) {
+    return 3;
+  }
+  if (level <= 6) {
+    return 4;
+  }
+  return Math.min(6, 5 + Math.floor((level - 7) / 3));
 }
 
 export interface LevelCompleteSummary {
@@ -1660,4 +1666,32 @@ export function resolveFullscreenPauseTransition(
     shouldResume: false,
     pausedDueToFullscreen: isFullscreen ? false : pausedDueToFullscreen
   };
+}
+/**
+ * Calculates a composite difficulty score for a level configuration based on
+ * simultaneous ant count, caterpillar threat, ant movement speed, and defeat targets.
+ */
+export function calculateLevelDifficultyScore(config: LevelConfig): number {
+  if (config.isTutorial) {
+    return config.level * 10;
+  }
+  const antWeight = config.initialAnts * 12;
+  const caterpillarWeight = (config.caterpillarsEnabled ? config.initialCaterpillars : 0) * 18;
+  const speedWeight = config.antSpeed * 0.6;
+  const targetWeight = config.goalTarget * 0.3;
+  return antWeight + caterpillarWeight + speedWeight + targetWeight;
+}
+
+/**
+ * Evaluates whether a subsequent level configuration is strictly harder than an earlier one.
+ */
+export function isLevelHarder(higherConfig: LevelConfig, lowerConfig: LevelConfig): boolean {
+  if (higherConfig.isTutorial || lowerConfig.isTutorial) {
+    return higherConfig.level > lowerConfig.level;
+  }
+  const scoreHigher = calculateLevelDifficultyScore(higherConfig);
+  const scoreLower = calculateLevelDifficultyScore(lowerConfig);
+  const antsIncreasedOrEqual = higherConfig.initialAnts >= lowerConfig.initialAnts;
+  const caterpillarsIncreasedOrEqual = higherConfig.initialCaterpillars >= lowerConfig.initialCaterpillars;
+  return scoreHigher > scoreLower && antsIncreasedOrEqual && caterpillarsIncreasedOrEqual;
 }

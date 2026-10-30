@@ -2235,7 +2235,7 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
   expect(antProgress.levelProgress).toBe(1);
   expect(antProgress.hudText).toContain("HORMIGAS: 1/25");
 
-  // 9. Level 5 has 2 caterpillars and 40 ant target
+  // 9. Level 5 has 3 caterpillars and 40 ant target
   await page.evaluate(() => window.__gameSceneForTest.startLevel(5, false));
   const level5State = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
@@ -2247,11 +2247,11 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
     };
   });
   expect(level5State.currentLevel).toBe(5);
-  expect(level5State.caterpillarsCount).toBe(2);
+  expect(level5State.caterpillarsCount).toBe(3);
   expect(level5State.goalTarget).toBe(40);
-  expect(level5State.antSpeed).toBe(74);
+  expect(level5State.antSpeed).toBe(80);
 
-  // 10. Level 7 has 8 ants, 2 caterpillars, and 50 ant target
+  // 10. Level 7 has 11 ants, 4 caterpillars, and 50 ant target
   await page.evaluate(() => window.__gameSceneForTest.startLevel(7, false));
   const level7State = await page.evaluate(() => {
     const scene = window.__gameSceneForTest;
@@ -2264,10 +2264,10 @@ test("level progression moves through tutorial levels, gates tilt/drag controls,
     };
   });
   expect(level7State.currentLevel).toBe(7);
-  expect(level7State.antsCount).toBe(8);
-  expect(level7State.caterpillarsCount).toBe(2);
+  expect(level7State.antsCount).toBe(11);
+  expect(level7State.caterpillarsCount).toBe(4);
   expect(level7State.goalTarget).toBe(50);
-  expect(level7State.antSpeed).toBe(82);
+  expect(level7State.antSpeed).toBe(90);
 });
 
 test("modal boxes (level banner, level HUD, and game over overlay) remain within screen bounds", async ({ page }) => {
@@ -3787,4 +3787,62 @@ test("when food is eaten its hitbox fits the visible part dynamically", async ({
   expect(hitboxCheck.afterReset.radius).toBe(10);
   expect(hitboxCheck.afterReset.offsetX).toBe(7);
   expect(hitboxCheck.afterReset.offsetY).toBe(8);
+});
+test("each level increases simultaneous ants and caterpillars, making each level harder", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+
+  const levelStates = await page.evaluate(async () => {
+    const scene = window.__gameSceneForTest;
+    const results = [];
+
+    const testLevels = [1, 2, 3, 5, 7];
+    for (const lvl of testLevels) {
+      await scene.startLevel(lvl, false);
+      results.push({
+        level: lvl,
+        antsCount: scene.ants.getChildren().length,
+        caterpillarsCount: scene.caterpillars.getChildren().length,
+        antSpeed: scene.currentLevelConfig.antSpeed,
+        goalTarget: scene.currentLevelConfig.goalTarget
+      });
+    }
+
+    return results;
+  });
+
+  // Level 1: 5 ants, 0 caterpillars
+  expect(levelStates[0].antsCount).toBe(5);
+  expect(levelStates[0].caterpillarsCount).toBe(0);
+  expect(levelStates[0].antSpeed).toBe(60);
+
+  // Level 2: 6 ants, 1 caterpillar (increased!)
+  expect(levelStates[1].antsCount).toBe(6);
+  expect(levelStates[1].caterpillarsCount).toBe(1);
+  expect(levelStates[1].antSpeed).toBe(65);
+
+  // Level 3: 7 ants, 2 caterpillars (increased!)
+  expect(levelStates[2].antsCount).toBe(7);
+  expect(levelStates[2].caterpillarsCount).toBe(2);
+  expect(levelStates[2].antSpeed).toBe(70);
+
+  // Level 5: 9 ants, 3 caterpillars (increased!)
+  expect(levelStates[3].antsCount).toBe(9);
+  expect(levelStates[3].caterpillarsCount).toBe(3);
+  expect(levelStates[3].antSpeed).toBe(80);
+
+  // Level 7: 11 ants, 4 caterpillars (increased!)
+  expect(levelStates[4].antsCount).toBe(11);
+  expect(levelStates[4].caterpillarsCount).toBe(4);
+  expect(levelStates[4].antSpeed).toBe(90);
+
+  // Verify that each level in the sequence is strictly harder than the preceding one
+  for (let i = 1; i < levelStates.length; i++) {
+    expect(levelStates[i].antsCount).toBeGreaterThan(levelStates[i - 1].antsCount);
+    expect(levelStates[i].caterpillarsCount).toBeGreaterThanOrEqual(levelStates[i - 1].caterpillarsCount);
+    expect(levelStates[i].antSpeed).toBeGreaterThan(levelStates[i - 1].antSpeed);
+    expect(levelStates[i].goalTarget).toBeGreaterThan(levelStates[i - 1].goalTarget);
+  }
 });
