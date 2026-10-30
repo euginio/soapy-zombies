@@ -3149,9 +3149,14 @@ test("ants walk randomly searching for food on the tray when the only remaining 
     singleFood.isBeingDragged = false;
     singleFood.releaseAllCarriers(false);
 
+    if (scene.antSpawnTimer) {
+      scene.antSpawnTimer.paused = true;
+    }
     const ants = scene.ants.getChildren().filter((a) => a.active && a.isAlive);
     ants.forEach((a) => {
       a.isClimbing = false;
+      a.myFood = null;
+      a.searchRetargetTimer = 0;
       a.setPosition(scene.tray.x + Phaser.Math.Between(-80, 80), scene.tray.y + Phaser.Math.Between(-40, 40));
     });
 
@@ -3637,13 +3642,23 @@ test("caterpillar eating consumes outer border on incoming side first without ho
     scene.eatFood(caterpillar, food);
 
     await new Promise((resolve) => {
+      if (food.eatProgress >= 0.45 && food.eatProgress < 0.85) {
+        food.eatTween?.pause();
+        return resolve();
+      }
+      food.eatTween?.on('update', () => {
+        if (food.eatProgress >= 0.45 && food.eatTween?.isPlaying()) {
+          food.eatTween.pause();
+          resolve();
+        }
+      });
       const check = setInterval(() => {
         if (food.eatProgress >= 0.45 || !food.active) {
           food.eatTween?.pause();
           clearInterval(check);
           resolve();
         }
-      }, 50);
+      }, 30);
     });
 
     const canvasTex = food.canvasTex;

@@ -202,7 +202,7 @@ export class TitleScene extends MyScene {
     });
 
     // 7. Subtle Controls Hint
-    const controlsHint = this.add.text(this.width / 2, 270, "Inclina el móvil o usa las teclas / WASD", {
+    const controlsHint = this.add.text(this.width / 2, 270, "¡Inclina al borde y sacude para expulsar!", {
       fontSize: "11px",
       fontFamily: "system-ui, sans-serif",
       fontStyle: "500",

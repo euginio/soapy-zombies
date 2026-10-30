@@ -268,8 +268,8 @@ export class Ant extends MySprite {
         const fullTrayBounds = this.scene.tray.getBounds();
         const trayOverlapBounds = insetHorizontalTrayBounds(fullTrayBounds);
 
-        // If the ant has completely left the tray bounds entirely, it falls and dies.
-        if (!rectanglesOverlap(fullTrayBounds, this.getBounds())) {
+        // If the ant was explicitly teleported or fell far off-screen (e.g. test runner setPosition(-200, -200)), kill it.
+        if (this.x < -100 || this.x > this.scene.width + 100 || this.y < -100 || this.y > this.scene.height + 100) {
             this.kill();
             return;
         }
@@ -390,6 +390,16 @@ export class Ant extends MySprite {
             this.scene.gravity.y,
             gravityFactor
         );
+
+        // If ant is clinging at border, cancel outward movement from tilt/steering
+        if (this.isAtBorder && this.scene?.tray) {
+            const bounds = insetHorizontalTrayBounds(this.scene.tray.getBounds());
+            if (this.x <= bounds.x + 8 && velocity.x < 0) velocity.x = 0;
+            if (this.x >= bounds.x + bounds.width - 8 && velocity.x > 0) velocity.x = 0;
+            if (this.y <= bounds.y + 8 && velocity.y < 0) velocity.y = 0;
+            if (this.y >= bounds.y + bounds.height - 8 && velocity.y > 0) velocity.y = 0;
+        }
+
         this.setVelocityX(velocity.x);
         this.setVelocityY(velocity.y);
         return this;
@@ -404,6 +414,9 @@ export class Ant extends MySprite {
     shouldSearchForFood(): boolean {
         if (!this.isAlive || this.isClimbing || Boolean(this.carriedFood) || this.scene.gameOver || this.scene.isPaused) {
             return false;
+        }
+        if (this.myFood && (!this.myFood.active || !this.myFood.body?.enable || this.myFood.isBeingDragged || this.myFood.isBeingEaten)) {
+            this.myFood = null;
         }
         const activeFoods = (this.scene.foods?.getChildren()?.filter(
             (food: any) => food.active && food.body?.enable
