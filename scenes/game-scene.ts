@@ -14,6 +14,7 @@ import {
   calculateVisualLayerLayout,
   calculateWaveExtraAnts,
   canPauseGame,
+  canResumeGameplay,
   clampFoodPosition,
   calculateBalanceBubblePosition,
   calculateBalanceHoldProgress,
@@ -36,10 +37,12 @@ import {
   MAX_CARRIER_ANTS,
   parseStoredHighScore,
   resolveAntEscape,
+  resolveFullscreenPauseTransition,
   resolveCaterpillarEscape,
   resolveFoodLoss,
   resolveLevelFoodCount,
   selectAvailableFoodFrame,
+  shouldPauseForFullscreen,
   togglePauseState,
   TUTORIAL_STORAGE_KEY
 } from "../game-rules";
@@ -176,7 +179,7 @@ export class GameScene extends MyScene {
   private touchTilt: { x: number; y: number } | null = null;
   private rotateOverlay: HTMLDivElement | null = null;
   private onWindowPointerUp: (() => void) | null = null;
-  private fullscreenToggleButton: HTMLButtonElement | null = null;
+  private pausedDueToFullscreenLoss: boolean = false;
   private fullscreenPromptOverlay: HTMLDivElement | null = null;
 
   constructor() {
@@ -190,6 +193,7 @@ export class GameScene extends MyScene {
     this.score = 0;
     this.gameOver = false;
     this.isPaused = false;
+    this.pausedDueToFullscreenLoss = false;
     this.isLevelCompleteActive = false;
     this.isWaitingForNeutralTilt = false;
     this.neutralTiltDurationMs = 0;
@@ -971,7 +975,7 @@ export class GameScene extends MyScene {
     this.pauseSoundButton = soundBtn;
 
     const homeBtn = createButton("pause-home", "🏠 Menú principal", "#4b5948", () => {
-      this.togglePause(false);
+      this.togglePause(false, true);
       this.returnToTitle();
     });
 
@@ -988,12 +992,12 @@ export class GameScene extends MyScene {
   }
 
   restartCurrentLevel() {
-    this.togglePause(false);
+    this.togglePause(false, true);
     this.startLevel(this.currentLevel, true, this.isTutorialMode, false, true);
   }
 
   restartWholeGame() {
-    this.togglePause(false);
+    this.togglePause(false, true);
     this.score = 0;
     this.scoreText.setText("0");
     this.scoreLabel.textContent = "0";
@@ -1025,7 +1029,7 @@ export class GameScene extends MyScene {
     this.refreshPauseSoundButton();
   }
 
-  togglePause(forceState?: boolean) {
+  togglePause(forceState?: boolean, allowOutsideFullscreen = false) {
     if (this.gameOver || this.isLevelCompleteActive || this.isLevelIntroActive) {
       return;
     }
@@ -1033,7 +1037,16 @@ export class GameScene extends MyScene {
     if (this.isPaused === nextState) {
       return;
     }
+    if (!nextState && !allowOutsideFullscreen && !canResumeGameplay(this.scale.isFullscreen, this.scale.fullscreen.available, this.gameOver)) {
+      this.pausedDueToFullscreenLoss = true;
+      this.toggleFullscreen(true);
+      this.showFullscreenPrompt();
+      return;
+    }
     this.isPaused = nextState;
+    if (!this.isPaused) {
+      this.pausedDueToFullscreenLoss = false;
+    }
 
     if (this.isPaused) {
       this.physics.pause();
@@ -1311,7 +1324,6 @@ export class GameScene extends MyScene {
     this.createLevelCompleteOverlay();
     this.createSoundToggleButton();
     this.createPauseToggleButton();
-    this.createFullscreenToggleButton();
     this.createFullscreenPromptOverlay();
     this.createRotatePromptOverlay();
     this.createLevelHud();
@@ -1599,11 +1611,6 @@ export class GameScene extends MyScene {
       this.soundToggleButton.style.left = `${layout.left + 8}px`;
       this.soundToggleButton.style.top = `${layout.top + layout.height - this.soundToggleButton.offsetHeight - 8}px`;
     }
-    if (this.fullscreenToggleButton) {
-      this.fullscreenToggleButton.style.fontSize = `${18 * layout.scaleX}px`;
-      this.fullscreenToggleButton.style.left = `${layout.left + layout.width - this.fullscreenToggleButton.offsetWidth - 8}px`;
-      this.fullscreenToggleButton.style.top = `${layout.top + layout.height - this.fullscreenToggleButton.offsetHeight - 8}px`;
-    }
     if (this.fullscreenPromptOverlay) {
       const promptScale = Math.min(layout.scaleX, layout.scaleY);
       this.fullscreenPromptOverlay.style.fontSize = `${Math.max(10, Math.min(13, 12 * promptScale))}px`;
@@ -1692,7 +1699,6 @@ export class GameScene extends MyScene {
       this.gameOverOverlay,
       this.pauseOverlay,
       this.levelCompleteOverlay,
-      this.fullscreenToggleButton,
       this.fullscreenPromptOverlay
     ]) {
       if (layer && layer.parentElement !== parent) {
@@ -1754,57 +1760,38 @@ export class GameScene extends MyScene {
         history.pushState({ inGame: true }, "");
       }
     } catch {}
-    if (!this.scale.isFullscreen && this.scale.fullscreen.available) {
+    if (shouldPauseForFullscreen(this.scale.isFullscreen, this.scale.fullscreen.available, this.gameOver, this.isLevelIntroActive, this.isLevelCompleteActive)) {
       this.showFullscreenPrompt();
+      this.pausedDueToFullscreenLoss = true;
+      this.togglePause(true);
     }
   };
 
   private onFullscreenChange = () => {
-    this.refreshFullscreenButton();
+    const transition = resolveFullscreenPauseTransition(
+      this.scale.isFullscreen,
+      this.scale.fullscreen.available,
+      this.isPaused,
+      this.pausedDueToFullscreenLoss,
+      this.gameOver,
+      this.isLevelIntroActive,
+      this.isLevelCompleteActive
+    );
+
+    this.pausedDueToFullscreenLoss = transition.pausedDueToFullscreen;
+
     if (!this.scale.isFullscreen && !this.gameOver && this.scale.fullscreen.available) {
       this.showFullscreenPrompt();
     } else {
       this.hideFullscreenPrompt();
     }
-  };
 
-  private createFullscreenToggleButton() {
-    const button = document.createElement("button");
-    button.id = "fullscreen-toggle";
-    button.type = "button";
-    Object.assign(button.style, {
-      position: "absolute",
-      zIndex: "10001",
-      padding: "0.25em 0.45em",
-      border: "0",
-      borderRadius: "0.4em",
-      color: "#201",
-      background: "rgba(255, 255, 255, 0.9)",
-      font: "bold 18px sans-serif",
-      lineHeight: "1.2",
-      cursor: "pointer",
-      pointerEvents: "auto",
-      display: this.scale.fullscreen.available ? "block" : "none"
-    });
-    button.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      this.toggleFullscreen();
-    });
-    this.fullscreenToggleButton = button;
-    this.refreshFullscreenButton();
-    this.visualLayerParent.appendChild(button);
-  }
-
-  private refreshFullscreenButton() {
-    if (!this.fullscreenToggleButton) {
-      return;
+    if (transition.shouldPause && !this.isPaused) {
+      this.togglePause(true);
+    } else if (transition.shouldResume && this.isPaused) {
+      this.togglePause(false);
     }
-    const isFull = this.scale.isFullscreen;
-    this.fullscreenToggleButton.textContent = isFull ? "🗗" : "⛶";
-    this.fullscreenToggleButton.setAttribute("aria-label", isFull ? "Salir de pantalla completa" : "Pantalla completa");
-    this.fullscreenToggleButton.setAttribute("aria-pressed", isFull ? "true" : "false");
-  }
+  };
 
   private createFullscreenPromptOverlay() {
     const overlay = document.createElement("div");
@@ -1815,7 +1802,7 @@ export class GameScene extends MyScene {
       position: "absolute",
       display: "none",
       alignItems: "center",
-      justifyContent: "space-between",
+      justifyContent: "center",
       zIndex: "10002",
       background: "rgba(23, 35, 18, 0.94)",
       color: "#fff",
@@ -1825,7 +1812,7 @@ export class GameScene extends MyScene {
       boxSizing: "border-box",
       cursor: "pointer",
       pointerEvents: "auto",
-      padding: "6px 12px",
+      padding: "8px 16px",
       borderRadius: "18px",
       border: "1px solid rgba(255, 255, 255, 0.3)",
       maxWidth: "min(92vw, 420px)"
@@ -1834,36 +1821,17 @@ export class GameScene extends MyScene {
     const label = document.createElement("span");
     label.textContent = "⛶ Toca para volver a pantalla completa";
     Object.assign(label.style, {
-      marginRight: "8px",
       userSelect: "none",
       webkitUserSelect: "none",
       fontSize: "0.85em",
       lineHeight: "1.2"
     });
 
-    const closeBtn = document.createElement("button");
-    closeBtn.textContent = "✕";
-    closeBtn.type = "button";
-    closeBtn.setAttribute("aria-label", "Cerrar");
-    Object.assign(closeBtn.style, {
-      background: "transparent",
-      border: "0",
-      color: "#fff",
-      fontSize: "14px",
-      cursor: "pointer",
-      padding: "2px 6px",
-      borderRadius: "4px"
-    });
-    closeBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      this.hideFullscreenPrompt();
-    });
-
     overlay.addEventListener("click", () => {
       this.toggleFullscreen(true);
     });
 
-    overlay.append(label, closeBtn);
+    overlay.appendChild(label);
     this.fullscreenPromptOverlay = overlay;
     this.visualLayerParent.appendChild(overlay);
   }
@@ -1892,10 +1860,7 @@ export class GameScene extends MyScene {
         } catch {}
       }
       this.hideFullscreenPrompt();
-    } else {
-      this.scale.stopFullscreen();
     }
-    this.refreshFullscreenButton();
   }
 
   private destroyVisualLayers() {
@@ -1946,8 +1911,6 @@ export class GameScene extends MyScene {
     this.pauseInfoContainer = null;
     this.pauseLevelLabel = null;
     this.pauseStatsLabel = null;
-    this.fullscreenToggleButton?.remove();
-    this.fullscreenToggleButton = null;
     this.fullscreenPromptOverlay?.remove();
     this.fullscreenPromptOverlay = null;
     window.removeEventListener("popstate", this.onPopState);
@@ -2121,9 +2084,15 @@ export class GameScene extends MyScene {
     } else {
       this.isLevelIntroActive = false;
       this.hideLevelBanner(true);
-      this.physics.resume();
-      this.anims.resumeAll();
-      this.time.paused = false;
+      if (!canResumeGameplay(this.scale.isFullscreen, this.scale.fullscreen.available, this.gameOver)) {
+        this.pausedDueToFullscreenLoss = true;
+        this.showFullscreenPrompt();
+        this.togglePause(true);
+      } else {
+        this.physics.resume();
+        this.anims.resumeAll();
+        this.time.paused = false;
+      }
     }
   }
 
@@ -2262,6 +2231,12 @@ export class GameScene extends MyScene {
     this.isLevelIntroActive = false;
     this.audio.play(AUDIO_KEYS.uiTap);
     this.hideLevelBanner(true);
+    if (!canResumeGameplay(this.scale.isFullscreen, this.scale.fullscreen.available, this.gameOver)) {
+      this.pausedDueToFullscreenLoss = true;
+      this.showFullscreenPrompt();
+      this.togglePause(true);
+      return;
+    }
     this.physics.resume();
     this.anims.resumeAll();
     this.time.paused = false;

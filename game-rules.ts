@@ -1578,3 +1578,86 @@ export function calculateBittenFoodBounds(
 
   return calculateVisibleHitboxFromAlpha(grid, frameSize, frameSize, 128);
 }
+/**
+ * Determines whether the game must pause because fullscreen is mandatory and not active.
+ */
+export function shouldPauseForFullscreen(
+  isFullscreen: boolean,
+  fullscreenAvailable: boolean,
+  gameOver = false,
+  isLevelIntroActive = false,
+  isLevelCompleteActive = false
+): boolean {
+  if (gameOver || isLevelIntroActive || isLevelCompleteActive) {
+    return false;
+  }
+  return fullscreenAvailable && !isFullscreen;
+}
+
+/**
+ * Determines whether the game is allowed to resume gameplay.
+ * Fullscreen is mandatory: if supported and not active, resuming is blocked.
+ */
+export function canResumeGameplay(
+  isFullscreen: boolean,
+  fullscreenAvailable: boolean,
+  gameOver = false
+): boolean {
+  if (gameOver) {
+    return false;
+  }
+  if (fullscreenAvailable && !isFullscreen) {
+    return false;
+  }
+  return true;
+}
+
+export interface FullscreenPauseTransition {
+  shouldPause: boolean;
+  shouldResume: boolean;
+  pausedDueToFullscreen: boolean;
+}
+
+/**
+ * Evaluates state transitions when fullscreen status changes.
+ */
+export function resolveFullscreenPauseTransition(
+  isFullscreen: boolean,
+  fullscreenAvailable: boolean,
+  currentlyPaused: boolean,
+  pausedDueToFullscreen: boolean,
+  gameOver = false,
+  isLevelIntroActive = false,
+  isLevelCompleteActive = false
+): FullscreenPauseTransition {
+  if (gameOver || isLevelIntroActive || isLevelCompleteActive) {
+    return {
+      shouldPause: false,
+      shouldResume: false,
+      pausedDueToFullscreen: false
+    };
+  }
+
+  if (fullscreenAvailable && !isFullscreen) {
+    const shouldPause = !currentlyPaused;
+    return {
+      shouldPause,
+      shouldResume: false,
+      pausedDueToFullscreen: shouldPause || pausedDueToFullscreen
+    };
+  }
+
+  if (isFullscreen && pausedDueToFullscreen) {
+    return {
+      shouldPause: false,
+      shouldResume: true,
+      pausedDueToFullscreen: false
+    };
+  }
+
+  return {
+    shouldPause: false,
+    shouldResume: false,
+    pausedDueToFullscreen: isFullscreen ? false : pausedDueToFullscreen
+  };
+}

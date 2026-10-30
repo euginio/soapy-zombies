@@ -76,7 +76,10 @@ import {
   selectAvailableFoodFrame,
   TOTAL_FOOD_FRAMES,
   calculateVisibleHitboxFromAlpha,
-  calculateBittenFoodBounds
+  calculateBittenFoodBounds,
+  shouldPauseForFullscreen,
+  canResumeGameplay,
+  resolveFullscreenPauseTransition
 } from "../game-rules";
 import { ScreenWakeLock, WakeLockSentinelLike } from "../services/wake-lock";
 
@@ -1566,5 +1569,56 @@ describe("eaten food hitbox fitting rules", () => {
     assert.equal(bounds.y, 10);
     assert.equal(bounds.width, 10);
     assert.equal(bounds.height, 12);
+  });
+});
+describe("mandatory fullscreen rules", () => {
+  it("determines whether game should pause due to fullscreen state", () => {
+    assert.equal(shouldPauseForFullscreen(false, true, false, false, false), true);
+    assert.equal(shouldPauseForFullscreen(true, true, false, false, false), false);
+    assert.equal(shouldPauseForFullscreen(false, false, false, false, false), false);
+    assert.equal(shouldPauseForFullscreen(false, true, true, false, false), false);
+    assert.equal(shouldPauseForFullscreen(false, true, false, true, false), false);
+    assert.equal(shouldPauseForFullscreen(false, true, false, false, true), false);
+  });
+
+  it("evaluates whether gameplay can be resumed", () => {
+    assert.equal(canResumeGameplay(true, true, false), true);
+    assert.equal(canResumeGameplay(false, true, false), false);
+    assert.equal(canResumeGameplay(false, false, false), true);
+    assert.equal(canResumeGameplay(true, true, true), false);
+  });
+
+  it("resolves fullscreen pause transitions cleanly", () => {
+    const exitPlay = resolveFullscreenPauseTransition(false, true, false, false);
+    assert.deepEqual(exitPlay, {
+      shouldPause: true,
+      shouldResume: false,
+      pausedDueToFullscreen: true
+    });
+
+    const resumePlay = resolveFullscreenPauseTransition(true, true, true, true);
+    assert.deepEqual(resumePlay, {
+      shouldPause: false,
+      shouldResume: true,
+      pausedDueToFullscreen: false
+    });
+
+    const manualPauseExit = resolveFullscreenPauseTransition(false, true, true, false);
+    assert.equal(manualPauseExit.shouldPause, false);
+    assert.equal(manualPauseExit.pausedDueToFullscreen, false);
+
+    const manualPauseReenter = resolveFullscreenPauseTransition(true, true, true, false);
+    assert.deepEqual(manualPauseReenter, {
+      shouldPause: false,
+      shouldResume: false,
+      pausedDueToFullscreen: false
+    });
+
+    const gameOverExit = resolveFullscreenPauseTransition(false, true, false, false, true);
+    assert.deepEqual(gameOverExit, {
+      shouldPause: false,
+      shouldResume: false,
+      pausedDueToFullscreen: false
+    });
   });
 });

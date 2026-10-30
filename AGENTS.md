@@ -93,6 +93,12 @@ Read this first, then [GAME_GUIDE.md](GAME_GUIDE.md) for the code map and event 
     area must dynamically fit the remaining visible portion rather than keeping the original
     full-size shape.
 
+16. **Fullscreen is mandatory during gameplay.**
+    Per the owner's instruction, playing in fullscreen is mandatory and not optional. The fullscreen
+    toggle button has been removed. When the user exits fullscreen (or is not in fullscreen), the
+    game automatically pauses and prompts to return to fullscreen, remaining paused until fullscreen
+    is active.
+
 ## Conventions and gotchas
 
 - **Line endings are CRLF** (`core.autocrlf=true`, no `.gitattributes`). Edit tools that match

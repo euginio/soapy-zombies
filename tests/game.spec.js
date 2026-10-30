@@ -1696,30 +1696,61 @@ test("tray tilt does not affect ants carrying food", async ({ page }) => {
   expect(tiltImmunityResult.deltaYWithTilt).toBeCloseTo(tiltImmunityResult.deltaYWithoutTilt, 4);
 });
 
-test("fullscreen toggle and recovery prompt restore fullscreen when exited", async ({ page }) => {
+test("fullscreen is mandatory, fullscreen toggle button is removed, and exiting fullscreen pauses the game", async ({ page }) => {
   await stubFullscreenAndExposeScenes(page);
   await page.goto("/");
   await clickStartOnCanvas(page);
   await waitForGameScene(page);
+  await page.locator("#level-banner-confirm").click();
+  await expect(page.locator("#level-banner")).toBeHidden();
 
+  // 1. Fullscreen toggle button is removed
   const fullscreenBtn = page.locator("#fullscreen-toggle");
-  await expect(fullscreenBtn).toHaveCount(1);
-  await expect(fullscreenBtn).toBeVisible();
+  await expect(fullscreenBtn).toHaveCount(0);
 
   // Fullscreen prompt overlay exists
   const promptOverlay = page.locator("#fullscreen-prompt-overlay");
   await expect(promptOverlay).toHaveCount(1);
+  await expect(promptOverlay).toBeHidden();
 
-  // Triggering fullscreen loss shows the prompt overlay
+  // Game starts unpaused in fullscreen
+  expect(await page.evaluate(() => window.__gameSceneForTest.isPaused)).toBe(false);
+
+  // 2. Exiting fullscreen automatically pauses the game and displays prompt overlay
   await page.evaluate(() => {
-    const scene = window.__gameSceneForTest;
-    scene.showFullscreenPrompt();
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      get: () => null
+    });
+    document.dispatchEvent(new Event("fullscreenchange"));
   });
-  await expect(promptOverlay).toBeVisible();
 
-  // Clicking the prompt overlay restores fullscreen and hides the prompt
+  await expect(promptOverlay).toBeVisible();
+  expect(await page.evaluate(() => window.__gameSceneForTest.isPaused)).toBe(true);
+  await expect(page.locator("#pause-overlay")).toBeVisible();
+
+  // 3. Clicking prompt overlay restores fullscreen, hiding overlay and unpausing gameplay
   await promptOverlay.click();
   await expect(promptOverlay).toBeHidden();
+  expect(await page.evaluate(() => window.__gameSceneForTest.isPaused)).toBe(false);
+  await expect(page.locator("#pause-overlay")).toBeHidden();
+
+  // 4. Attempting to unpause while outside fullscreen is blocked
+  await page.evaluate(() => {
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      get: () => null
+    });
+    document.dispatchEvent(new Event("fullscreenchange"));
+  });
+  await expect(promptOverlay).toBeVisible();
+  expect(await page.evaluate(() => window.__gameSceneForTest.isPaused)).toBe(true);
+
+  // Clicking resume on pause menu requests fullscreen and resumes once granted
+  await page.locator("#pause-resume").click();
+  await expect(promptOverlay).toBeHidden();
+  expect(await page.evaluate(() => window.__gameSceneForTest.isPaused)).toBe(false);
+  await expect(page.locator("#pause-overlay")).toBeHidden();
 });
 
 test("screen wake lock is acquired during gameplay and released on shutdown", async ({ page }) => {
