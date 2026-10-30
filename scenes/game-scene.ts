@@ -39,6 +39,7 @@ import {
   resolveCaterpillarEscape,
   resolveFoodLoss,
   resolveLevelFoodCount,
+  selectAvailableFoodFrame,
   togglePauseState,
   TUTORIAL_STORAGE_KEY
 } from "../game-rules";
@@ -484,7 +485,9 @@ export class GameScene extends MyScene {
     this.foods = this.add.group();
     this.foods.runChildUpdate = true;
     for (let index = 0; index < this.foodCount; index++) {
-      let newF = new Food(this);
+      const existingFrames = (this.foods.getChildren() as Food[]).map((f) => f.foodFrameIndex);
+      const frame = selectAvailableFoodFrame(existingFrames);
+      let newF = new Food(this, frame);
       this.foods.add(newF, true);
     }
 
@@ -2336,7 +2339,11 @@ export class GameScene extends MyScene {
       if (activeFoods.length < targetFoodCount) {
         const needed = targetFoodCount - activeFoods.length;
         for (let i = 0; i < needed; i++) {
-          const newF = new Food(this);
+          const existingFrames = (this.foods.getChildren() as Food[])
+            .filter((f) => f.active && f.body?.enable)
+            .map((f) => f.foodFrameIndex);
+          const frame = selectAvailableFoodFrame(existingFrames);
+          const newF = new Food(this, frame);
           this.foods.add(newF, true);
         }
       } else if (activeFoods.length > targetFoodCount) {

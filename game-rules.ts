@@ -1439,3 +1439,28 @@ export function resolveLevelFoodCount(options: {
     isGameOver
   };
 }
+export const TOTAL_FOOD_FRAMES = 25;
+
+/**
+ * Returns an available food frame index from 0 to totalFrames - 1,
+ * prioritizing unused frames so food pieces on the tray have maximum variety.
+ */
+export function selectAvailableFoodFrame(
+  existingFrames: number[],
+  totalFrames: number = TOTAL_FOOD_FRAMES,
+  randomFn: () => number = Math.random
+): number {
+  if (totalFrames <= 0) {
+    return 0;
+  }
+  const used = new Set(existingFrames);
+  const available: number[] = [];
+  for (let i = 0; i < totalFrames; i++) {
+    if (!used.has(i)) {
+      available.push(i);
+    }
+  }
+  const pool = available.length > 0 ? available : Array.from({ length: totalFrames }, (_, i) => i);
+  const pickedIndex = Math.floor(randomFn() * pool.length);
+  return pool[pickedIndex] ?? 0;
+}

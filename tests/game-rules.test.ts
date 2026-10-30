@@ -72,7 +72,9 @@ import {
   canShowLevelComplete,
   canStartLevelGameplay,
   formatLevelIntroModal,
-  resolveLevelFoodCount
+  resolveLevelFoodCount,
+  selectAvailableFoodFrame,
+  TOTAL_FOOD_FRAMES
 } from "../game-rules";
 import { ScreenWakeLock, WakeLockSentinelLike } from "../services/wake-lock";
 
@@ -1448,5 +1450,47 @@ describe("level food rules", () => {
       }),
       { shouldRefill: true, targetFoodCount: 6, isGameOver: false }
     );
+  });
+});
+describe("food frame variety rules", () => {
+  it("defines 25 total food frames in the spritesheet", () => {
+    assert.equal(TOTAL_FOOD_FRAMES, 25);
+  });
+
+  it("selects an available food frame avoiding already used frames", () => {
+    // When no frames are used, any valid frame index is selected
+    const initialFrame = selectAvailableFoodFrame([], 25, () => 0.5);
+    assert.equal(initialFrame, 12);
+
+    // When frames 0 to 23 are used, frame 24 must be chosen
+    const usedAlmostAll = Array.from({ length: 24 }, (_, i) => i);
+    const lastRemaining = selectAvailableFoodFrame(usedAlmostAll, 25, () => 0);
+    assert.equal(lastRemaining, 24);
+
+    // Pick from a specific subset of unused frames
+    const usedSubset = [0, 1, 2, 3, 4, 5];
+    const picked = selectAvailableFoodFrame(usedSubset, 25, () => 0);
+    assert.equal(picked, 6);
+    assert.equal(usedSubset.includes(picked), false);
+  });
+
+  it("produces unique food frames across a full standard level spawn of 8 food items", () => {
+    const spawnedFrames: number[] = [];
+    for (let i = 0; i < 8; i++) {
+      const nextFrame = selectAvailableFoodFrame(spawnedFrames, 25);
+      assert.equal(spawnedFrames.includes(nextFrame), false);
+      assert.ok(nextFrame >= 0 && nextFrame < 25);
+      spawnedFrames.push(nextFrame);
+    }
+    assert.equal(spawnedFrames.length, 8);
+    const uniqueCount = new Set(spawnedFrames).size;
+    assert.equal(uniqueCount, 8);
+  });
+
+  it("falls back to full frame pool when all available frames are already used", () => {
+    const allUsed = Array.from({ length: 25 }, (_, i) => i);
+    const fallbackFrame = selectAvailableFoodFrame(allUsed, 25, () => 0.2);
+    assert.ok(fallbackFrame >= 0 && fallbackFrame < 25);
+    assert.equal(fallbackFrame, 5);
   });
 });

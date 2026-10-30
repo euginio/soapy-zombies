@@ -24,7 +24,8 @@ import {
     FOOD_MAX_DRAG_MS,
     FoodBiteStep,
     getFoodBiteSequence,
-    resolveFoodDropPosition
+    resolveFoodDropPosition,
+    TOTAL_FOOD_FRAMES
 } from "../game-rules";
 import { GameScene } from "../scenes/game-scene";
 import { Caterpillar } from "./caterpillar";
@@ -63,23 +64,33 @@ export class Food extends MySprite {
     private dragSamples: DragSample[] = [];
     private dragCooldownTimer: Phaser.Time.TimerEvent | null = null;
 
-    constructor(scene: GameScene) {
+    foodFrameIndex: number = 0;
+    get foodFrame(): number { return this.foodFrameIndex; }
+
+    constructor(scene: GameScene, frameIndex?: number) {
         super(scene, 0, 0, 'food');
         
         this.body.immovable = true;
         this.setScale(1.5);
         // this.setSize(this.width/3, this.height/3)
         // this.setOffset(17)
-        this.setCircle(10,7,8)
+        this.setCircle(10,7,8);
 
-        this.setFrame(Phaser.Math.Between(0, 24));
+        this.foodFrameIndex = frameIndex !== undefined ? frameIndex : Phaser.Math.Between(0, TOTAL_FOOD_FRAMES - 1);
         this.setupDragAndDrop();
 
         // this.on('animationcomplete', this.destroy, this);
-        this.init();
+        this.init(this.foodFrameIndex);
     }
 
-    init() {
+    setFoodFrame(frameIndex: number) {
+        this.foodFrameIndex = frameIndex;
+        if (!this.isBeingEaten || !this.eatCanvasKey) {
+            this.setTexture('food', this.foodFrameIndex);
+        }
+    }
+
+    init(frameIndex?: number) {
         this.clearDragTimers();
         this.resetInputDragState();
         this.isBeingDragged = false;
@@ -90,8 +101,12 @@ export class Food extends MySprite {
         this.dragOriginX = this.x;
         this.dragOriginY = this.y;
         this.cleanupEatCanvas();
-        this.setTexture("food");
-        this.setFrame(Phaser.Math.Between(0, 24));
+        if (frameIndex !== undefined) {
+            this.foodFrameIndex = frameIndex;
+        } else if (typeof this.foodFrameIndex !== 'number') {
+            this.foodFrameIndex = Phaser.Math.Between(0, TOTAL_FOOD_FRAMES - 1);
+        }
+        this.setTexture("food", this.foodFrameIndex);
         this.setAlpha(1);
         this.setAngle(0);
         this.setDepth(0);
@@ -400,7 +415,7 @@ export class Food extends MySprite {
         }
 
         if (this.canvasTex) {
-            this.canvasTex.drawFrame('food', this.frame.name, 0, 0);
+            this.canvasTex.drawFrame('food', this.foodFrameIndex, 0, 0);
             this.setTexture(this.eatCanvasKey);
         }
 
@@ -495,7 +510,7 @@ export class Food extends MySprite {
             this.eatTween = null;
         }
         this.cleanupEatCanvas();
-        this.setTexture('food');
+        this.setTexture('food', this.foodFrameIndex);
         this.isBeingEaten = false;
         this.isWormEating = false;
         this.eatingBug = null;

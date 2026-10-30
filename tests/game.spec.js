@@ -3302,7 +3302,8 @@ test("food eat state and texture are cleanly reset on level refill", async ({ pa
     const food = scene.foods.getChildren().find((f) => f.active && f.body?.enable);
     return {
       isBeingEaten: food?.isBeingEaten,
-      hasTextureKey: Boolean(food?.texture?.key && food.texture.key.startsWith("eaten_food_"))
+      hasTextureKey: Boolean(food?.texture?.key && food.texture.key.startsWith("eaten_food_")),
+      frameIndex: food?.foodFrameIndex
     };
   });
   expect(beforeRefill.isBeingEaten).toBe(true);
@@ -3319,12 +3320,16 @@ test("food eat state and texture are cleanly reset on level refill", async ({ pa
     return {
       isBeingEaten: food?.isBeingEaten,
       textureKey: food?.texture?.key,
+      frameIndex: food?.foodFrameIndex,
+      frameName: Number(food?.frame?.name),
       isWormEating: food?.isWormEating
     };
   });
   expect(afterRefill.isBeingEaten).toBe(false);
   expect(afterRefill.isWormEating).toBe(false);
   expect(afterRefill.textureKey).toBe("food");
+  expect(afterRefill.frameIndex).toBe(beforeRefill.frameIndex);
+  expect(afterRefill.frameName).toBe(beforeRefill.frameIndex);
 });
 
 test("graduating from tutorial to game level 1 resets score to zero and prevents tutorial ant spawns", async ({ page }) => {
@@ -3599,4 +3604,61 @@ test("caterpillar eating consumes outer border on incoming side first without ho
   expect(biteState.eatProgress).toBeGreaterThanOrEqual(0.40);
   expect(biteState.outerIncomingAlpha).toBe(0);
   expect(biteState.oppositeHalfAlpha).toBeGreaterThan(0);
+});
+test("food items on the board display varied food frames rather than defaulting to watermelon", async ({ page }) => {
+  await stubFullscreenAndExposeScenes(page);
+  // Mark tutorial as completed so we launch directly into standard Game Level 1 with 8 foods
+  await page.addInitScript(() => {
+    localStorage.setItem("tutorialCompleted", "true");
+  });
+  await page.goto("/");
+  await clickStartOnCanvas(page);
+  await waitForGameScene(page);
+  await page.locator("#level-banner-confirm").click();
+
+  const foodFrames = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    const activeFoods = scene.foods.getChildren().filter((f) => f.active && f.body?.enable);
+    return activeFoods.map((f) => ({
+      foodFrameIndex: f.foodFrameIndex,
+      frameName: Number(f.frame.name),
+      textureKey: f.texture.key
+    }));
+  });
+
+  // Verify that all 8 food items spawned in Level 1
+  expect(foodFrames.length).toBe(8);
+
+  // Verify each food has matching foodFrameIndex and sprite frame name
+  foodFrames.forEach((item) => {
+    expect(item.textureKey).toBe("food");
+    expect(item.frameName).toBe(item.foodFrameIndex);
+    expect(item.foodFrameIndex).toBeGreaterThanOrEqual(0);
+    expect(item.foodFrameIndex).toBeLessThan(25);
+  });
+
+  // Verify food frames are varied (all 8 frames should be unique across the board)
+  const uniqueFrames = new Set(foodFrames.map((item) => item.foodFrameIndex));
+  expect(uniqueFrames.size).toBe(8);
+
+  // Verify not all food items are watermelon (frame 0)
+  const nonWatermelonCount = foodFrames.filter((item) => item.foodFrameIndex !== 0).length;
+  expect(nonWatermelonCount).toBeGreaterThanOrEqual(7);
+
+  // Trigger level refill (such as level transition or restart) and ensure frames are preserved
+  await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    scene.refillFoods();
+  });
+
+  const framesAfterRefill = await page.evaluate(() => {
+    const scene = window.__gameSceneForTest;
+    return scene.foods.getChildren().filter((f) => f.active && f.body?.enable).map((f) => ({
+      foodFrameIndex: f.foodFrameIndex,
+      frameName: Number(f.frame.name)
+    }));
+  });
+
+  expect(framesAfterRefill.map((f) => f.foodFrameIndex)).toEqual(foodFrames.map((f) => f.foodFrameIndex));
+  expect(framesAfterRefill.map((f) => f.frameName)).toEqual(foodFrames.map((f) => f.frameName));
 });
